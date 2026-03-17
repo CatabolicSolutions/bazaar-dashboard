@@ -20,8 +20,8 @@ SYMBOLS = [
 ]
 TARGET_DTE = [0, 1]
 
-MAX_SCALPING_TICKETS_PER_SYMBOL_DTE = 2
-MAX_CREDIT_TICKETS_PER_SYMBOL_DTE = 2
+MAX_SCALPING_TICKETS_PER_SYMBOL_DTE = 1
+MAX_CREDIT_TICKETS_PER_SYMBOL_DTE = 1
 FALLBACK_TICKETS_PER_SYMBOL_DTE = 1
 MIN_BID = 0.05
 MAX_BID_ASK_SPREAD_RATIO = 0.35
@@ -324,7 +324,15 @@ def build_fallback_candidates(options_data, underlying_price, strategy_type, dte
         if not option_side_is_directionally_valid(opt, underlying_price, dte_value, strategy_type):
             continue
 
-        score = score_scalping_option(opt, underlying_price, min(dte_value, 1)) if strategy_type == 'scalping_buy' else score_credit_option(opt, underlying_price)
+        abs_delta = abs(delta)
+        if strategy_type == 'scalping_buy':
+            if not (0.30 <= abs_delta <= 0.70):
+                continue
+            score = score_scalping_option(opt, underlying_price, min(dte_value, 1))
+        else:
+            if not (0.08 <= abs_delta <= 0.22):
+                continue
+            score = score_credit_option(opt, underlying_price)
         if score is None:
             continue
         ranked_candidates.append((score, opt))
@@ -405,6 +413,8 @@ if __name__ == "__main__":
             continue
         print(f"  Underlying price for {symbol}: {underlying_price}")
 
+        processed_expiries = set()
+
         for requested_dte in TARGET_DTE:
             selection = get_expiration_selection(symbol, today, requested_dte)
             if not selection:
@@ -414,6 +424,12 @@ if __name__ == "__main__":
             exp_date = selection['expiration_date']
             exp_date_str = exp_date.strftime('%Y-%m-%d')
             display_label = selection['label']
+
+            if exp_date_str in processed_expiries:
+                print(f"Skipping duplicate expiry {exp_date_str} for {symbol}; already processed via a higher-priority DTE path.")
+                continue
+            processed_expiries.add(exp_date_str)
+
             print(f"Fetching option chain for {symbol}, requested DTE: {requested_dte} (Using Expiry: {exp_date_str}, Label: {display_label})...")
             if selection['is_fallback']:
                 print(f"  Expiry fallback in use: {selection['fallback_reason']}")
