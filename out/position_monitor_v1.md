@@ -3,6 +3,16 @@
 ## Goal
 Reduce screenshot-based monitoring by letting Alfred poll a live underlying quote plus exact option contract state from Tradier.
 
+## Primary live position room
+- Discord channel: `1483580321126416565`
+- Intended use:
+  - position entry intake
+  - live roadmap/narrative
+  - active monitoring updates
+  - prospective action / decision support
+  - exit confirmation
+- `#hq_alfred` remains broader coordination space, but is no longer the default live position room.
+
 ## Current capabilities
 - Register an open position with:
   - symbol
