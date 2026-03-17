@@ -146,8 +146,9 @@ def build_board(tickets):
         for idx, ticket in enumerate(leaders[strategy][:5], start=1):
             fallback_note = ' [fallback-expiry]' if ticket.get('expiry_fallback') else ''
             lines.append(
-                f"{idx}. {ticket['symbol']} {ticket['option_type']} {ticket['strike']:.2f} {ticket['expiration']} | "
-                f"{ticket['label']} | Δ {ticket.get('delta', 0.0):.4f} | Bid/Ask {ticket.get('bid', 0.0):.2f}/{ticket.get('ask', 0.0):.2f}{fallback_note}"
+                f"{idx}. {ticket['symbol']} {ticket['option_type'].upper()} | Underlying {ticket.get('underlying_price', 0.0):.2f} | "
+                f"Strike {ticket['strike']:.2f} | Exp {ticket['expiration']} | {ticket['label']} | "
+                f"Δ {ticket.get('delta', 0.0):.4f} | Bid/Ask {ticket.get('bid', 0.0):.2f}/{ticket.get('ask', 0.0):.2f}{fallback_note}"
             )
             if strategy == 'Scalping Buy':
                 lines.append('   Thesis: best near-ATM momentum leader in current pass')
