@@ -20,9 +20,9 @@ SYMBOLS = [
 ]
 TARGET_DTE = [0, 1]
 
-MAX_SCALPING_TICKETS_PER_SYMBOL_DTE = 4
-MAX_CREDIT_TICKETS_PER_SYMBOL_DTE = 3
-FALLBACK_TICKETS_PER_SYMBOL_DTE = 2
+MAX_SCALPING_TICKETS_PER_SYMBOL_DTE = 2
+MAX_CREDIT_TICKETS_PER_SYMBOL_DTE = 2
+FALLBACK_TICKETS_PER_SYMBOL_DTE = 1
 MIN_BID = 0.05
 MAX_BID_ASK_SPREAD_RATIO = 0.35
 SCALPING_DELTA_RANGES = {
@@ -333,6 +333,23 @@ def build_fallback_candidates(options_data, underlying_price, strategy_type, dte
     return [opt for _, opt in ranked_candidates[:FALLBACK_TICKETS_PER_SYMBOL_DTE]]
 
 
+def should_emit_for_selection(selection_meta, strategy_type):
+    """Reject distant fallback expiries for short-dated workflows."""
+    if not selection_meta.get('is_fallback'):
+        return True
+
+    actual_dte = selection_meta['actual_dte']
+    requested_dte = selection_meta['requested_dte']
+
+    if strategy_type == 'scalping_buy':
+        return actual_dte <= 1
+
+    if strategy_type == 'credit_spread_sell':
+        return actual_dte <= max(2, requested_dte + 1)
+
+    return False
+
+
 def format_option_as_ticket_message(symbol, display_label, option_data, strategy_type, underlying_price, current_vix, selection_meta, is_fallback=False):
     ticket = f"{'[FALLBACK] ' if is_fallback else ''}{strategy_type.replace('_', ' ').title()} Opportunity for {symbol} ({display_label})**\n"
     ticket += f"  - Underlying Price: ${underlying_price:.2f}\n"
@@ -408,37 +425,43 @@ if __name__ == "__main__":
 
             all_ticket_messages = []
 
-            print(f"Applying 'scalping_buy' strategy for {symbol} on {exp_date_str} (Requested DTE {requested_dte}, Actual DTE {selection['actual_dte']})...")
-            filtered_options_buy = process_options_for_strategy(
-                underlying_price, chain_data, current_vix, "scalping_buy", min(selection['actual_dte'], 1)
-            )
-            if filtered_options_buy:
-                print(f"Found {len(filtered_options_buy)} ranked options for scalping_buy. Formatting tickets...")
-                for opt in filtered_options_buy:
-                    ticket = format_option_as_ticket_message(symbol, display_label, opt, "scalping_buy", underlying_price, current_vix, selection, is_fallback=False)
-                    all_ticket_messages.append(ticket)
+            if should_emit_for_selection(selection, "scalping_buy"):
+                print(f"Applying 'scalping_buy' strategy for {symbol} on {exp_date_str} (Requested DTE {requested_dte}, Actual DTE {selection['actual_dte']})...")
+                filtered_options_buy = process_options_for_strategy(
+                    underlying_price, chain_data, current_vix, "scalping_buy", min(selection['actual_dte'], 1)
+                )
+                if filtered_options_buy:
+                    print(f"Found {len(filtered_options_buy)} ranked options for scalping_buy. Formatting tickets...")
+                    for opt in filtered_options_buy:
+                        ticket = format_option_as_ticket_message(symbol, display_label, opt, "scalping_buy", underlying_price, current_vix, selection, is_fallback=False)
+                        all_ticket_messages.append(ticket)
+                else:
+                    print("No strict scalping candidates found. Generating fallback shortlist...")
+                    fallback_options = build_fallback_candidates(chain_data, underlying_price, "scalping_buy", min(selection['actual_dte'], 1))
+                    for opt in fallback_options:
+                        ticket = format_option_as_ticket_message(symbol, display_label, opt, "scalping_buy", underlying_price, current_vix, selection, is_fallback=True)
+                        all_ticket_messages.append(ticket)
             else:
-                print("No strict scalping candidates found. Generating fallback shortlist...")
-                fallback_options = build_fallback_candidates(chain_data, underlying_price, "scalping_buy", min(selection['actual_dte'], 1))
-                for opt in fallback_options:
-                    ticket = format_option_as_ticket_message(symbol, display_label, opt, "scalping_buy", underlying_price, current_vix, selection, is_fallback=True)
-                    all_ticket_messages.append(ticket)
+                print(f"Skipping scalping output for {symbol} requested {requested_dte}DTE because fallback actual DTE {selection['actual_dte']} is too distant.")
 
-            print(f"Applying 'credit_spread_sell' strategy for {symbol} on {exp_date_str} (Requested DTE {requested_dte}, Actual DTE {selection['actual_dte']})...")
-            filtered_options_sell = process_options_for_strategy(
-                underlying_price, chain_data, current_vix, "credit_spread_sell", min(selection['actual_dte'], 1)
-            )
-            if filtered_options_sell:
-                print(f"Found {len(filtered_options_sell)} ranked options for credit_spread_sell. Formatting tickets...")
-                for opt in filtered_options_sell:
-                    ticket = format_option_as_ticket_message(symbol, display_label, opt, "credit_spread_sell", underlying_price, current_vix, selection, is_fallback=False)
-                    all_ticket_messages.append(ticket)
+            if should_emit_for_selection(selection, "credit_spread_sell"):
+                print(f"Applying 'credit_spread_sell' strategy for {symbol} on {exp_date_str} (Requested DTE {requested_dte}, Actual DTE {selection['actual_dte']})...")
+                filtered_options_sell = process_options_for_strategy(
+                    underlying_price, chain_data, current_vix, "credit_spread_sell", min(selection['actual_dte'], 1)
+                )
+                if filtered_options_sell:
+                    print(f"Found {len(filtered_options_sell)} ranked options for credit_spread_sell. Formatting tickets...")
+                    for opt in filtered_options_sell:
+                        ticket = format_option_as_ticket_message(symbol, display_label, opt, "credit_spread_sell", underlying_price, current_vix, selection, is_fallback=False)
+                        all_ticket_messages.append(ticket)
+                else:
+                    print("No strict credit spread candidates found. Generating fallback shortlist...")
+                    fallback_options = build_fallback_candidates(chain_data, underlying_price, "credit_spread_sell", min(selection['actual_dte'], 1))
+                    for opt in fallback_options:
+                        ticket = format_option_as_ticket_message(symbol, display_label, opt, "credit_spread_sell", underlying_price, current_vix, selection, is_fallback=True)
+                        all_ticket_messages.append(ticket)
             else:
-                print("No strict credit spread candidates found. Generating fallback shortlist...")
-                fallback_options = build_fallback_candidates(chain_data, underlying_price, "credit_spread_sell", min(selection['actual_dte'], 1))
-                for opt in fallback_options:
-                    ticket = format_option_as_ticket_message(symbol, display_label, opt, "credit_spread_sell", underlying_price, current_vix, selection, is_fallback=True)
-                    all_ticket_messages.append(ticket)
+                print(f"Skipping credit spread output for {symbol} requested {requested_dte}DTE because fallback actual DTE {selection['actual_dte']} is too distant.")
 
             if all_ticket_messages:
                 print("---TICKET_START---")
