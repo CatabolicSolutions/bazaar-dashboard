@@ -7,6 +7,8 @@ PYTHON_FORMATTER_SCRIPT="$HOME/.openclaw/workspace/scripts/tradier_ticket_format
 
 TMP_RAW=$(mktemp)
 TMP_BOARD=$(mktemp)
+OUTPUT_BOARD_PATH="$HOME/.openclaw/workspace/out/tradier_leaders_board.txt"
+mkdir -p "$(dirname "$OUTPUT_BOARD_PATH")"
 trap 'rm -f "$TMP_RAW" "$TMP_BOARD"' EXIT
 
 echo "Running Tradier processor..."
@@ -29,6 +31,8 @@ if [ $FORMAT_EXIT -ne 0 ]; then
     exit $FORMAT_EXIT
 fi
 
+cp "$TMP_BOARD" "$OUTPUT_BOARD_PATH"
 cat "$TMP_BOARD"
 echo
 echo "Tradier board generation complete. Target Discord channel: $DISCORD_CHANNEL_ID"
+echo "Saved board artifact: $OUTPUT_BOARD_PATH"
