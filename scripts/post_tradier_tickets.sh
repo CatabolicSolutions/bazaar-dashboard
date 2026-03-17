@@ -5,6 +5,7 @@ DISCORD_CHANNEL_ID="1483025184775733319"
 PYTHON_WRAPPER_SCRIPT="$HOME/.openclaw/workspace/scripts/run_python_script.sh"
 PYTHON_PROCESSOR_SCRIPT="$HOME/.openclaw/workspace/scripts/tradier_strategy_processor_v2.py"
 PYTHON_FORMATTER_SCRIPT="$HOME/.openclaw/workspace/scripts/tradier_ticket_formatter.py"
+PYTHON_ARCHIVE_SCRIPT="$HOME/.openclaw/workspace/scripts/tradier_archive_run.py"
 
 TMP_RAW=$(mktemp)
 TMP_BOARD=$(mktemp)
@@ -17,7 +18,7 @@ printf 'Running Tradier processor...\n' >&2
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -ne 0 ]; then
-    printf 'TRADIER RUN FAILURE\n' 
+    printf 'TRADIER RUN FAILURE\n'
     printf 'Processor exited with code %s\n\n' "$EXIT_CODE"
     cat "$TMP_RAW"
     printf '\nSummary: Tradier processor failed before leaders-board formatting. No board posted.\n'
@@ -39,4 +40,5 @@ if [ $FORMAT_EXIT -ne 0 ]; then
 fi
 
 cp "$TMP_BOARD" "$OUTPUT_BOARD_PATH"
+python3 "$PYTHON_ARCHIVE_SCRIPT" --raw "$TMP_RAW" --board "$TMP_BOARD" >/dev/null 2>&1 || true
 cat "$TMP_BOARD"
