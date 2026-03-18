@@ -28,7 +28,7 @@ HARD_REJECT_KEYWORDS = [
     'rebounds', 'assists', 'touchdowns', 'goals scored', 'points scored', 'wins by over',
     'player', 'parlay', 'same game', 'multi game', 'multi-leg'
 ]
-SPORTS_REJECT_KEYWORDS = [
+SPORTS_CONTEXT_KEYWORDS = [
     'nba', 'nfl', 'mlb', 'nhl', 'soccer', 'tennis', 'golf', 'march madness', 'duke', 'lakers',
     'knicks', 'cavaliers', 'arsenal', 'chelsea', 'barcelona', 'hurricanes', 'islanders', 'sharks'
 ]
@@ -81,12 +81,12 @@ def text_relevance_classification(market):
     text = normalize_text(market.ticker, market.title, market.subtitle, market.event_ticker, market.series_ticker)
     if any(keyword in text for keyword in HARD_REJECT_KEYWORDS):
         return 'reject_hard'
-    if any(keyword in text for keyword in SPORTS_REJECT_KEYWORDS):
-        return 'reject_sports'
     if any(keyword in text for keyword in STRICT_KEYWORDS):
         return 'strict'
     if any(keyword in text for keyword in SOFT_ALLOW_KEYWORDS):
         return 'soft'
+    if any(keyword in text for keyword in SPORTS_CONTEXT_KEYWORDS):
+        return 'sports_context'
     return 'unknown'
 
 
@@ -107,7 +107,7 @@ def evaluate_market(market):
     volume = float(market.volume or 0)
     volume_24h = float(market.volume_24h or 0)
 
-    if relevance in ('reject_hard', 'reject_sports'):
+    if relevance == 'reject_hard':
         return {'accepted': False, 'reason': relevance, 'probability': probability, 'hours_to_close': hours_to_close}
     if probability is None:
         return {'accepted': False, 'reason': 'no_price_reference', 'probability': None, 'hours_to_close': hours_to_close}

@@ -136,9 +136,10 @@ Never post:
 
 ### Kalshi known blocker
 The sampled live Kalshi open feed has been dominated by:
-- sports/cross-category combinatoric contracts
+- cross-category / combinatoric contracts
 - markets without usable price reference
 - contracts too messy to turn into clean Bazaar tickets
+- many sports-linked contracts that still fail on structure/clarity rather than category alone
 
 Discovery quality, not auth/runtime, is the main blocker to execution-worthy Kalshi tickets.
 
