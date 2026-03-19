@@ -13,6 +13,8 @@ HEADERS = {'Authorization': KALSHI_API_KEY}
 MARKET_LIMIT = 100
 MAX_LEADERS_TOTAL = 5
 AUDIT_SAMPLE_SIZE = 8
+MAX_HOURS_TO_CLOSE = 72
+MAX_COMPLEXITY_SCORE = 4
 STRICT_KEYWORDS = [
     's&p', 'spx', 'nasdaq', 'ndx', 'qqq', 'russell', 'iwm', 'dow', 'vix',
     'fed', 'fomc', 'rate', 'rates', 'cpi', 'inflation', 'jobs', 'payrolls',
@@ -125,9 +127,9 @@ def evaluate_market(market):
         return {'accepted': False, 'reason': 'reject_hard', 'probability': probability, 'hours_to_close': hours_to_close}
     if probability is None:
         return {'accepted': False, 'reason': 'no_probability_reference', 'probability': None, 'hours_to_close': hours_to_close}
-    if hours_to_close > 168:
+    if hours_to_close > MAX_HOURS_TO_CLOSE:
         return {'accepted': False, 'reason': 'too_far_to_resolution', 'probability': probability, 'hours_to_close': hours_to_close}
-    if complexity > 6:
+    if complexity > MAX_COMPLEXITY_SCORE:
         return {'accepted': False, 'reason': 'contract_too_complex', 'probability': probability, 'hours_to_close': hours_to_close}
 
     zone_key = detect_zone(probability)
@@ -165,10 +167,10 @@ def score_market(market, evaluation):
         relevance_bonus,
         sports_penalty,
         -distance,
-        evaluation['liquidity'],
-        evaluation['volume'],
         -evaluation['hours_to_close'],
         -evaluation['complexity'],
+        evaluation['liquidity'],
+        evaluation['volume'],
     )
 
 
