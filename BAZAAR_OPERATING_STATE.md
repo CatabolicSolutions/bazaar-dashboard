@@ -93,6 +93,7 @@ Prediction markets are intended to become a disciplined 24/7/365 marginal-return
 - explicit `No Trade` works
 - rejection audit works
 - execution-worthy discovery is still under development
+- approved next architecture: probability-first Kalshi refactor
 
 ### Kalshi preferred market types
 Highest priority:
@@ -137,11 +138,21 @@ Never post:
 ### Kalshi known blocker
 The sampled live Kalshi open feed has been dominated by:
 - cross-category / combinatoric contracts
-- markets without usable price reference
+- shallow metadata responses that often omit usable tradable quote fields
 - contracts too messy to turn into clean Bazaar tickets
 - many sports-linked contracts that still fail on structure/clarity rather than category alone
 
-Discovery quality, not auth/runtime, is the main blocker to execution-worthy Kalshi tickets.
+Discovery quality and contract interpretation, not auth/runtime, are the main blockers to execution-worthy Kalshi tickets.
+
+### Kalshi next approved architecture
+Probability-first refactor is approved.
+
+Immediate refactor goals:
+- move away from quote-first/options-style evaluation
+- treat probability as the native language of Kalshi
+- separate contract discovery, contract interpretation, fair-probability estimation, edge scoring, and execution validation
+- distinguish metadata-only contracts from truly tradable ones
+- build `/coinflip` around implied probability vs estimated fair probability rather than raw quote presence alone
 
 ## Live Position Workflow
 When a live position is opened:
@@ -152,6 +163,32 @@ When a live position is opened:
   - invalidation
   - planned actions if trade works, stalls, or fails
 - use `#trading_journal` afterward for factual trade log and lesson capture
+
+## Discord-Native Approval Workflow (Tradier)
+Execution should be layered across the existing Discord rooms rather than collapsing everything into one place.
+
+### Flow
+1. `#trading-desk` emits leaders / candidates
+2. live-position room (`1483580321126416565`) becomes the execution surface
+3. Alfred presents an execution card before capital is committed
+4. Ross approves explicitly
+5. Alfred runs a Tradier order preview
+6. Ross commits explicitly
+7. Alfred places the order and transitions to monitoring/journaling flow
+
+### Command semantics
+Recommended v1 commands:
+- `/approve <contract>` → authorize Alfred to prepare order preview
+- `/commit` → authorize live order placement after acceptable preview
+- `/reject` → decline candidate and move on
+- `/in ...` → register open/filled position and start monitoring
+- `/out ...` → register exit and stop monitoring
+
+### Guardrails
+- leaders-board posts are candidates, not automatic entries
+- no vague approval language should count as trade authorization
+- preview should happen before live placement
+- execution should align with scalp philosophy: fast, evidence-based, confirmation-driven, no hope-holding weak setups
 
 ## Current Risk / Execution Posture
 Tradier:
