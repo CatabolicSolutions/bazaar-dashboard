@@ -156,6 +156,57 @@ def cmd_commit(args):
     print(json.dumps(active, indent=2))
 
 
+def cmd_take(args):
+    leader, run = select_candidate(args.contract)
+    state = load_state()
+    account_ready = readiness_snapshot()
+    entry_price = leader.get('mid_price') or leader.get('ask') or leader.get('last_price')
+    payload = {
+        'class': 'option',
+        'symbol': leader['symbol'].upper(),
+        'option_symbol': occ_option_symbol(leader['symbol'], leader['expiration'], leader['option_type'], leader['strike']),
+        'side': 'buy_to_open' if leader['strategy'] == 'Scalping Buy' else 'sell_to_open',
+        'quantity': args.qty,
+        'type': args.order_type,
+        'duration': args.duration,
+        'tag': f"alfred-take-{candidate_id(leader)}",
+    }
+    if args.order_type in {'limit', 'stop_limit'}:
+        working_price = args.price if args.price is not None else entry_price
+        if working_price is None:
+            raise RuntimeError('No working price available for /take')
+        payload['price'] = round(float(working_price), 2)
+    preview = post_order(payload, preview=True)
+    active = {
+        'candidate_id': candidate_id(leader),
+        'leader': leader,
+        'run_id': run['run_id'],
+        'preview_payload': payload,
+        'preview_response': preview,
+        'account_snapshot': account_ready,
+        'take_requested_at': datetime.now().astimezone().isoformat(),
+        'status': 'previewed-by-take',
+    }
+    state['active_candidate'] = active
+    state['history'].append({'ts': datetime.now().astimezone().isoformat(), 'action': 'take_preview', 'candidate_id': active['candidate_id']})
+
+    if not account_ready.get('ready_for_options_execution'):
+        active['status'] = 'blocked'
+        active['blocked_reason'] = '; '.join(account_ready.get('blockers', []))
+        save_state(state)
+        print(json.dumps(active, indent=2))
+        return
+
+    result = post_order(payload, preview=False)
+    active['status'] = 'committed-by-take'
+    active['commit_response'] = result
+    active['commit_account_snapshot'] = account_ready
+    active['committed_at'] = datetime.now().astimezone().isoformat()
+    state['history'].append({'ts': datetime.now().astimezone().isoformat(), 'action': 'take_commit', 'candidate_id': active['candidate_id']})
+    save_state(state)
+    print(json.dumps(active, indent=2))
+
+
 def cmd_reject(args):
     state = load_state()
     active = state.get('active_candidate')
@@ -185,6 +236,14 @@ def main():
     approve.add_argument('--duration', default='day')
     approve.add_argument('--price', type=float)
     approve.set_defaults(func=cmd_approve)
+
+    take = sub.add_parser('take')
+    take.add_argument('--contract')
+    take.add_argument('--qty', type=int, default=1)
+    take.add_argument('--order-type', default='limit', choices=['market', 'limit', 'stop', 'stop_limit'])
+    take.add_argument('--duration', default='day')
+    take.add_argument('--price', type=float)
+    take.set_defaults(func=cmd_take)
 
     commit = sub.add_parser('commit')
     commit.set_defaults(func=cmd_commit)
