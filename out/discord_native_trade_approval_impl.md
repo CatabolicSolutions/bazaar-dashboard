@@ -48,15 +48,15 @@ $HOME/.openclaw/workspace/scripts/run_python_script.sh \
 ```
 
 ## What still needs wiring
-- message-surface parser so `/approve`, `/commit`, and `/reject` in Discord invoke these scripts automatically
+- message-surface parser so `/take`, `/reject`, `/in`, and `/out` in Discord invoke these scripts automatically
 - account/buying-power checks before preview/commit
 - preview formatting/posting back into the live position room automatically
 - fill detection -> `/in` handoff
 - rejection logging into journal/review layer
 
 ## Current value
-Even before full message-trigger automation, the approval logic is now formalized and executable:
+Even before full message-trigger automation, the execution logic is now formalized and executable:
 - candidate -> execution card
-- approval -> preview
-- commit -> live placement
+- `/take` equivalent -> validation/preview -> live placement path
 - reject -> clear state
+- `/in` / `/out` lifecycle can converge manual and Alfred-executed positions

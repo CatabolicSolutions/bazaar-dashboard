@@ -45,34 +45,34 @@ Before any trade is green-lit, Alfred should produce a compact execution card in
 - confidence / posture
 - whether the setup fits scalp philosophy
 
-### Step 4 — Explicit approval command
-Approval should be explicit and unambiguous.
-Recommended approval syntax:
-- `/approve <symbol/contract>`
-- optional later: `/approve top` when only one live candidate is under discussion
+### Step 4 — Explicit execution command
+Execution authorization should be explicit and unambiguous.
+Locked-in execution syntax:
+- `/take <symbol/contract/details>`
 
 No execution should happen from vague phrases like:
 - "looks good"
 - "send it"
 - "maybe take it"
 
-### Step 5 — Order preview
-After approval, Alfred prepares an order preview using Tradier preview mode.
-Preview response should surface in the live-position room with:
+### Step 5 — Under-the-hood validation and preview
+After `/take`, Alfred should perform mechanical validation using Tradier preview/account checks before live placement.
+Preview/validation response should surface in the live-position room with:
 - side
 - qty
 - limit price / order type
 - estimated cost
 - order validity / preview result
+- any buying-power or tradability blockers
 
-### Step 6 — Final commit
-Recommended final commit syntax:
-- `/commit`
-
-At this stage:
+### Step 6 — Live placement
+If validation passes:
 - Alfred places the order
 - Alfred confirms order id / state
 - Alfred transitions to active monitoring
+
+If validation fails:
+- Alfred reports the blocker and does not place the order
 
 ### Step 7 — Native position lifecycle
 Once filled, normal live-position workflow takes over:
@@ -116,13 +116,12 @@ The system should expand capital by:
 Capital expansion should come from repeatability and discipline, not aggression for its own sake.
 
 ## v1 Recommended Commands
-### Approval layer
-- `/approve <contract>` → authorize Alfred to prepare order preview
-- `/commit` → authorize live placement after preview
-- `/reject` → decline candidate and move on
+### Execution layer
+- `/take <contract/details>` → authorize Alfred to validate and execute entry
+- `/reject <contract/details>` → decline candidate and move on
 
 ### Position layer
-- `/in ...` → register filled/open position and begin monitoring
+- `/in ...` → register manually filled/open position and begin monitoring
 - `/out ...` → register exit and stop monitoring
 
 ## Why this structure is correct

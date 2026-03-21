@@ -177,17 +177,17 @@ Execution should be layered across the existing Discord rooms rather than collap
 7. Alfred places the order and transitions to monitoring/journaling flow
 
 ### Command semantics
-Recommended v1 commands:
-- `/approve <contract>` → authorize Alfred to prepare order preview
-- `/commit` → authorize live order placement after acceptable preview
-- `/reject` → decline candidate and move on
-- `/in ...` → register open/filled position and start monitoring
+Locked-in v1 commands:
+- `/take <contract/details>` → final human authorization for Alfred to execute entry
+- `/reject <contract/details>` → decline candidate and move on
+- `/in ...` → register a manually entered/open/filled position and start monitoring
 - `/out ...` → register exit and stop monitoring
 
 ### Guardrails
 - leaders-board posts are candidates, not automatic entries
 - no vague approval language should count as trade authorization
-- preview should happen before live placement
+- `/take` is the primary human gate for Alfred-executed entries
+- under the hood Alfred should still perform mechanical validation (account state, preview/tradability checks) before placement
 - execution should align with scalp philosophy: fast, evidence-based, confirmation-driven, no hope-holding weak setups
 
 ## Current Risk / Execution Posture
