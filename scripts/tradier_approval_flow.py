@@ -39,7 +39,10 @@ def normalize_contract_text(text: str):
 
 def contract_key(leader):
     cp = 'C' if leader['option_type'].lower().startswith('c') else 'P'
-    return f"{leader['symbol']}{int(round(float(leader['strike'])))}{cp}{leader['expiration']}"
+    strike = float(leader['strike'])
+    strike_int = str(int(round(strike)))
+    strike_full = f"{strike:.2f}".rstrip('0').rstrip('.')
+    return f"{leader['symbol']}{strike_int}{cp}{leader['expiration']}|{leader['symbol']}{strike_full}{cp}{leader['expiration']}"
 
 
 def select_candidate(contract_hint: str | None):
@@ -53,9 +56,9 @@ def select_candidate(contract_hint: str | None):
     hint = normalize_contract_text(contract_hint)
     matches = []
     for leader in leaders:
-        key = normalize_contract_text(contract_key(leader))
+        key_variants = [normalize_contract_text(k) for k in contract_key(leader).split('|')]
         symbol_match = normalize_contract_text(leader['symbol']) in hint
-        if hint in key or key in hint or symbol_match:
+        if any(hint in key or key in hint for key in key_variants) or symbol_match:
             matches.append(leader)
     if not matches:
         raise RuntimeError(f'No leader matched hint: {contract_hint}')
