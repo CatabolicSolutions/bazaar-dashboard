@@ -91,7 +91,7 @@ def build_execution_card(leader, run):
         lines.append(f"- Initial risk line: ~{stop_ref:.2f} (about -10%)")
     lines.append('- Invalidation: if underlying structure fails or momentum does not pay quickly')
     lines.append('- Macro alignment: candidate must still make sense versus the morning macro overlay')
-    lines.append('- Next command: `/approve <contract>` to request Tradier preview')
+    lines.append('- Next command: `/take <contract>` to authorize Alfred entry handling')
     return '\n'.join(lines)
 
 
