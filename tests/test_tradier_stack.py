@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = WORKSPACE_ROOT / 'scripts'
@@ -12,6 +13,7 @@ from scripts.tradier_execution import occ_option_symbol
 from scripts.tradier_position_flow import parse_command
 from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import parse_raw_tickets, top_leaders_by_strategy
+from scripts.tradier_account import readiness_snapshot
 
 
 RAW_SAMPLE = '''---TICKET_START---
@@ -87,6 +89,31 @@ class TradierStackTests(unittest.TestCase):
         leaders = top_leaders_by_strategy(tickets, limit_per_strategy=1)
         self.assertEqual(len(leaders), 2)
         self.assertEqual(leaders[0]['symbol'], 'IWM')
+
+    @patch('scripts.tradier_account.profile')
+    @patch('scripts.tradier_account.balances')
+    def test_readiness_snapshot_blocks_zero_option_bp(self, mock_balances, mock_profile):
+        mock_profile.return_value = {
+            'profile': {
+                'account': {
+                    'status': 'active',
+                    'option_level': 2,
+                }
+            }
+        }
+        mock_balances.return_value = {
+            'balances': {
+                'total_cash': 200.0,
+                'uncleared_funds': 200.0,
+                'margin': {
+                    'option_buying_power': 0.0,
+                    'stock_buying_power': 0.0,
+                },
+            }
+        }
+        snap = readiness_snapshot()
+        self.assertFalse(snap['ready_for_options_execution'])
+        self.assertIn('option buying power is zero', snap['blockers'])
 
 
 if __name__ == '__main__':

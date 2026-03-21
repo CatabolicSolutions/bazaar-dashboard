@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tradier_board_utils import score_ticket
 from tradier_execution import occ_option_symbol, post_order
+from tradier_account import readiness_snapshot
 
 RUNS_DIR = Path.home() / '.openclaw' / 'workspace' / 'out' / 'tradier_runs'
 STATE_PATH = Path.home() / '.openclaw' / 'workspace' / 'out' / 'tradier_approval_state.json'
@@ -103,6 +104,7 @@ def cmd_card(args):
 def cmd_approve(args):
     leader, run = select_candidate(args.contract)
     state = load_state()
+    account_ready = readiness_snapshot()
     entry_price = leader.get('mid_price') or leader.get('ask') or leader.get('last_price')
     payload = {
         'class': 'option',
@@ -126,6 +128,7 @@ def cmd_approve(args):
         'run_id': run['run_id'],
         'preview_payload': payload,
         'preview_response': preview,
+        'account_snapshot': account_ready,
         'approved_at': datetime.now().astimezone().isoformat(),
         'status': 'previewed',
     }
@@ -139,10 +142,14 @@ def cmd_commit(args):
     active = state.get('active_candidate')
     if not active:
         raise RuntimeError('No active approved candidate to commit')
+    account_ready = readiness_snapshot()
+    if not account_ready.get('ready_for_options_execution'):
+        raise RuntimeError('Account not execution-ready: ' + '; '.join(account_ready.get('blockers', [])))
     payload = dict(active['preview_payload'])
     result = post_order(payload, preview=False)
     active['status'] = 'committed'
     active['commit_response'] = result
+    active['commit_account_snapshot'] = account_ready
     active['committed_at'] = datetime.now().astimezone().isoformat()
     state['history'].append({'ts': datetime.now().astimezone().isoformat(), 'action': 'commit', 'candidate_id': active['candidate_id']})
     save_state(state)
