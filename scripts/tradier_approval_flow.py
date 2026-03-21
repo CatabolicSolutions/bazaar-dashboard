@@ -1,6 +1,6 @@
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 
 from tradier_board_utils import score_ticket
@@ -71,6 +71,12 @@ def candidate_id(leader):
     return f"{leader['symbol']}-{leader['expiration']}-{leader['option_type']}-{leader['strike']}"
 
 
+def ensure_not_expired(leader):
+    exp = datetime.strptime(leader['expiration'], '%Y-%m-%d').date()
+    if exp <= date.today():
+        raise RuntimeError(f"Candidate contract is expired or same-day stale for execution: {leader['symbol']} {leader['expiration']}")
+
+
 def build_execution_card(leader, run):
     cp = 'Call' if leader['option_type'].lower().startswith('c') else 'Put'
     entry_ref = leader.get('mid_price') or leader.get('ask') or leader.get('last_price') or 0.0
@@ -103,6 +109,7 @@ def cmd_card(args):
 
 def cmd_approve(args):
     leader, run = select_candidate(args.contract)
+    ensure_not_expired(leader)
     state = load_state()
     account_ready = readiness_snapshot()
     entry_price = leader.get('mid_price') or leader.get('ask') or leader.get('last_price')
@@ -158,6 +165,7 @@ def cmd_commit(args):
 
 def cmd_take(args):
     leader, run = select_candidate(args.contract)
+    ensure_not_expired(leader)
     state = load_state()
     account_ready = readiness_snapshot()
     entry_price = leader.get('mid_price') or leader.get('ask') or leader.get('last_price')
