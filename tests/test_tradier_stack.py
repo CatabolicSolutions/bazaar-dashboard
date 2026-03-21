@@ -14,6 +14,7 @@ from scripts.tradier_position_flow import parse_command
 from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import parse_raw_tickets, top_leaders_by_strategy
 from scripts.tradier_account import readiness_snapshot
+from scripts.tradier_exit_policy import classify
 
 
 RAW_SAMPLE = '''---TICKET_START---
@@ -114,6 +115,27 @@ class TradierStackTests(unittest.TestCase):
         snap = readiness_snapshot()
         self.assertFalse(snap['ready_for_options_execution'])
         self.assertIn('option buying power is zero', snap['blockers'])
+
+    def test_exit_policy_classify_warning(self):
+        position = {'id': 'x'}
+        snap = {'underlying_last': 249.95, 'option_mid': 1.70, 'option_last': 1.70}
+        policy = {'underlying_soft_stop': 250.00, 'underlying_hard_stop': 249.90}
+        result = classify(position, snap, policy)
+        self.assertEqual(result['state'], 'warning')
+
+    def test_exit_policy_classify_exit_now(self):
+        position = {'id': 'x'}
+        snap = {'underlying_last': 249.85, 'option_mid': 1.58, 'option_last': 1.58}
+        policy = {'underlying_hard_stop': 249.90, 'option_hard_stop': 1.60}
+        result = classify(position, snap, policy)
+        self.assertEqual(result['state'], 'exit_now')
+
+    def test_exit_policy_classify_target_zone(self):
+        position = {'id': 'x'}
+        snap = {'underlying_last': 250.55, 'option_mid': 2.08, 'option_last': 2.08}
+        policy = {'underlying_target': 250.50, 'option_target': 2.05}
+        result = classify(position, snap, policy)
+        self.assertEqual(result['state'], 'target_zone')
 
 
 if __name__ == '__main__':
