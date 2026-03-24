@@ -1,0 +1,47 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #121922;
+  --panel-2: #17212d;
+  --text: #d7e1ea;
+  --muted: #8da0b3;
+  --accent: #f5c542;
+  --good: #51d88a;
+  --warn: #ffb454;
+  --bad: #ff6b6b;
+  --border: #223041;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+.app { max-width: 1600px; margin: 0 auto; padding: 20px; }
+.topbar { display: flex; justify-content: space-between; align-items: end; margin-bottom: 20px; }
+.eyebrow { color: var(--accent); font-size: 12px; letter-spacing: 0.12em; }
+h1,h2,h3 { margin: 0 0 12px; }
+button { background: var(--accent); color: #111; border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-weight: 700; }
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.card { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.18); }
+.card-health { grid-column: span 4; }
+.card-overview { grid-column: span 8; }
+.card-leaders { grid-column: span 8; }
+.card-positions { grid-column: span 4; }
+.card-queue { grid-column: span 6; }
+.card-notes { grid-column: span 6; }
+.health-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.health-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.health-item .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.health-item .value { font-size: 15px; font-weight: 700; }
+.good { color: var(--good); }
+.warn { color: var(--warn); }
+.bad { color: var(--bad); }
+.muted { color: var(--muted); }
+.preview, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.preview { max-height: 300px; overflow: auto; white-space: pre-wrap; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
+.leaders-wrap { display: grid; gap: 14px; }
+.leader { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.02); }
+.leader .section { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.leader .headline { font-weight: 700; margin-bottom: 8px; }
+.leader ul { margin: 0; padding-left: 18px; color: var(--muted); }
+.stack { display: grid; gap: 10px; }
+.placeholder { color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; padding: 12px; }
+@media (max-width: 1100px) {
+  .card-health,.card-overview,.card-leaders,.card-positions,.card-queue,.card-notes { grid-column: 1 / -1; }
+}

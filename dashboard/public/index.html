@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bazaar Trading Desk</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">BAZAAR OF FORTUNES</div>
+        <h1>Trading Desk</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="refreshBtn">Refresh Snapshot</button>
+        <div id="updatedAt" class="muted"></div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card card-health">
+        <h2>System Health</h2>
+        <div id="healthGrid" class="health-grid"></div>
+      </section>
+
+      <section class="card card-overview">
+        <h2>Market Overview</h2>
+        <pre id="boardPreview" class="mono preview"></pre>
+      </section>
+
+      <section class="card card-leaders">
+        <h2>Tradier Leaders</h2>
+        <div id="leadersWrap" class="leaders-wrap"></div>
+      </section>
+
+      <section class="card card-positions">
+        <h2>Active Positions</h2>
+        <div id="positionsWrap" class="stack"></div>
+      </section>
+
+      <section class="card card-queue">
+        <h2>Execution Queue</h2>
+        <div id="queueWrap" class="stack"></div>
+      </section>
+
+      <section class="card card-notes">
+        <h2>Desk Notes</h2>
+        <ul>
+          <li>Tradier is the live execution engine.</li>
+          <li>Kalshi remains R&amp;D until /coinflip matures.</li>
+          <li>Discord is comms; workspace state files are machine truth.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
