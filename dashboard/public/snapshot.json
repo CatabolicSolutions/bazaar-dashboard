@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-03-24T02:36:34.368022+00:00",
+  "updatedAt": "2026-03-24T06:18:40.946151+00:00",
   "systemHealth": {
     "tradierBoardPresent": true,
     "tradierBoardUpdatedAt": "2026-03-23T18:40:28.633908+00:00",
     "tradierApiKeyLoaded": true,
-    "latestCommit": "3113d7a Harden dashboard launcher and UI refresh"
+    "latestCommit": "7e6601d Harden Trading Desk as persistent service"
   },
   "tradier": {
     "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\nVIX: 25.0\n\nDirectional / Scalping Leaders\n1. XSP PUT | Underlying 661.62 | Strike 661.00 | Exp 2026-03-23 | 0DTE | \u0394 -0.5618 | Bid/Ask 0.63/0.67\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n2. IWM CALL | Underlying 249.80 | Strike 249.00 | Exp 2026-03-23 | 0DTE | \u0394 0.5445 | Bid/Ask 1.04/1.07\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n3. TSLA CALL | Underlying 381.48 | Strike 380.00 | Exp 2026-03-23 | 0DTE | \u0394 0.5376 | Bid/Ask 1.98/2.00\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n4. IWM PUT | Underlying 249.80 | Strike 251.00 | Exp 2026-03-24 | 1DTE | \u0394 -0.6392 | Bid/Ask 2.59/2.61\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n5. QQQ PUT | Underlying 590.87 | Strike 593.00 | Exp 2026-03-24 | 1DTE | \u0394 -0.6421 | Bid/Ask 4.48/4.51\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n\nPremium / Credit Leaders\n1. IWM PUT | Underlying 249.80 | Strike 243.00 | Exp 2026-03-24 | 1DTE | \u0394 -0.1398 | Bid/Ask 0.34/0.35\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n2. SPY PUT | Underlying 658.85 | Strike 654.00 | Exp 2026-03-23 | 0DTE | \u0394 -0.1380 | Bid/Ask 0.06/0.07\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n3. IWM CALL | Underlying 249.80 | Strike 251.00 | Exp 2026-03-23 | 0DTE | \u0394 0.1360 | Bid/Ask 0.14/0.15\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n4. AAPL CALL | Underlying 251.64 | Strike 257.50 | Exp 2026-03-25 | 2DTE (requested 1DTE, fallback) | \u0394 0.1457 | Bid/Ask 0.32/0.35 [fallback-expiry]\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 6/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n   Note: No exact 1DTE expiry available; using nearest valid expiry 2026-03-25.\n5. XSP PUT | Underlying 661.62 | Strike 649.00 | Exp 2026-03-24 | 1DTE | \u0394 -0.1339 | Bid/Ask 0.67/0.69\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n\nRun Notes\n- Leaders emitted: 23\n- Fallback-expiry leaders: 4\n- Interpret fallback-expiry leaders as second-best structural representations, not literal requested-DTE matches\n\n",
@@ -133,8 +133,20 @@
     ]
   },
   "activePositions": {
-    "updatedAt": null,
-    "positions": []
+    "updatedAt": "2026-03-24T06:18:26.740338+00:00",
+    "positions": [
+      {
+        "symbol": "IWM",
+        "instrument": "248C",
+        "entry": "2.94",
+        "current": "3.09",
+        "size": "1",
+        "invalidation": "lose local bounce",
+        "targets": "3.15/3.25",
+        "notes": "test save",
+        "status": "closed"
+      }
+    ]
   },
   "executionQueue": {
     "updatedAt": null,
