@@ -8,6 +8,7 @@ ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
 PUBLIC = ROOT / 'dashboard' / 'public'
 BUILDER = ROOT / 'dashboard' / 'scripts' / 'build_snapshot.py'
 SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
+SAVE_QUEUE = ROOT / 'dashboard' / 'scripts' / 'save_queue.py'
 
 class Handler(SimpleHTTPRequestHandler):
     def refresh_snapshot(self):
@@ -20,28 +21,32 @@ class Handler(SimpleHTTPRequestHandler):
         self.refresh_snapshot()
         return super().do_GET()
 
+    def _run_save(self, script_path, body):
+        proc = subprocess.run(
+            ['python3', str(script_path)],
+            input=body,
+            cwd=str(ROOT),
+            capture_output=True,
+        )
+        if proc.returncode == 0:
+            self.refresh_snapshot()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(proc.stdout)
+        else:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': False, 'error': proc.stderr.decode() or 'save failed'}).encode())
+
     def do_POST(self):
+        length = int(self.headers.get('Content-Length', '0'))
+        body = self.rfile.read(length)
         if self.path == '/api/positions':
-            length = int(self.headers.get('Content-Length', '0'))
-            body = self.rfile.read(length)
-            proc = subprocess.run(
-                ['python3', str(SAVE_POSITIONS)],
-                input=body,
-                cwd=str(ROOT),
-                capture_output=True,
-            )
-            if proc.returncode == 0:
-                self.refresh_snapshot()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(proc.stdout)
-            else:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({'ok': False, 'error': proc.stderr.decode() or 'save failed'}).encode())
-            return
+            return self._run_save(SAVE_POSITIONS, body)
+        if self.path == '/api/queue':
+            return self._run_save(SAVE_QUEUE, body)
         self.send_response(404)
         self.end_headers()
 

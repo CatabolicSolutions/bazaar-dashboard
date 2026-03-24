@@ -53,6 +53,19 @@ function positionTemplate(position = {}) {
   };
 }
 
+function queueTemplate(item = {}) {
+  return {
+    symbol: item.symbol || '',
+    instrument: item.instrument || '',
+    side: item.side || '',
+    trigger: item.trigger || '',
+    thesis: item.thesis || '',
+    priority: item.priority || 'normal',
+    status: item.status || 'queued',
+    notes: item.notes || '',
+  };
+}
+
 function collectPositions() {
   return Array.from(document.querySelectorAll('.position-card')).map(card => ({
     symbol: card.querySelector('[name="symbol"]').value,
@@ -64,6 +77,19 @@ function collectPositions() {
     targets: card.querySelector('[name="targets"]').value,
     notes: card.querySelector('[name="notes"]').value,
     status: card.querySelector('[name="status"]').value,
+  }));
+}
+
+function collectQueue() {
+  return Array.from(document.querySelectorAll('.queue-card')).map(card => ({
+    symbol: card.querySelector('[name="symbol"]').value,
+    instrument: card.querySelector('[name="instrument"]').value,
+    side: card.querySelector('[name="side"]').value,
+    trigger: card.querySelector('[name="trigger"]').value,
+    thesis: card.querySelector('[name="thesis"]').value,
+    priority: card.querySelector('[name="priority"]').value,
+    status: card.querySelector('[name="status"]').value,
+    notes: card.querySelector('[name="notes"]').value,
   }));
 }
 
@@ -94,11 +120,46 @@ function makePositionCard(position = {}) {
   `;
 }
 
+function makeQueueCard(item = {}) {
+  const q = queueTemplate(item);
+  return `
+    <div class="queue-card">
+      <div class="queue-grid">
+        <input name="symbol" placeholder="Symbol" value="${q.symbol}">
+        <input name="instrument" placeholder="Instrument" value="${q.instrument}">
+        <input name="side" placeholder="Side" value="${q.side}">
+        <input name="trigger" placeholder="Trigger" value="${q.trigger}">
+        <select name="priority">
+          <option value="low" ${q.priority === 'low' ? 'selected' : ''}>low</option>
+          <option value="normal" ${q.priority === 'normal' ? 'selected' : ''}>normal</option>
+          <option value="high" ${q.priority === 'high' ? 'selected' : ''}>high</option>
+        </select>
+        <select name="status">
+          <option value="queued" ${q.status === 'queued' ? 'selected' : ''}>queued</option>
+          <option value="approved" ${q.status === 'approved' ? 'selected' : ''}>approved</option>
+          <option value="entered" ${q.status === 'entered' ? 'selected' : ''}>entered</option>
+          <option value="closed" ${q.status === 'closed' ? 'selected' : ''}>closed</option>
+        </select>
+        <textarea name="thesis" placeholder="Thesis">${q.thesis}</textarea>
+        <textarea name="notes" placeholder="Notes">${q.notes}</textarea>
+      </div>
+      <div class="position-actions">
+        <div class="muted small">Editable execution queue item</div>
+        <button class="link-btn remove-queue-btn">Remove</button>
+      </div>
+    </div>
+  `;
+}
+
 function bindPositionActions() {
   document.querySelectorAll('.remove-position-btn').forEach(btn => {
-    btn.onclick = () => {
-      btn.closest('.position-card').remove();
-    };
+    btn.onclick = () => btn.closest('.position-card').remove();
+  });
+}
+
+function bindQueueActions() {
+  document.querySelectorAll('.remove-queue-btn').forEach(btn => {
+    btn.onclick = () => btn.closest('.queue-card').remove();
   });
 }
 
@@ -115,13 +176,17 @@ function renderPositions(state) {
   document.getElementById('positionsStatus').textContent = state?.updatedAt ? `Last saved: ${state.updatedAt}` : 'Unsaved draft';
 }
 
-function renderSimpleList(id, items, emptyText) {
-  const wrap = document.getElementById(id);
-  if (!items?.length) {
-    wrap.innerHTML = `<div class="placeholder">${emptyText}</div>`;
-    return;
-  }
-  wrap.innerHTML = items.map(item => `<div class="leader"><pre class="mono">${JSON.stringify(item, null, 2)}</pre></div>`).join('');
+function renderQueue(state) {
+  const wrap = document.getElementById('queueWrap');
+  const queue = state?.queue || [];
+  const cards = queue.length ? queue.map(makeQueueCard).join('') : makeQueueCard();
+  wrap.innerHTML = cards + '<button id="addQueueBtn" class="link-btn">Add Queue Item</button>';
+  bindQueueActions();
+  document.getElementById('addQueueBtn').onclick = () => {
+    document.getElementById('addQueueBtn').insertAdjacentHTML('beforebegin', makeQueueCard());
+    bindQueueActions();
+  };
+  document.getElementById('queueStatus').textContent = state?.updatedAt ? `Last saved: ${state.updatedAt}` : 'Unsaved draft';
 }
 
 async function savePositions() {
@@ -141,6 +206,23 @@ async function savePositions() {
   await refresh();
 }
 
+async function saveQueue() {
+  const payload = { queue: collectQueue() };
+  const res = await fetch('/api/queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  const status = document.getElementById('queueStatus');
+  if (!res.ok || !data.ok) {
+    status.textContent = `Save failed: ${data.error || 'unknown error'}`;
+    return;
+  }
+  status.textContent = `Saved ${data.count} queue item(s) at ${data.updatedAt}`;
+  await refresh();
+}
+
 async function refresh() {
   const snapshot = await loadSnapshot();
   document.getElementById('updatedAt').textContent = `Snapshot: ${snapshot.updatedAt}`;
@@ -148,11 +230,12 @@ async function refresh() {
   renderBoard(snapshot.tradier?.rawBoard || '');
   renderLeaders(snapshot.tradier?.leaders || []);
   renderPositions(snapshot.activePositions || {});
-  renderSimpleList('queueWrap', snapshot.executionQueue?.queue, 'No queued actions loaded.');
+  renderQueue(snapshot.executionQueue || {});
 }
 
 document.getElementById('refreshBtn').addEventListener('click', refresh);
 document.getElementById('savePositionsBtn').addEventListener('click', savePositions);
+document.getElementById('saveQueueBtn').addEventListener('click', saveQueue);
 refresh().catch(err => {
   document.getElementById('serverState').textContent = 'ERROR';
   document.getElementById('serverState').className = 'status-pill bad';
