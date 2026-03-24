@@ -24,6 +24,10 @@ function renderBoard(raw) {
   document.getElementById('boardPreview').textContent = raw || 'No board available.';
 }
 
+function noteCard(label, value) {
+  return `<div class="leader-note"><div class="label">${label}</div><div class="value">${value || '—'}</div></div>`;
+}
+
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
   if (!leaders?.length) {
@@ -32,9 +36,26 @@ function renderLeaders(leaders) {
   }
   wrap.innerHTML = leaders.map(leader => `
     <div class="leader">
-      <div class="section">${leader.section}</div>
-      <div class="headline">${leader.headline}</div>
-      <ul>${leader.details.map(d => `<li>${d}</li>`).join('')}</ul>
+      <div>
+        <div class="section">${leader.section}</div>
+        <div class="headline">${leader.symbol || ''} ${leader.option_type || ''} ${leader.strike || ''} ${leader.exp || ''}</div>
+        <div class="muted small">${leader.label || leader.headline}</div>
+        ${leader.fallback ? '<div class="fallback-flag">Fallback Expiry</div>' : ''}
+      </div>
+      <div class="leader-meta">
+        <div class="meta"><div class="label">Underlying</div><div class="value">${leader.underlying || '—'}</div></div>
+        <div class="meta"><div class="label">Delta</div><div class="value">${leader.delta || '—'}</div></div>
+        <div class="meta"><div class="label">Bid / Ask</div><div class="value">${leader.bid || '—'} / ${leader.ask || '—'}</div></div>
+        <div class="meta"><div class="label">Confidence</div><div class="value">${leader['confidence'] || '—'}</div></div>
+      </div>
+      <div class="leader-notes">
+        ${noteCard('Thesis', leader['thesis'])}
+        ${noteCard('Entry', leader['entry'])}
+        ${noteCard('Invalidation', leader['invalidation'])}
+        ${noteCard('Targets', leader['targets'])}
+        ${noteCard('Risk', leader['risk'])}
+        ${noteCard('Note', leader['note'])}
+      </div>
     </div>
   `).join('');
 }

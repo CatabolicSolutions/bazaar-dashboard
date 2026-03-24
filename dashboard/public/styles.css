@@ -39,10 +39,18 @@ button { background: var(--accent); color: #111; border: 0; border-radius: 8px; 
 .preview, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .preview { max-height: 300px; overflow: auto; white-space: pre-wrap; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
 .leaders-wrap { display: grid; gap: 14px; }
-.leader { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.02); }
-.leader .section { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
-.leader .headline { font-weight: 700; margin-bottom: 8px; }
-.leader ul { margin: 0; padding-left: 18px; color: var(--muted); }
+.leader { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: rgba(255,255,255,0.02); display:grid; gap:10px; }
+.leader .section { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+.leader .headline { font-weight: 800; font-size: 16px; margin-bottom: 0; }
+.leader-meta { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
+.leader-meta .meta { background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:8px; }
+.leader-meta .label { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.leader-meta .value { font-weight: 700; }
+.leader-notes { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; }
+.leader-note { background: rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:10px; }
+.leader-note .label { color: var(--muted); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; }
+.leader-note .value { font-size: 13px; }
+.fallback-flag { color: var(--warn); font-weight: 700; font-size: 12px; }
 .stack { display: grid; gap: 10px; }
 .placeholder { color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; padding: 12px; }
 .position-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.02); display:grid; gap:10px; }

@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from datetime import datetime, timezone
 import subprocess
@@ -27,6 +28,19 @@ def cmd(command):
         return ''
 
 
+def parse_headline(stripped):
+    pattern = re.compile(
+        r'^\d+\.\s+(?P<symbol>\S+)\s+(?P<option_type>CALL|PUT)\s+\|\s+Underlying\s+(?P<underlying>[\d.]+)\s+\|\s+Strike\s+(?P<strike>[\d.]+)\s+\|\s+Exp\s+(?P<exp>\S+)\s+\|\s+(?P<label>.*?)\s+\|\s+Δ\s+(?P<delta>-?[\d.]+)\s+\|\s+Bid/Ask\s+(?P<bid>[\d.]+)/(?P<ask>[\d.]+)(?P<fallback>\s+\[fallback-expiry\])?$'
+    )
+    m = pattern.match(stripped)
+    if not m:
+        return {'headline': stripped}
+    data = m.groupdict()
+    data['fallback'] = bool(data.get('fallback'))
+    data['headline'] = stripped
+    return data
+
+
 def parse_board(text):
     lines = [line.rstrip() for line in text.splitlines()]
     leaders = []
@@ -44,11 +58,15 @@ def parse_board(text):
             continue
         stripped = line.strip()
         if section in ('directional', 'premium') and stripped[:2].rstrip('.').isdigit() and '. ' in stripped:
-            current = {'section': section, 'headline': stripped, 'details': []}
+            parsed = parse_headline(stripped)
+            current = {'section': section, 'details': [], **parsed}
             leaders.append(current)
             continue
         if current and line.startswith('   '):
             current['details'].append(line.strip())
+            if ': ' in line:
+                key, value = line.strip().split(': ', 1)
+                current[key.lower()] = value
     return leaders
 
 
