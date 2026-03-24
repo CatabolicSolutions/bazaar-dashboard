@@ -15,18 +15,25 @@
       </div>
       <div class="topbar-actions">
         <button id="refreshBtn">Refresh Snapshot</button>
+        <div class="status-pill" id="serverState">LIVE</div>
         <div id="updatedAt" class="muted"></div>
       </div>
     </header>
 
     <main class="grid">
       <section class="card card-health">
-        <h2>System Health</h2>
+        <div class="card-header">
+          <h2>System Health</h2>
+          <div class="muted small">Tradier-first control plane</div>
+        </div>
         <div id="healthGrid" class="health-grid"></div>
       </section>
 
       <section class="card card-overview">
-        <h2>Market Overview</h2>
+        <div class="card-header">
+          <h2>Market Overview</h2>
+          <div class="muted small">Live board artifact preview</div>
+        </div>
         <pre id="boardPreview" class="mono preview"></pre>
       </section>
 

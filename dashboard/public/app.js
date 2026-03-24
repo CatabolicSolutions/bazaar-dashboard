@@ -60,5 +60,10 @@ async function refresh() {
 
 document.getElementById('refreshBtn').addEventListener('click', refresh);
 refresh().catch(err => {
+  document.getElementById('serverState').textContent = 'ERROR';
+  document.getElementById('serverState').className = 'status-pill bad';
   document.getElementById('boardPreview').textContent = err.message;
 });
+setInterval(() => {
+  refresh().catch(() => {});
+}, 30000);
