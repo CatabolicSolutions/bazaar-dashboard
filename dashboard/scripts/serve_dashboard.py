@@ -51,6 +51,6 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
 
 os.chdir(PUBLIC)
-server = ThreadingHTTPServer(('127.0.0.1', 8765), Handler)
-print('Dashboard serving on http://127.0.0.1:8765')
+server = ThreadingHTTPServer(('0.0.0.0', 8765), Handler)
+print('Dashboard serving on http://0.0.0.0:8765')
 server.serve_forever()
