@@ -9,6 +9,8 @@ OUT = ROOT / 'dashboard' / 'public' / 'snapshot.json'
 BOARD = ROOT / 'out' / 'tradier_leaders_board.txt'
 ACTIVE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
+TRADIER_EXECUTION_STATE = ROOT / 'dashboard' / 'state' / 'tradier_execution_state.json'
+TRADIER_AUDIT_LOG = ROOT / 'dashboard' / 'state' / 'tradier_audit_log.json'
 
 
 def read_text(path):
@@ -84,6 +86,8 @@ snapshot = {
     },
     'activePositions': read_json(ACTIVE),
     'executionQueue': read_json(QUEUE),
+    'tradierExecution': read_json(TRADIER_EXECUTION_STATE),
+    'tradierAudit': read_json(TRADIER_AUDIT_LOG),
 }
 
 OUT.write_text(json.dumps(snapshot, indent=2))

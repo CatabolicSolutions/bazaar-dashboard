@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+from typing import Any
+
+from tradier_account import readiness_snapshot
+from tradier_board_utils import candidate_id as board_candidate_id
+from tradier_broker_interface import TradierBrokerInterface
+from tradier_execution_models import ExecutionIntent, OrderRecord, PositionRecord, PreviewRecord
+from tradier_risk_controls import evaluate_intent
+from tradier_state_store import append_audit, load_state, save_state, upsert_by_key
+
+
+SIDE_MAP = {
+    'long_call': 'buy_to_open',
+    'long_put': 'buy_to_open',
+}
+
+
+class TradierExecutionService:
+    def __init__(self, broker: TradierBrokerInterface | None = None):
+        self.broker = broker or TradierBrokerInterface()
+
+    def create_intent_from_leader(
+        self,
+        leader: dict[str, Any],
+        *,
+        mode: str,
+        qty: int = 1,
+        limit_price: float | None = None,
+        notes: str = '',
+    ) -> dict[str, Any]:
+        strategy_type = 'long_call' if leader.get('option_type', '').lower().startswith('c') else 'long_put'
+        contract = f"{leader['symbol']} {leader['strike']} {leader['option_type'].upper()} {leader['expiration']}"
+        intent = ExecutionIntent(
+            mode=mode,
+            strategy_type=strategy_type,
+            symbol=leader['symbol'],
+            contract=contract,
+            side='buy',
+            qty=qty,
+            limit_price=limit_price if limit_price is not None else leader.get('mid_price') or leader.get('ask'),
+            source='leader',
+            candidate_id=leader.get('candidate_id') or board_candidate_id(leader),
+            notes=notes,
+            status='queued',
+        )
+        state = load_state()
+        state['intents'].append(intent.to_dict())
+        save_state(state)
+        append_audit('intent_created', 'alfred', intent.intent_id, f"Created {intent.mode} intent from {intent.candidate_id}", {'candidate_id': intent.candidate_id})
+        return intent.to_dict()
+
+    def evaluate_risk(self, intent_dict: dict[str, Any], mark_price: float | None = None) -> dict[str, Any]:
+        intent = ExecutionIntent(**intent_dict)
+        account = readiness_snapshot()
+        state = load_state()
+        decision = evaluate_intent(intent, account, mark_price=mark_price, open_positions=state.get('positions', []))
+        state['riskDecisions'] = upsert_by_key(state.get('riskDecisions', []), 'intent_id', intent.intent_id, decision.to_dict())
+        save_state(state)
+        append_audit('risk_evaluated', 'alfred', intent.intent_id, 'Risk evaluation completed', {'allowed': decision.allowed})
+        return decision.to_dict()
+
+    def preview_intent(self, intent_dict: dict[str, Any], *, expiry: str, option_type: str, strike: float) -> dict[str, Any]:
+        intent = ExecutionIntent(**intent_dict)
+        payload = self.broker.build_option_payload(
+            intent,
+            symbol=intent.symbol,
+            expiry=expiry,
+            option_type=option_type,
+            strike=strike,
+            broker_side=SIDE_MAP[intent.strategy_type],
+        )
+        preview_response = self.broker.preview_order(payload)
+        record = PreviewRecord(intent_id=intent.intent_id, broker_payload_summary=payload)
+        state = load_state()
+        state['previews'] = upsert_by_key(state.get('previews', []), 'intent_id', intent.intent_id, record.to_dict())
+        state['intents'] = upsert_by_key(state.get('intents', []), 'intent_id', intent.intent_id, {**intent.to_dict(), 'status': 'previewed'})
+        save_state(state)
+        append_audit('preview_created', 'alfred', intent.intent_id, 'Broker preview created', {'payload': payload})
+        return {'preview': record.to_dict(), 'broker_response': preview_response}
+
+    def record_commit(self, intent_dict: dict[str, Any], broker_response: dict[str, Any]) -> dict[str, Any]:
+        intent = ExecutionIntent(**intent_dict)
+        order = OrderRecord(intent_id=intent.intent_id, broker_order_id=str(broker_response.get('id') or broker_response.get('order', {}).get('id') or ''), status='placed')
+        position = PositionRecord(mode=intent.mode, symbol=intent.symbol, contract=intent.contract, qty=intent.qty, entry_price=intent.limit_price)
+        state = load_state()
+        state['orders'].append(order.to_dict())
+        state['positions'].append(position.to_dict())
+        state['intents'] = upsert_by_key(state.get('intents', []), 'intent_id', intent.intent_id, {**intent.to_dict(), 'status': 'placed'})
+        save_state(state)
+        append_audit('order_recorded', 'alfred', intent.intent_id, 'Order commit recorded', {'order_id': order.order_id})
+        return {'order': order.to_dict(), 'position': position.to_dict()}

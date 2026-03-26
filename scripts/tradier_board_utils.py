@@ -89,6 +89,7 @@ def parse_ticket(block: list[str]) -> dict[str, Any] | None:
         or data.get('fallback', False)
     )
     data['mid_price'] = _mid_price(data)
+    data['candidate_id'] = candidate_id(data)
     return data
 
 
@@ -98,6 +99,15 @@ def _mid_price(ticket: dict[str, Any]) -> float | None:
     if bid is None or ask is None:
         return None
     return round((bid + ask) / 2.0, 4)
+
+
+def candidate_id(ticket: dict[str, Any]) -> str:
+    option_type = str(ticket.get('option_type', '')).upper()
+    strike = float(ticket.get('strike', 0.0))
+    strike_text = f"{strike:.2f}".rstrip('0').rstrip('.')
+    expiry = str(ticket.get('expiration', ''))
+    symbol = str(ticket.get('symbol', '')).upper()
+    return f"{symbol}-{expiry}-{option_type}-{strike_text}"
 
 
 def score_ticket(ticket: dict[str, Any]):
@@ -165,6 +175,7 @@ def build_board(tickets: list[dict[str, Any]]) -> str:
                 f"Strike {ticket['strike']:.2f} | Exp {ticket['expiration']} | {ticket['label']} | "
                 f"Δ {ticket.get('delta', 0.0):.4f} | Bid/Ask {ticket.get('bid', 0.0):.2f}/{ticket.get('ask', 0.0):.2f}{fallback_note}"
             )
+            lines.append(f"   Candidate ID: {ticket['candidate_id']}")
             if strategy == 'Scalping Buy':
                 lines.append('   Thesis: best near-ATM momentum leader in current pass')
                 lines.append('   Entry: only on confirmation / momentum continuation')

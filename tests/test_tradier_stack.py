@@ -12,7 +12,9 @@ for p in [str(WORKSPACE_ROOT), str(SCRIPTS_DIR)]:
 from scripts.tradier_execution import occ_option_symbol
 from scripts.tradier_position_flow import parse_command
 from scripts.tradier_approval_flow import contract_key, build_execution_card
-from scripts.tradier_board_utils import parse_raw_tickets, top_leaders_by_strategy
+from scripts.tradier_board_utils import candidate_id, parse_raw_tickets, top_leaders_by_strategy
+from scripts.tradier_execution_models import ExecutionIntent
+from scripts.tradier_risk_controls import evaluate_intent
 from scripts.tradier_account import readiness_snapshot
 from scripts.tradier_exit_policy import classify
 
@@ -87,9 +89,29 @@ class TradierStackTests(unittest.TestCase):
     def test_parse_raw_tickets_and_leaders(self):
         tickets = parse_raw_tickets(RAW_SAMPLE)
         self.assertEqual(len(tickets), 2)
+        self.assertEqual(tickets[0]['candidate_id'], 'IWM-2026-03-20-CALL-250')
         leaders = top_leaders_by_strategy(tickets, limit_per_strategy=1)
         self.assertEqual(len(leaders), 2)
         self.assertEqual(leaders[0]['symbol'], 'IWM')
+
+    def test_candidate_id_helper(self):
+        self.assertEqual(candidate_id({'symbol': 'spy', 'expiration': '2026-03-21', 'option_type': 'put', 'strike': 510.0}), 'SPY-2026-03-21-PUT-510')
+
+    def test_risk_controls_reject_gtc_and_large_drift(self):
+        intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            limit_price=2.50,
+            time_in_force='gtc',
+        )
+        decision = evaluate_intent(intent, {'ready_for_options_execution': True, 'option_buying_power': 1000.0}, mark_price=2.00)
+        self.assertFalse(decision.allowed)
+        self.assertTrue(any('day TIF' in reason for reason in decision.reasons))
+        self.assertTrue(any('drift' in reason for reason in decision.reasons))
 
     @patch('scripts.tradier_account.profile')
     @patch('scripts.tradier_account.balances')
