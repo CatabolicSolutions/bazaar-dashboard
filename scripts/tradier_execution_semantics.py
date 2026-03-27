@@ -5,6 +5,7 @@ from typing import Any
 from tradier_execution_context import execution_context_for_intent
 from tradier_execution_models import validate_persisted_intent_lifecycle
 from tradier_intent_decision import intent_decision_for_intent
+from tradier_intent_outcome import intent_outcome_for_intent
 from tradier_intent_provenance import intent_provenance_for_intent
 from tradier_intent_readiness import intent_readiness_for_intent
 from tradier_position_linkage import position_linkage_for_intent
@@ -57,6 +58,7 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
     provenance = intent_provenance_for_intent(intent)
     decision = intent_decision_for_intent(intent)
     readiness = intent_readiness_for_intent(intent)
+    outcome = intent_outcome_for_intent(intent)
 
     return {
         'intent_id': intent.get('intent_id'),
@@ -72,4 +74,5 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
         'provenance': provenance,
         'decision': decision,
         'readiness': readiness,
+        'outcome': outcome,
     }
