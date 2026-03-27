@@ -25,6 +25,7 @@ from scripts.tradier_execution_models import (
     transition_intent,
     validate_persisted_intent_lifecycle,
 )
+from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_execution_service import TradierExecutionService
@@ -386,6 +387,7 @@ class TradierStackTests(unittest.TestCase):
             contract='IWM 250 CALL 2026-03-20',
             side='buy',
             qty=1,
+            allocation_bucket='cash_day_core',
         ).to_dict()
         margin_swing = ExecutionIntent(
             mode='margin_swing',
@@ -394,6 +396,7 @@ class TradierStackTests(unittest.TestCase):
             contract='IWM 250 CALL 2026-03-20',
             side='buy',
             qty=1,
+            allocation_bucket='margin_swing_core',
         ).to_dict()
 
         cash_context = execution_context_for_intent(cash_day)
@@ -402,9 +405,39 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(cash_context['domain'], 'cash_day_trading')
         self.assertEqual(cash_context['holding_profile'], 'intraday')
         self.assertEqual(cash_context['capital_treatment'], 'cash_settled')
+        self.assertEqual(cash_context['allocation']['allocation_bucket'], 'cash_day_core')
         self.assertEqual(swing_context['domain'], 'margin_swing_trading')
         self.assertEqual(swing_context['holding_profile'], 'multi_session')
         self.assertEqual(swing_context['capital_treatment'], 'margin_enabled')
+        self.assertEqual(swing_context['allocation']['allocation_bucket'], 'margin_swing_core')
+
+    def test_execution_allocation_contract_distinguishes_capital_buckets(self):
+        cash_day = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+        ).to_dict()
+        margin_swing = ExecutionIntent(
+            mode='margin_swing',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='margin_swing_core',
+        ).to_dict()
+
+        cash_allocation = execution_allocation_for_intent(cash_day)
+        swing_allocation = execution_allocation_for_intent(margin_swing)
+
+        self.assertEqual(cash_allocation['capital_source'], 'cash_day_trading_capital')
+        self.assertEqual(cash_allocation['account_profile'], 'cash')
+        self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
+        self.assertEqual(swing_allocation['account_profile'], 'margin')
 
     def test_operator_semantics_for_terminal_statuses(self):
         rejected = transition_intent(
@@ -457,6 +490,7 @@ class TradierStackTests(unittest.TestCase):
             contract='IWM 250 CALL 2026-03-20',
             side='buy',
             qty=1,
+            allocation_bucket='margin_swing_core',
         ).to_dict()
         margin_queued = transition_intent(margin_candidate, 'queued', actor='test')
         margin_previewed = transition_intent(margin_queued, 'previewed', actor='test')
@@ -469,6 +503,7 @@ class TradierStackTests(unittest.TestCase):
             contract='IWM 250 CALL 2026-03-20',
             side='buy',
             qty=1,
+            allocation_bucket='cash_day_core',
         ).to_dict()
         cash_queued = transition_intent(cash_candidate, 'queued', actor='test')
         cash_previewed = transition_intent(cash_queued, 'previewed', actor='test')
@@ -483,9 +518,14 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(cash_view['operator_stage'], swing_view['operator_stage'])
         self.assertEqual(cash_view['execution_context']['domain'], 'cash_day_trading')
         self.assertEqual(cash_view['execution_context']['holding_profile'], 'intraday')
+        self.assertEqual(cash_view['execution_context']['allocation']['allocation_bucket'], 'cash_day_core')
+        self.assertEqual(cash_view['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
         self.assertEqual(swing_view['execution_context']['domain'], 'margin_swing_trading')
         self.assertEqual(swing_view['execution_context']['holding_profile'], 'multi_session')
+        self.assertEqual(swing_view['execution_context']['allocation']['allocation_bucket'], 'margin_swing_core')
+        self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
+        self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
 
     def test_service_status_mutations_delegate_to_single_transition_route(self):
         self.with_temp_state_paths()

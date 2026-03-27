@@ -116,6 +116,7 @@ class ExecutionIntent:
     source: str = 'manual'
     candidate_id: str | None = None
     notes: str = ''
+    allocation_bucket: str | None = None
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'
@@ -130,6 +131,8 @@ class ExecutionIntent:
             raise ValueError(f'Unsupported status: {self.status}')
         if self.qty <= 0:
             raise ValueError('qty must be > 0')
+        if not self.allocation_bucket:
+            self.allocation_bucket = 'cash_day_core' if self.mode == 'cash_day' else 'margin_swing_core'
         self.symbol = self.symbol.upper()
 
     def to_dict(self) -> dict[str, Any]:

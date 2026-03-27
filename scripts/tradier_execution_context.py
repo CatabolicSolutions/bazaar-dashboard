@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from tradier_execution_allocation import execution_allocation_for_intent
 from tradier_execution_models import VALID_MODES
 
 
@@ -29,6 +30,7 @@ def execution_context_for_intent(intent: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f'Unknown execution mode: {mode}')
 
     context = EXECUTION_CONTEXT_BY_MODE[mode]
+    allocation = execution_allocation_for_intent(intent)
     return {
         'mode': mode,
         'domain': context['domain'],
@@ -36,4 +38,5 @@ def execution_context_for_intent(intent: dict[str, Any]) -> dict[str, Any]:
         'holding_profile': context['holding_profile'],
         'capital_treatment': context['capital_treatment'],
         'review_emphasis': context['review_emphasis'],
+        'allocation': allocation,
     }
