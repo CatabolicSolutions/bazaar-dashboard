@@ -25,6 +25,7 @@ from scripts.tradier_execution_models import (
     transition_intent,
     validate_persisted_intent_lifecycle,
 )
+from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
@@ -283,6 +284,8 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(operator_view['operator_state'], 'sent_to_broker')
         self.assertEqual(operator_view['operator_stage'], 'execution')
         self.assertEqual(operator_view['next_operator_action'], 'await_entry_or_cancel')
+        self.assertEqual(operator_view['execution_context']['domain'], 'cash_day_trading')
+        self.assertEqual(operator_view['execution_context']['holding_profile'], 'intraday')
         self.assertFalse(operator_view['is_terminal'])
 
     def test_transition_persisted_intent_is_single_governed_route(self):
@@ -371,7 +374,37 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(operator_view['operator_state'], 'awaiting_approval')
         self.assertEqual(operator_view['operator_stage'], 'review')
         self.assertEqual(operator_view['next_operator_action'], 'approve_reject_or_cancel')
+        self.assertEqual(operator_view['execution_context']['domain'], 'cash_day_trading')
+        self.assertEqual(operator_view['execution_context']['review_emphasis'], 'speed_and_day_trade_rules')
         self.assertFalse(operator_view['is_terminal'])
+
+    def test_execution_context_contract_distinguishes_modes(self):
+        cash_day = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+        margin_swing = ExecutionIntent(
+            mode='margin_swing',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+
+        cash_context = execution_context_for_intent(cash_day)
+        swing_context = execution_context_for_intent(margin_swing)
+
+        self.assertEqual(cash_context['domain'], 'cash_day_trading')
+        self.assertEqual(cash_context['holding_profile'], 'intraday')
+        self.assertEqual(cash_context['capital_treatment'], 'cash_settled')
+        self.assertEqual(swing_context['domain'], 'margin_swing_trading')
+        self.assertEqual(swing_context['holding_profile'], 'multi_session')
+        self.assertEqual(swing_context['capital_treatment'], 'margin_enabled')
 
     def test_operator_semantics_for_terminal_statuses(self):
         rejected = transition_intent(
@@ -415,6 +448,44 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(exited_view['operator_stage'], 'closed')
         self.assertEqual(exited_view['next_operator_action'], 'none')
         self.assertTrue(exited_view['is_terminal'])
+
+    def test_same_lifecycle_state_maps_differently_by_execution_context(self):
+        margin_candidate = ExecutionIntent(
+            mode='margin_swing',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+        margin_queued = transition_intent(margin_candidate, 'queued', actor='test')
+        margin_previewed = transition_intent(margin_queued, 'previewed', actor='test')
+        margin_approved = transition_intent(margin_previewed, 'approved', actor='test')
+
+        cash_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+        cash_queued = transition_intent(cash_candidate, 'queued', actor='test')
+        cash_previewed = transition_intent(cash_queued, 'previewed', actor='test')
+        cash_approved = transition_intent(cash_previewed, 'approved', actor='test')
+
+        cash_view = interpret_operator_execution_state(cash_approved)
+        swing_view = interpret_operator_execution_state(margin_approved)
+
+        self.assertEqual(cash_view['status'], 'approved')
+        self.assertEqual(swing_view['status'], 'approved')
+        self.assertEqual(cash_view['operator_state'], swing_view['operator_state'])
+        self.assertEqual(cash_view['operator_stage'], swing_view['operator_stage'])
+        self.assertEqual(cash_view['execution_context']['domain'], 'cash_day_trading')
+        self.assertEqual(cash_view['execution_context']['holding_profile'], 'intraday')
+        self.assertEqual(swing_view['execution_context']['domain'], 'margin_swing_trading')
+        self.assertEqual(swing_view['execution_context']['holding_profile'], 'multi_session')
+        self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
 
     def test_service_status_mutations_delegate_to_single_transition_route(self):
         self.with_temp_state_paths()

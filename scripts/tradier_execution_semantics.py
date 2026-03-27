@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from tradier_execution_context import execution_context_for_intent
 from tradier_execution_models import validate_persisted_intent_lifecycle
 
 
@@ -47,6 +48,7 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
     status = intent['status']
     history = list(intent.get('transition_history') or [])
     latest = history[-1] if history else None
+    context = execution_context_for_intent(intent)
 
     return {
         'intent_id': intent.get('intent_id'),
@@ -57,4 +59,5 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
         'is_terminal': status in {'rejected', 'cancelled', 'exited'},
         'history_count': len(history),
         'latest_transition': latest,
+        'execution_context': context,
     }
