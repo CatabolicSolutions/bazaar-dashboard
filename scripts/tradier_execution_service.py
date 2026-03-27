@@ -5,9 +5,9 @@ from typing import Any
 from tradier_account import readiness_snapshot
 from tradier_board_utils import candidate_id as board_candidate_id
 from tradier_broker_interface import TradierBrokerInterface
-from tradier_execution_models import ExecutionIntent, OrderRecord, PositionRecord, PreviewRecord, transition_intent
+from tradier_execution_models import ExecutionIntent, OrderRecord, PositionRecord, PreviewRecord
 from tradier_risk_controls import evaluate_intent
-from tradier_state_store import append_audit, load_state, save_state, upsert_by_key
+from tradier_state_store import append_audit, load_state, save_state, transition_persisted_intent, upsert_by_key
 
 
 SIDE_MAP = {
@@ -24,12 +24,6 @@ class TradierExecutionService:
         allowed_keys = set(ExecutionIntent.__dataclass_fields__.keys())
         return ExecutionIntent(**{key: value for key, value in intent_dict.items() if key in allowed_keys})
 
-    def _get_persisted_intent(self, state: dict[str, Any], intent_id: str) -> dict[str, Any]:
-        for intent in state.get('intents', []):
-            if intent.get('intent_id') == intent_id:
-                return dict(intent)
-        raise ValueError(f'Intent not found in persisted state: {intent_id}')
-
     def _persist_transition(
         self,
         state: dict[str, Any],
@@ -39,10 +33,7 @@ class TradierExecutionService:
         actor: str = 'alfred',
         note: str = '',
     ) -> tuple[dict[str, Any], dict[str, Any]]:
-        persisted_intent = self._get_persisted_intent(state, intent_id)
-        transitioned = transition_intent(persisted_intent, to_status, actor=actor, note=note)
-        state['intents'] = upsert_by_key(state.get('intents', []), 'intent_id', intent_id, transitioned)
-        return transitioned, state
+        return transition_persisted_intent(state, intent_id, to_status, actor=actor, note=note)
 
     def create_intent_from_leader(
         self,

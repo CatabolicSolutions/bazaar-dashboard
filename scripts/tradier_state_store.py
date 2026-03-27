@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from tradier_execution_models import now_iso
+from tradier_execution_models import now_iso, transition_intent
 
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace/dashboard/state')
 EXECUTION_STATE_PATH = ROOT / 'tradier_execution_state.json'
@@ -73,3 +73,25 @@ def upsert_by_key(items: list[dict[str, Any]], key: str, value: Any, new_item: d
     if not replaced:
         out.append(new_item)
     return out
+
+
+def transition_persisted_intent(
+    state: dict[str, Any],
+    intent_id: str,
+    to_status: str,
+    *,
+    actor: str = 'system',
+    note: str = '',
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    persisted_intent = None
+    for intent in state.get('intents', []):
+        if intent.get('intent_id') == intent_id:
+            persisted_intent = dict(intent)
+            break
+    if persisted_intent is None:
+        raise ValueError(f'Intent not found in persisted state: {intent_id}')
+
+    transitioned = transition_intent(persisted_intent, to_status, actor=actor, note=note)
+    state = dict(state)
+    state['intents'] = upsert_by_key(state.get('intents', []), 'intent_id', intent_id, transitioned)
+    return transitioned, state

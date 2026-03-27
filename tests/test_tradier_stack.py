@@ -17,6 +17,7 @@ from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import candidate_id, parse_raw_tickets, top_leaders_by_strategy
 from scripts.tradier_execution_models import ExecutionIntent, InvalidTransitionError, can_transition, transition_intent
 from scripts.tradier_execution_service import TradierExecutionService
+from scripts.tradier_state_store import transition_persisted_intent
 from tradier_execution_models import InvalidTransitionError as RuntimeInvalidTransitionError
 from scripts.tradier_risk_controls import evaluate_intent
 from scripts.tradier_account import readiness_snapshot
@@ -195,6 +196,31 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(intent['transition_history'][1]['from'], 'queued')
         self.assertEqual(result['intent']['transition_history'], intent['transition_history'])
 
+    def test_transition_persisted_intent_is_single_governed_route(self):
+        self.with_temp_state_paths()
+        state = {
+            'intents': [ExecutionIntent(
+                mode='cash_day',
+                strategy_type='long_call',
+                symbol='IWM',
+                contract='IWM 250 CALL 2026-03-20',
+                side='buy',
+                qty=1,
+            ).to_dict()],
+            'previews': [],
+            'orders': [],
+            'positions': [],
+            'riskDecisions': [],
+        }
+        intent_id = state['intents'][0]['intent_id']
+
+        queued, state = transition_persisted_intent(state, intent_id, 'queued', actor='test')
+        previewed, state = transition_persisted_intent(state, intent_id, 'previewed', actor='test')
+
+        self.assertEqual(queued['status'], 'queued')
+        self.assertEqual(previewed['status'], 'previewed')
+        self.assertEqual([entry['to'] for entry in previewed['transition_history']], ['queued', 'previewed'])
+
     def test_persisted_flow_invalid_transition_does_not_write_history(self):
         state_path, _ = self.with_temp_state_paths()
         broker = Mock()
@@ -221,6 +247,29 @@ class TradierStackTests(unittest.TestCase):
         intent = after['intents'][0]
         self.assertEqual(intent['status'], 'queued')
         self.assertEqual([entry['to'] for entry in intent['transition_history']], ['queued'])
+
+    def test_service_status_mutations_delegate_to_single_transition_route(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {'tag': 'preview-payload'}
+        broker.preview_order.return_value = {'ok': True}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        with patch('scripts.tradier_execution_service.transition_persisted_intent', wraps=transition_persisted_intent) as routed:
+            queued = service.create_intent_from_leader(leader, mode='cash_day')
+            service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)
+            self.assertEqual(routed.call_count, 2)
+            self.assertEqual(routed.call_args_list[0].args[2], 'queued')
+            self.assertEqual(routed.call_args_list[1].args[2], 'previewed')
 
     @patch('scripts.tradier_account.profile')
     @patch('scripts.tradier_account.balances')
