@@ -233,6 +233,51 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(intent['transition_history'][1]['from'], 'queued')
         self.assertEqual(result['intent']['transition_history'], intent['transition_history'])
 
+    def test_service_flow_valid_multistep_progression_persists_history_order_and_position(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        previewed = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        state = self.load_json_file(state_path)
+        approved, state = transition_persisted_intent(state, previewed['intent_id'], 'approved', actor='test', note='risk cleared')
+        save_state(state)
+        committed = service.record_commit(approved, {'id': 'broker-order-1'})['intent']
+
+        persisted = self.load_json_file(state_path)
+        self.assertEqual(len(persisted['intents']), 1)
+        self.assertEqual(len(persisted['previews']), 1)
+        self.assertEqual(len(persisted['orders']), 1)
+        self.assertEqual(len(persisted['positions']), 1)
+        intent = persisted['intents'][0]
+        self.assertEqual(intent['status'], 'committed')
+        self.assertEqual([entry['to'] for entry in intent['transition_history']], ['queued', 'previewed', 'approved', 'committed'])
+        self.assertEqual(committed['transition_history'], intent['transition_history'])
+        self.assertEqual(persisted['orders'][0]['broker_order_id'], 'broker-order-1')
+        self.assertEqual(persisted['positions'][0]['symbol'], 'IWM')
+
     def test_transition_persisted_intent_is_single_governed_route(self):
         self.with_temp_state_paths()
         state = {
@@ -284,6 +329,36 @@ class TradierStackTests(unittest.TestCase):
         intent = after['intents'][0]
         self.assertEqual(intent['status'], 'queued')
         self.assertEqual([entry['to'] for entry in intent['transition_history']], ['queued'])
+
+    def test_service_flow_invalid_inflight_progression_is_rejected_without_side_effects(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {'tag': 'preview-payload'}
+        broker.preview_order.return_value = {'ok': True}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        previewed = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        before = self.load_json_file(state_path)
+
+        with self.assertRaises((InvalidTransitionError, RuntimeInvalidTransitionError)):
+            service.record_commit(previewed, {'id': 'broker-order-1'})
+
+        after = self.load_json_file(state_path)
+        self.assertEqual(after, before)
+        self.assertEqual(after['intents'][0]['status'], 'previewed')
+        self.assertEqual([entry['to'] for entry in after['intents'][0]['transition_history']], ['queued', 'previewed'])
+        self.assertEqual(after['orders'], [])
+        self.assertEqual(after['positions'], [])
 
     def test_service_status_mutations_delegate_to_single_transition_route(self):
         self.with_temp_state_paths()
