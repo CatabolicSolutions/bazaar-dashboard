@@ -25,6 +25,7 @@ from scripts.tradier_execution_models import (
     transition_intent,
     validate_persisted_intent_lifecycle,
 )
+from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
 from tradier_execution_models import InvalidLifecycleStateError as RuntimeInvalidLifecycleStateError
@@ -278,6 +279,12 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(persisted['orders'][0]['broker_order_id'], 'broker-order-1')
         self.assertEqual(persisted['positions'][0]['symbol'], 'IWM')
 
+        operator_view = interpret_operator_execution_state(intent)
+        self.assertEqual(operator_view['operator_state'], 'sent_to_broker')
+        self.assertEqual(operator_view['operator_stage'], 'execution')
+        self.assertEqual(operator_view['next_operator_action'], 'await_entry_or_cancel')
+        self.assertFalse(operator_view['is_terminal'])
+
     def test_transition_persisted_intent_is_single_governed_route(self):
         self.with_temp_state_paths()
         state = {
@@ -359,6 +366,55 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual([entry['to'] for entry in after['intents'][0]['transition_history']], ['queued', 'previewed'])
         self.assertEqual(after['orders'], [])
         self.assertEqual(after['positions'], [])
+
+        operator_view = interpret_operator_execution_state(after['intents'][0])
+        self.assertEqual(operator_view['operator_state'], 'awaiting_approval')
+        self.assertEqual(operator_view['operator_stage'], 'review')
+        self.assertEqual(operator_view['next_operator_action'], 'approve_reject_or_cancel')
+        self.assertFalse(operator_view['is_terminal'])
+
+    def test_operator_semantics_for_terminal_statuses(self):
+        rejected = transition_intent(
+            ExecutionIntent(
+                mode='cash_day',
+                strategy_type='long_call',
+                symbol='IWM',
+                contract='IWM 250 CALL 2026-03-20',
+                side='buy',
+                qty=1,
+            ).to_dict(),
+            'rejected',
+            actor='test',
+            note='desk rejected',
+        )
+        rejected_view = interpret_operator_execution_state(rejected)
+        self.assertEqual(rejected_view['operator_state'], 'closed_rejected')
+        self.assertEqual(rejected_view['operator_stage'], 'closed')
+        self.assertEqual(rejected_view['next_operator_action'], 'none')
+        self.assertTrue(rejected_view['is_terminal'])
+
+        queued = transition_intent(
+            ExecutionIntent(
+                mode='cash_day',
+                strategy_type='long_call',
+                symbol='IWM',
+                contract='IWM 250 CALL 2026-03-20',
+                side='buy',
+                qty=1,
+            ).to_dict(),
+            'queued',
+            actor='test',
+        )
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+        committed = transition_intent(approved, 'committed', actor='test')
+        entered = transition_intent(committed, 'entered', actor='test')
+        exited = transition_intent(entered, 'exited', actor='test')
+        exited_view = interpret_operator_execution_state(exited)
+        self.assertEqual(exited_view['operator_state'], 'closed_exited')
+        self.assertEqual(exited_view['operator_stage'], 'closed')
+        self.assertEqual(exited_view['next_operator_action'], 'none')
+        self.assertTrue(exited_view['is_terminal'])
 
     def test_service_status_mutations_delegate_to_single_transition_route(self):
         self.with_temp_state_paths()
