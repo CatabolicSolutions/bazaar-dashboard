@@ -123,6 +123,9 @@ class ExecutionIntent:
     strategy_source: str | None = None
     strategy_run_id: str | None = None
     origin: str = 'system_generated'
+    decision_state: str = 'proposed'
+    decision_actor: str = 'system'
+    decision_note: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'

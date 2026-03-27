@@ -61,6 +61,9 @@ class TradierExecutionService:
             strategy_source='tradier_leaders_board',
             strategy_run_id=leader.get('run_id') or resolved_candidate_id,
             origin='system_generated',
+            decision_state='proposed',
+            decision_actor='system',
+            decision_note='Created from leaders board candidate',
             notes=notes,
         )
         state = load_state()

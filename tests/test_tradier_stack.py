@@ -28,6 +28,7 @@ from scripts.tradier_execution_models import (
 from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
+from scripts.tradier_intent_decision import intent_decision_for_intent
 from scripts.tradier_intent_provenance import intent_provenance_for_intent
 from scripts.tradier_position_linkage import position_linkage_for_intent
 from scripts.tradier_execution_service import TradierExecutionService
@@ -232,6 +233,8 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(queued['strategy_source'], 'tradier_leaders_board')
         self.assertEqual(queued['origin'], 'system_generated')
         self.assertEqual(queued['strategy_run_id'], 'IWM-2026-03-20-CALL-250')
+        self.assertEqual(queued['decision_state'], 'proposed')
+        self.assertEqual(queued['decision_actor'], 'system')
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -445,6 +448,62 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_intent_decision_contract_distinguishes_approval_states(self):
+        proposed = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            decision_state='proposed',
+            decision_actor='system',
+        ).to_dict()
+        approved = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            decision_state='approved',
+            decision_actor='ross',
+            decision_note='authorized for execution',
+        ).to_dict()
+        rejected = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            decision_state='rejected',
+            decision_actor='ross',
+            decision_note='not authorized',
+        ).to_dict()
+        revoked = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            decision_state='revoked',
+            decision_actor='ross',
+            decision_note='approval withdrawn',
+        ).to_dict()
+
+        self.assertFalse(intent_decision_for_intent(proposed)['is_authorized'])
+        self.assertTrue(intent_decision_for_intent(approved)['is_authorized'])
+        self.assertFalse(intent_decision_for_intent(rejected)['is_authorized'])
+        self.assertFalse(intent_decision_for_intent(revoked)['is_authorized'])
+        self.assertTrue(intent_decision_for_intent(rejected)['is_decision_terminal'])
+        self.assertTrue(intent_decision_for_intent(revoked)['is_decision_terminal'])
+
     def test_intent_provenance_contract_distinguishes_origin_sources(self):
         system_intent = ExecutionIntent(
             mode='cash_day',
@@ -617,6 +676,62 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_decision_state(self):
+        proposed_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='proposed',
+            decision_actor='system',
+        ).to_dict()
+        proposed_queued = transition_intent(proposed_candidate, 'queued', actor='test')
+        proposed_previewed = transition_intent(proposed_queued, 'previewed', actor='test')
+        proposed_approved = transition_intent(proposed_previewed, 'approved', actor='test')
+
+        authorized_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            decision_note='authorized',
+        ).to_dict()
+        authorized_queued = transition_intent(authorized_candidate, 'queued', actor='test')
+        authorized_previewed = transition_intent(authorized_queued, 'previewed', actor='test')
+        authorized_approved = transition_intent(authorized_previewed, 'approved', actor='test')
+
+        proposed_view = interpret_operator_execution_state(proposed_approved)
+        authorized_view = interpret_operator_execution_state(authorized_approved)
+
+        self.assertEqual(proposed_view['status'], 'approved')
+        self.assertEqual(authorized_view['status'], 'approved')
+        self.assertEqual(proposed_view['operator_state'], authorized_view['operator_state'])
+        self.assertEqual(proposed_view['execution_context']['allocation']['capital_source'], authorized_view['execution_context']['allocation']['capital_source'])
+        self.assertEqual(proposed_view['provenance']['strategy_source'], authorized_view['provenance']['strategy_source'])
+        self.assertFalse(proposed_view['decision']['is_authorized'])
+        self.assertTrue(authorized_view['decision']['is_authorized'])
+        self.assertEqual(proposed_view['decision']['decision_state'], 'proposed')
+        self.assertEqual(authorized_view['decision']['decision_state'], 'approved')
+        self.assertNotEqual(proposed_view['decision']['decision_actor'], authorized_view['decision']['decision_actor'])
 
     def test_identical_execution_semantics_remain_distinguishable_by_provenance(self):
         system_candidate = ExecutionIntent(
