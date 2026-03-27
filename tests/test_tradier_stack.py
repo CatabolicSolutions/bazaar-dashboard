@@ -30,6 +30,7 @@ from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_intent_decision import intent_decision_for_intent
 from scripts.tradier_intent_provenance import intent_provenance_for_intent
+from scripts.tradier_intent_readiness import intent_readiness_for_intent
 from scripts.tradier_position_linkage import position_linkage_for_intent
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
@@ -235,6 +236,8 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(queued['strategy_run_id'], 'IWM-2026-03-20-CALL-250')
         self.assertEqual(queued['decision_state'], 'proposed')
         self.assertEqual(queued['decision_actor'], 'system')
+        self.assertEqual(queued['readiness_state'], 'not_ready')
+        self.assertEqual(queued['readiness_reason'], 'Awaiting preview and authorization prerequisites')
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -447,6 +450,48 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(cash_allocation['account_profile'], 'cash')
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
+
+    def test_intent_readiness_contract_distinguishes_execution_states(self):
+        not_ready = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            readiness_state='not_ready',
+            readiness_reason='missing preview',
+        ).to_dict()
+        ready = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            readiness_state='ready',
+            readiness_reason='all prerequisites satisfied',
+        ).to_dict()
+        blocked = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            readiness_state='blocked',
+            readiness_reason='account constraint',
+        ).to_dict()
+
+        self.assertFalse(intent_readiness_for_intent(not_ready)['is_executable_now'])
+        self.assertFalse(intent_readiness_for_intent(not_ready)['is_blocked'])
+        self.assertTrue(intent_readiness_for_intent(ready)['is_executable_now'])
+        self.assertFalse(intent_readiness_for_intent(ready)['is_blocked'])
+        self.assertFalse(intent_readiness_for_intent(blocked)['is_executable_now'])
+        self.assertTrue(intent_readiness_for_intent(blocked)['is_blocked'])
 
     def test_intent_decision_contract_distinguishes_approval_states(self):
         proposed = ExecutionIntent(
@@ -676,6 +721,64 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_readiness_state(self):
+        waiting_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='not_ready',
+            readiness_reason='awaiting preview',
+        ).to_dict()
+        waiting_queued = transition_intent(waiting_candidate, 'queued', actor='test')
+        waiting_previewed = transition_intent(waiting_queued, 'previewed', actor='test')
+        waiting_approved = transition_intent(waiting_previewed, 'approved', actor='test')
+
+        ready_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+        ).to_dict()
+        ready_queued = transition_intent(ready_candidate, 'queued', actor='test')
+        ready_previewed = transition_intent(ready_queued, 'previewed', actor='test')
+        ready_approved = transition_intent(ready_previewed, 'approved', actor='test')
+
+        waiting_view = interpret_operator_execution_state(waiting_approved)
+        ready_view = interpret_operator_execution_state(ready_approved)
+
+        self.assertEqual(waiting_view['status'], 'approved')
+        self.assertEqual(ready_view['status'], 'approved')
+        self.assertEqual(waiting_view['decision']['decision_state'], ready_view['decision']['decision_state'])
+        self.assertEqual(waiting_view['execution_context']['allocation']['capital_source'], ready_view['execution_context']['allocation']['capital_source'])
+        self.assertEqual(waiting_view['provenance']['strategy_source'], ready_view['provenance']['strategy_source'])
+        self.assertFalse(waiting_view['readiness']['is_executable_now'])
+        self.assertTrue(ready_view['readiness']['is_executable_now'])
+        self.assertEqual(waiting_view['readiness']['readiness_state'], 'not_ready')
+        self.assertEqual(ready_view['readiness']['readiness_state'], 'ready')
 
     def test_identical_execution_semantics_remain_distinguishable_by_decision_state(self):
         proposed_candidate = ExecutionIntent(

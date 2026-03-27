@@ -64,6 +64,8 @@ class TradierExecutionService:
             decision_state='proposed',
             decision_actor='system',
             decision_note='Created from leaders board candidate',
+            readiness_state='not_ready',
+            readiness_reason='Awaiting preview and authorization prerequisites',
             notes=notes,
         )
         state = load_state()

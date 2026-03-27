@@ -126,6 +126,8 @@ class ExecutionIntent:
     decision_state: str = 'proposed'
     decision_actor: str = 'system'
     decision_note: str = ''
+    readiness_state: str = 'not_ready'
+    readiness_reason: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'
