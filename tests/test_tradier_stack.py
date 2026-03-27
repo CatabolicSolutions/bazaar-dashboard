@@ -15,9 +15,19 @@ from scripts.tradier_execution import occ_option_symbol
 from scripts.tradier_position_flow import parse_command
 from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import candidate_id, parse_raw_tickets, top_leaders_by_strategy
-from scripts.tradier_execution_models import ExecutionIntent, InvalidTransitionError, can_transition, transition_intent
+from scripts.tradier_execution_models import (
+    EXECUTION_INTENT_LIFECYCLE,
+    ExecutionIntent,
+    InvalidLifecycleStateError,
+    InvalidTransitionError,
+    VALID_INTENT_STATUSES,
+    can_transition,
+    transition_intent,
+    validate_persisted_intent_lifecycle,
+)
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
+from tradier_execution_models import InvalidLifecycleStateError as RuntimeInvalidLifecycleStateError
 from tradier_execution_models import InvalidTransitionError as RuntimeInvalidTransitionError
 from scripts.tradier_risk_controls import evaluate_intent
 from scripts.tradier_account import readiness_snapshot
@@ -138,6 +148,13 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(any('day TIF' in reason for reason in decision.reasons))
         self.assertTrue(any('drift' in reason for reason in decision.reasons))
 
+    def test_canonical_lifecycle_contract_defines_statuses_and_transitions(self):
+        self.assertEqual(set(EXECUTION_INTENT_LIFECYCLE.keys()), VALID_INTENT_STATUSES)
+        self.assertFalse(EXECUTION_INTENT_LIFECYCLE['candidate']['requires_history'])
+        self.assertTrue(EXECUTION_INTENT_LIFECYCLE['queued']['requires_history'])
+        self.assertEqual(EXECUTION_INTENT_LIFECYCLE['candidate']['next'], {'queued', 'rejected'})
+        self.assertEqual(EXECUTION_INTENT_LIFECYCLE['committed']['next'], {'entered', 'cancelled'})
+
     def test_transition_table_allows_valid_path(self):
         self.assertTrue(can_transition('candidate', 'queued'))
         self.assertTrue(can_transition('queued', 'previewed'))
@@ -168,6 +185,26 @@ class TradierStackTests(unittest.TestCase):
         ).to_dict()
         with self.assertRaises(InvalidTransitionError):
             transition_intent(intent, 'approved', actor='test')
+
+    def test_canonical_lifecycle_contract_governs_history_consistency(self):
+        candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+        validate_persisted_intent_lifecycle(candidate)
+
+        queued = transition_intent(candidate, 'queued', actor='test')
+        validate_persisted_intent_lifecycle(queued)
+
+        with self.assertRaises(InvalidLifecycleStateError):
+            validate_persisted_intent_lifecycle({**candidate, 'status': 'queued'})
+
+        with self.assertRaises(InvalidLifecycleStateError):
+            validate_persisted_intent_lifecycle({**queued, 'status': 'approved'})
 
     def test_persisted_flow_valid_transition_writes_history(self):
         state_path, _ = self.with_temp_state_paths()
@@ -292,7 +329,7 @@ class TradierStackTests(unittest.TestCase):
             'riskDecisions': [],
         }
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises((InvalidLifecycleStateError, RuntimeInvalidLifecycleStateError)):
             save_state(direct_write_state)
 
     def test_save_state_rejects_status_history_mismatch(self):
@@ -317,7 +354,7 @@ class TradierStackTests(unittest.TestCase):
             'riskDecisions': [],
         }
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises((InvalidLifecycleStateError, RuntimeInvalidLifecycleStateError)):
             save_state(mismatched_state)
 
     @patch('scripts.tradier_account.profile')

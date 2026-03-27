@@ -8,28 +8,22 @@ import uuid
 
 VALID_MODES = {'cash_day', 'margin_swing'}
 VALID_STRATEGY_TYPES = {'long_call', 'long_put', 'defined_risk_spread'}
-VALID_INTENT_STATUSES = {
-    'candidate',
-    'queued',
-    'previewed',
-    'approved',
-    'committed',
-    'entered',
-    'rejected',
-    'cancelled',
-    'exited',
+
+EXECUTION_INTENT_LIFECYCLE = {
+    'candidate': {'next': {'queued', 'rejected'}, 'requires_history': False},
+    'queued': {'next': {'previewed', 'rejected', 'cancelled'}, 'requires_history': True},
+    'previewed': {'next': {'approved', 'rejected', 'cancelled'}, 'requires_history': True},
+    'approved': {'next': {'committed', 'rejected', 'cancelled'}, 'requires_history': True},
+    'committed': {'next': {'entered', 'cancelled'}, 'requires_history': True},
+    'entered': {'next': {'exited'}, 'requires_history': True},
+    'rejected': {'next': set(), 'requires_history': True},
+    'cancelled': {'next': set(), 'requires_history': True},
+    'exited': {'next': set(), 'requires_history': True},
 }
 
+VALID_INTENT_STATUSES = set(EXECUTION_INTENT_LIFECYCLE.keys())
 ALLOWED_STATUS_TRANSITIONS = {
-    'candidate': {'queued', 'rejected'},
-    'queued': {'previewed', 'rejected', 'cancelled'},
-    'previewed': {'approved', 'rejected', 'cancelled'},
-    'approved': {'committed', 'rejected', 'cancelled'},
-    'committed': {'entered', 'cancelled'},
-    'entered': {'exited'},
-    'rejected': set(),
-    'cancelled': set(),
-    'exited': set(),
+    status: set(rule['next']) for status, rule in EXECUTION_INTENT_LIFECYCLE.items()
 }
 
 
@@ -45,12 +39,46 @@ class InvalidTransitionError(ValueError):
     pass
 
 
+class InvalidLifecycleStateError(ValueError):
+    pass
+
+
+def lifecycle_rules_for(status: str) -> dict[str, Any]:
+    try:
+        return EXECUTION_INTENT_LIFECYCLE[status]
+    except KeyError as exc:
+        raise InvalidLifecycleStateError(f'Unknown intent status: {status}') from exc
+
+
 def can_transition(from_status: str, to_status: str) -> bool:
-    if from_status not in ALLOWED_STATUS_TRANSITIONS:
-        raise InvalidTransitionError(f'Unknown from_status: {from_status}')
+    allowed = lifecycle_rules_for(from_status)['next']
     if to_status not in VALID_INTENT_STATUSES:
         raise InvalidTransitionError(f'Unknown to_status: {to_status}')
-    return to_status in ALLOWED_STATUS_TRANSITIONS[from_status]
+    return to_status in allowed
+
+
+def validate_persisted_intent_lifecycle(intent: dict[str, Any]) -> None:
+    status = intent.get('status')
+    rules = lifecycle_rules_for(status)
+    history = list(intent.get('transition_history') or [])
+
+    if not rules['requires_history']:
+        if history:
+            raise InvalidLifecycleStateError(
+                f'Persisted intent status {status} cannot carry transition history'
+            )
+        return
+
+    if not history:
+        raise InvalidLifecycleStateError(
+            f'Persisted intent status {status} requires transition history'
+        )
+
+    last_to = history[-1].get('to')
+    if last_to != status:
+        raise InvalidLifecycleStateError(
+            f'Persisted intent status/history mismatch: status={status} last_transition_to={last_to}'
+        )
 
 
 def transition_intent(intent: dict[str, Any], to_status: str, *, actor: str = 'system', note: str = '') -> dict[str, Any]:
