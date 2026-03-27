@@ -69,6 +69,8 @@ class TradierExecutionService:
             outcome_state='no_outcome',
             outcome_reason='',
             effected_qty=None,
+            escalation_state='no_escalation',
+            escalation_reason='',
             notes=notes,
         )
         state = load_state()

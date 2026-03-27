@@ -29,6 +29,7 @@ from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_intent_decision import intent_decision_for_intent
+from scripts.tradier_intent_escalation import intent_escalation_for_intent
 from scripts.tradier_intent_outcome import intent_outcome_for_intent
 from scripts.tradier_intent_provenance import intent_provenance_for_intent
 from scripts.tradier_intent_readiness import intent_readiness_for_intent
@@ -240,6 +241,7 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(queued['readiness_state'], 'not_ready')
         self.assertEqual(queued['readiness_reason'], 'Awaiting preview and authorization prerequisites')
         self.assertEqual(queued['outcome_state'], 'no_outcome')
+        self.assertEqual(queued['escalation_state'], 'no_escalation')
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -452,6 +454,57 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(cash_allocation['account_profile'], 'cash')
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
+
+    def test_intent_escalation_contract_distinguishes_attention_states(self):
+        normal = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            escalation_state='no_escalation',
+        ).to_dict()
+        warning = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            escalation_state='warning',
+            escalation_reason='spread widened',
+        ).to_dict()
+        blocked = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            escalation_state='blocked',
+            escalation_reason='account dependency',
+        ).to_dict()
+        terminal = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            escalation_state='terminal_failure',
+            escalation_reason='contract invalid',
+        ).to_dict()
+
+        self.assertFalse(intent_escalation_for_intent(normal)['needs_operator_attention'])
+        self.assertTrue(intent_escalation_for_intent(warning)['needs_operator_attention'])
+        self.assertFalse(intent_escalation_for_intent(warning)['blocks_autonomous_progress'])
+        self.assertTrue(intent_escalation_for_intent(blocked)['blocks_autonomous_progress'])
+        self.assertTrue(intent_escalation_for_intent(terminal)['is_terminal_attention_state'])
 
     def test_intent_outcome_contract_distinguishes_execution_results(self):
         no_outcome = ExecutionIntent(
@@ -778,6 +831,71 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_escalation_state(self):
+        warning_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='warning',
+            escalation_reason='spread widened but tradable',
+        ).to_dict()
+        warning_queued = transition_intent(warning_candidate, 'queued', actor='test')
+        warning_previewed = transition_intent(warning_queued, 'previewed', actor='test')
+        warning_approved = transition_intent(warning_previewed, 'approved', actor='test')
+
+        blocked_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='blocked',
+            escalation_reason='manual intervention required',
+        ).to_dict()
+        blocked_queued = transition_intent(blocked_candidate, 'queued', actor='test')
+        blocked_previewed = transition_intent(blocked_queued, 'previewed', actor='test')
+        blocked_approved = transition_intent(blocked_previewed, 'approved', actor='test')
+
+        warning_view = interpret_operator_execution_state(warning_approved)
+        blocked_view = interpret_operator_execution_state(blocked_approved)
+
+        self.assertEqual(warning_view['status'], 'approved')
+        self.assertEqual(blocked_view['status'], 'approved')
+        self.assertEqual(warning_view['decision']['decision_state'], blocked_view['decision']['decision_state'])
+        self.assertEqual(warning_view['readiness']['readiness_state'], blocked_view['readiness']['readiness_state'])
+        self.assertEqual(warning_view['outcome']['outcome_state'], blocked_view['outcome']['outcome_state'])
+        self.assertEqual(warning_view['execution_context']['allocation']['capital_source'], blocked_view['execution_context']['allocation']['capital_source'])
+        self.assertEqual(warning_view['escalation']['escalation_state'], 'warning')
+        self.assertFalse(warning_view['escalation']['blocks_autonomous_progress'])
+        self.assertEqual(blocked_view['escalation']['escalation_state'], 'blocked')
+        self.assertTrue(blocked_view['escalation']['blocks_autonomous_progress'])
 
     def test_identical_ready_intents_remain_distinguishable_by_execution_outcome(self):
         partial_candidate = ExecutionIntent(
