@@ -17,7 +17,7 @@ from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import candidate_id, parse_raw_tickets, top_leaders_by_strategy
 from scripts.tradier_execution_models import ExecutionIntent, InvalidTransitionError, can_transition, transition_intent
 from scripts.tradier_execution_service import TradierExecutionService
-from scripts.tradier_state_store import transition_persisted_intent
+from scripts.tradier_state_store import save_state, transition_persisted_intent
 from tradier_execution_models import InvalidTransitionError as RuntimeInvalidTransitionError
 from scripts.tradier_risk_controls import evaluate_intent
 from scripts.tradier_account import readiness_snapshot
@@ -270,6 +270,55 @@ class TradierStackTests(unittest.TestCase):
             self.assertEqual(routed.call_count, 2)
             self.assertEqual(routed.call_args_list[0].args[2], 'queued')
             self.assertEqual(routed.call_args_list[1].args[2], 'previewed')
+
+    def test_save_state_rejects_direct_status_write_without_history(self):
+        self.with_temp_state_paths()
+        direct_write_state = {
+            'intents': [{
+                **ExecutionIntent(
+                    mode='cash_day',
+                    strategy_type='long_call',
+                    symbol='IWM',
+                    contract='IWM 250 CALL 2026-03-20',
+                    side='buy',
+                    qty=1,
+                ).to_dict(),
+                'status': 'queued',
+                'transition_history': [],
+            }],
+            'previews': [],
+            'orders': [],
+            'positions': [],
+            'riskDecisions': [],
+        }
+
+        with self.assertRaises(ValueError):
+            save_state(direct_write_state)
+
+    def test_save_state_rejects_status_history_mismatch(self):
+        self.with_temp_state_paths()
+        transitioned = transition_intent(
+            ExecutionIntent(
+                mode='cash_day',
+                strategy_type='long_call',
+                symbol='IWM',
+                contract='IWM 250 CALL 2026-03-20',
+                side='buy',
+                qty=1,
+            ).to_dict(),
+            'queued',
+            actor='test',
+        )
+        mismatched_state = {
+            'intents': [{**transitioned, 'status': 'previewed'}],
+            'previews': [],
+            'orders': [],
+            'positions': [],
+            'riskDecisions': [],
+        }
+
+        with self.assertRaises(ValueError):
+            save_state(mismatched_state)
 
     @patch('scripts.tradier_account.profile')
     @patch('scripts.tradier_account.balances')

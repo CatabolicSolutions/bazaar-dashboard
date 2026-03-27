@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from tradier_execution_models import now_iso, transition_intent
+from tradier_execution_models import VALID_INTENT_STATUSES, now_iso, transition_intent
 
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace/dashboard/state')
 EXECUTION_STATE_PATH = ROOT / 'tradier_execution_state.json'
@@ -37,8 +37,36 @@ def load_state() -> dict[str, Any]:
     return load_json(EXECUTION_STATE_PATH, default_state())
 
 
+def validate_intent_lifecycle(intent: dict[str, Any]) -> None:
+    status = intent.get('status')
+    history = list(intent.get('transition_history') or [])
+
+    if status not in VALID_INTENT_STATUSES:
+        raise ValueError(f'Persisted intent has invalid status: {status}')
+
+    if status == 'candidate':
+        if history:
+            raise ValueError('Candidate intent cannot have persisted transition history')
+        return
+
+    if not history:
+        raise ValueError(f'Persisted intent status {status} requires transition history')
+
+    last_to = history[-1].get('to')
+    if last_to != status:
+        raise ValueError(
+            f'Persisted intent status/history mismatch: status={status} last_transition_to={last_to}'
+        )
+
+
+def validate_execution_state(state: dict[str, Any]) -> None:
+    for intent in state.get('intents', []):
+        validate_intent_lifecycle(intent)
+
+
 def save_state(state: dict[str, Any]) -> dict[str, Any]:
     state = dict(state)
+    validate_execution_state(state)
     state['updatedAt'] = now_iso()
     save_json(EXECUTION_STATE_PATH, state)
     return state
