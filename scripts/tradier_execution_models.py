@@ -117,6 +117,8 @@ class ExecutionIntent:
     candidate_id: str | None = None
     notes: str = ''
     allocation_bucket: str | None = None
+    position_relationship: str = 'open_new_position'
+    position_id: str | None = None
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'

@@ -28,6 +28,7 @@ from scripts.tradier_execution_models import (
 from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
+from scripts.tradier_position_linkage import position_linkage_for_intent
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
 from tradier_execution_models import InvalidLifecycleStateError as RuntimeInvalidLifecycleStateError
@@ -439,6 +440,51 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_position_linkage_contract_distinguishes_holdings_relationships(self):
+        open_intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+        ).to_dict()
+        modify_intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='modify_existing_position',
+            position_id='pos-1',
+        ).to_dict()
+        reduce_intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='sell',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='reduce_or_close_position',
+            position_id='pos-1',
+        ).to_dict()
+
+        open_linkage = position_linkage_for_intent(open_intent)
+        modify_linkage = position_linkage_for_intent(modify_intent)
+        reduce_linkage = position_linkage_for_intent(reduce_intent)
+
+        self.assertEqual(open_linkage['position_effect'], 'open')
+        self.assertIsNone(open_linkage['position_id'])
+        self.assertEqual(modify_linkage['position_effect'], 'modify')
+        self.assertEqual(modify_linkage['position_id'], 'pos-1')
+        self.assertEqual(reduce_linkage['position_effect'], 'reduce_or_close')
+        self.assertEqual(reduce_linkage['position_id'], 'pos-1')
+
     def test_operator_semantics_for_terminal_statuses(self):
         rejected = transition_intent(
             ExecutionIntent(
@@ -491,6 +537,7 @@ class TradierStackTests(unittest.TestCase):
             side='buy',
             qty=1,
             allocation_bucket='margin_swing_core',
+            position_relationship='open_new_position',
         ).to_dict()
         margin_queued = transition_intent(margin_candidate, 'queued', actor='test')
         margin_previewed = transition_intent(margin_queued, 'previewed', actor='test')
@@ -504,6 +551,7 @@ class TradierStackTests(unittest.TestCase):
             side='buy',
             qty=1,
             allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
         ).to_dict()
         cash_queued = transition_intent(cash_candidate, 'queued', actor='test')
         cash_previewed = transition_intent(cash_queued, 'previewed', actor='test')
@@ -526,6 +574,68 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_same_lifecycle_and_allocation_do_not_collapse_position_linkage_meaning(self):
+        open_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+        ).to_dict()
+        open_queued = transition_intent(open_candidate, 'queued', actor='test')
+        open_previewed = transition_intent(open_queued, 'previewed', actor='test')
+        open_approved = transition_intent(open_previewed, 'approved', actor='test')
+
+        modify_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='modify_existing_position',
+            position_id='pos-1',
+        ).to_dict()
+        modify_queued = transition_intent(modify_candidate, 'queued', actor='test')
+        modify_previewed = transition_intent(modify_queued, 'previewed', actor='test')
+        modify_approved = transition_intent(modify_previewed, 'approved', actor='test')
+
+        reduce_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='sell',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='reduce_or_close_position',
+            position_id='pos-1',
+        ).to_dict()
+        reduce_queued = transition_intent(reduce_candidate, 'queued', actor='test')
+        reduce_previewed = transition_intent(reduce_queued, 'previewed', actor='test')
+        reduce_approved = transition_intent(reduce_previewed, 'approved', actor='test')
+
+        open_view = interpret_operator_execution_state(open_approved)
+        modify_view = interpret_operator_execution_state(modify_approved)
+        reduce_view = interpret_operator_execution_state(reduce_approved)
+
+        self.assertEqual(open_view['status'], 'approved')
+        self.assertEqual(modify_view['status'], 'approved')
+        self.assertEqual(reduce_view['status'], 'approved')
+        self.assertEqual(open_view['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
+        self.assertEqual(modify_view['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
+        self.assertEqual(reduce_view['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
+        self.assertEqual(open_view['position_linkage']['position_effect'], 'open')
+        self.assertEqual(modify_view['position_linkage']['position_effect'], 'modify')
+        self.assertEqual(reduce_view['position_linkage']['position_effect'], 'reduce_or_close')
+        self.assertIsNone(open_view['position_linkage']['position_id'])
+        self.assertEqual(modify_view['position_linkage']['position_id'], 'pos-1')
+        self.assertEqual(reduce_view['position_linkage']['position_id'], 'pos-1')
 
     def test_service_status_mutations_delegate_to_single_transition_route(self):
         self.with_temp_state_paths()
