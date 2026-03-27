@@ -13,7 +13,7 @@ from scripts.tradier_execution import occ_option_symbol
 from scripts.tradier_position_flow import parse_command
 from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import candidate_id, parse_raw_tickets, top_leaders_by_strategy
-from scripts.tradier_execution_models import ExecutionIntent
+from scripts.tradier_execution_models import ExecutionIntent, InvalidTransitionError, can_transition, transition_intent
 from scripts.tradier_risk_controls import evaluate_intent
 from scripts.tradier_account import readiness_snapshot
 from scripts.tradier_exit_policy import classify
@@ -112,6 +112,37 @@ class TradierStackTests(unittest.TestCase):
         self.assertFalse(decision.allowed)
         self.assertTrue(any('day TIF' in reason for reason in decision.reasons))
         self.assertTrue(any('drift' in reason for reason in decision.reasons))
+
+    def test_transition_table_allows_valid_path(self):
+        self.assertTrue(can_transition('candidate', 'queued'))
+        self.assertTrue(can_transition('queued', 'previewed'))
+        intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+        queued = transition_intent(intent, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+        self.assertEqual(approved['status'], 'approved')
+        self.assertEqual(len(approved['transition_history']), 3)
+        self.assertEqual(approved['transition_history'][0]['from'], 'candidate')
+        self.assertEqual(approved['transition_history'][-1]['to'], 'approved')
+
+    def test_transition_table_rejects_invalid_jump(self):
+        intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+        ).to_dict()
+        with self.assertRaises(InvalidTransitionError):
+            transition_intent(intent, 'approved', actor='test')
 
     @patch('scripts.tradier_account.profile')
     @patch('scripts.tradier_account.balances')

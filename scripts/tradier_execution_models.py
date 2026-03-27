@@ -9,16 +9,27 @@ import uuid
 VALID_MODES = {'cash_day', 'margin_swing'}
 VALID_STRATEGY_TYPES = {'long_call', 'long_put', 'defined_risk_spread'}
 VALID_INTENT_STATUSES = {
-    'draft',
+    'candidate',
     'queued',
-    'risk_rejected',
     'previewed',
     'approved',
     'committed',
-    'placed',
-    'filled',
+    'entered',
+    'rejected',
     'cancelled',
-    'closed',
+    'exited',
+}
+
+ALLOWED_STATUS_TRANSITIONS = {
+    'candidate': {'queued', 'rejected'},
+    'queued': {'previewed', 'rejected', 'cancelled'},
+    'previewed': {'approved', 'rejected', 'cancelled'},
+    'approved': {'committed', 'rejected', 'cancelled'},
+    'committed': {'entered', 'cancelled'},
+    'entered': {'exited'},
+    'rejected': set(),
+    'cancelled': set(),
+    'exited': set(),
 }
 
 
@@ -28,6 +39,40 @@ def now_iso() -> str:
 
 def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
+
+
+class InvalidTransitionError(ValueError):
+    pass
+
+
+def can_transition(from_status: str, to_status: str) -> bool:
+    if from_status not in ALLOWED_STATUS_TRANSITIONS:
+        raise InvalidTransitionError(f'Unknown from_status: {from_status}')
+    if to_status not in VALID_INTENT_STATUSES:
+        raise InvalidTransitionError(f'Unknown to_status: {to_status}')
+    return to_status in ALLOWED_STATUS_TRANSITIONS[from_status]
+
+
+def transition_intent(intent: dict[str, Any], to_status: str, *, actor: str = 'system', note: str = '') -> dict[str, Any]:
+    current_status = intent.get('status')
+    if current_status not in VALID_INTENT_STATUSES:
+        raise InvalidTransitionError(f'Unknown current status: {current_status}')
+    if not can_transition(current_status, to_status):
+        raise InvalidTransitionError(f'Invalid transition: {current_status} -> {to_status}')
+
+    updated = dict(intent)
+    updated['status'] = to_status
+    history = list(updated.get('transition_history') or [])
+    history.append({
+        'from': current_status,
+        'to': to_status,
+        'actor': actor,
+        'note': note,
+        'timestamp': now_iso(),
+    })
+    updated['transition_history'] = history
+    updated['updated_at'] = now_iso()
+    return updated
 
 
 @dataclass
@@ -45,7 +90,8 @@ class ExecutionIntent:
     notes: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
-    status: str = 'draft'
+    status: str = 'candidate'
+    transition_history: list[dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self):
         if self.mode not in VALID_MODES:
