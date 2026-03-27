@@ -119,6 +119,10 @@ class ExecutionIntent:
     allocation_bucket: str | None = None
     position_relationship: str = 'open_new_position'
     position_id: str | None = None
+    strategy_family: str | None = None
+    strategy_source: str | None = None
+    strategy_run_id: str | None = None
+    origin: str = 'system_generated'
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'
@@ -135,6 +139,12 @@ class ExecutionIntent:
             raise ValueError('qty must be > 0')
         if not self.allocation_bucket:
             self.allocation_bucket = 'cash_day_core' if self.mode == 'cash_day' else 'margin_swing_core'
+        if not self.strategy_family:
+            self.strategy_family = self.strategy_type
+        if not self.strategy_source:
+            self.strategy_source = self.source
+        if not self.strategy_run_id:
+            self.strategy_run_id = self.candidate_id or self.intent_id
         self.symbol = self.symbol.upper()
 
     def to_dict(self) -> dict[str, Any]:

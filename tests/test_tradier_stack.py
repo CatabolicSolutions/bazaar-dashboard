@@ -28,6 +28,7 @@ from scripts.tradier_execution_models import (
 from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
+from scripts.tradier_intent_provenance import intent_provenance_for_intent
 from scripts.tradier_position_linkage import position_linkage_for_intent
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
@@ -227,6 +228,10 @@ class TradierStackTests(unittest.TestCase):
         }
         queued = service.create_intent_from_leader(leader, mode='cash_day')
         result = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)
+
+        self.assertEqual(queued['strategy_source'], 'tradier_leaders_board')
+        self.assertEqual(queued['origin'], 'system_generated')
+        self.assertEqual(queued['strategy_run_id'], 'IWM-2026-03-20-CALL-250')
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -440,6 +445,44 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_intent_provenance_contract_distinguishes_origin_sources(self):
+        system_intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+        ).to_dict()
+        human_intent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            strategy_family='manual_override',
+            strategy_source='trading_desk_manual',
+            strategy_run_id='desk-ticket-7',
+            origin='human_directed',
+        ).to_dict()
+
+        system_provenance = intent_provenance_for_intent(system_intent)
+        human_provenance = intent_provenance_for_intent(human_intent)
+
+        self.assertEqual(system_provenance['strategy_family'], 'scalping_buy')
+        self.assertEqual(system_provenance['strategy_source'], 'tradier_leaders_board')
+        self.assertEqual(system_provenance['origin'], 'system_generated')
+        self.assertEqual(human_provenance['strategy_family'], 'manual_override')
+        self.assertEqual(human_provenance['strategy_source'], 'trading_desk_manual')
+        self.assertEqual(human_provenance['origin'], 'human_directed')
+
     def test_position_linkage_contract_distinguishes_holdings_relationships(self):
         open_intent = ExecutionIntent(
             mode='cash_day',
@@ -574,6 +617,57 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_provenance(self):
+        system_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+        ).to_dict()
+        system_queued = transition_intent(system_candidate, 'queued', actor='test')
+        system_previewed = transition_intent(system_queued, 'previewed', actor='test')
+        system_approved = transition_intent(system_previewed, 'approved', actor='test')
+
+        human_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='manual_override',
+            strategy_source='trading_desk_manual',
+            strategy_run_id='desk-ticket-7',
+            origin='human_directed',
+        ).to_dict()
+        human_queued = transition_intent(human_candidate, 'queued', actor='test')
+        human_previewed = transition_intent(human_queued, 'previewed', actor='test')
+        human_approved = transition_intent(human_previewed, 'approved', actor='test')
+
+        system_view = interpret_operator_execution_state(system_approved)
+        human_view = interpret_operator_execution_state(human_approved)
+
+        self.assertEqual(system_view['status'], 'approved')
+        self.assertEqual(human_view['status'], 'approved')
+        self.assertEqual(system_view['operator_state'], human_view['operator_state'])
+        self.assertEqual(system_view['execution_context']['allocation']['capital_source'], human_view['execution_context']['allocation']['capital_source'])
+        self.assertEqual(system_view['position_linkage']['position_effect'], human_view['position_linkage']['position_effect'])
+        self.assertEqual(system_view['provenance']['strategy_source'], 'tradier_leaders_board')
+        self.assertEqual(system_view['provenance']['origin'], 'system_generated')
+        self.assertEqual(human_view['provenance']['strategy_source'], 'trading_desk_manual')
+        self.assertEqual(human_view['provenance']['origin'], 'human_directed')
+        self.assertNotEqual(system_view['provenance']['strategy_run_id'], human_view['provenance']['strategy_run_id'])
 
     def test_same_lifecycle_and_allocation_do_not_collapse_position_linkage_meaning(self):
         open_candidate = ExecutionIntent(

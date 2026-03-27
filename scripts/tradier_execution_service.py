@@ -46,6 +46,7 @@ class TradierExecutionService:
     ) -> dict[str, Any]:
         strategy_type = 'long_call' if leader.get('option_type', '').lower().startswith('c') else 'long_put'
         contract = f"{leader['symbol']} {leader['strike']} {leader['option_type'].upper()} {leader['expiration']}"
+        resolved_candidate_id = leader.get('candidate_id') or board_candidate_id(leader)
         intent = ExecutionIntent(
             mode=mode,
             strategy_type=strategy_type,
@@ -55,7 +56,11 @@ class TradierExecutionService:
             qty=qty,
             limit_price=limit_price if limit_price is not None else leader.get('mid_price') or leader.get('ask'),
             source='leader',
-            candidate_id=leader.get('candidate_id') or board_candidate_id(leader),
+            candidate_id=resolved_candidate_id,
+            strategy_family=leader.get('strategy') or strategy_type,
+            strategy_source='tradier_leaders_board',
+            strategy_run_id=leader.get('run_id') or resolved_candidate_id,
+            origin='system_generated',
             notes=notes,
         )
         state = load_state()
