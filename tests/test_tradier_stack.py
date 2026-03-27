@@ -1,7 +1,9 @@
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = WORKSPACE_ROOT / 'scripts'
@@ -14,6 +16,8 @@ from scripts.tradier_position_flow import parse_command
 from scripts.tradier_approval_flow import contract_key, build_execution_card
 from scripts.tradier_board_utils import candidate_id, parse_raw_tickets, top_leaders_by_strategy
 from scripts.tradier_execution_models import ExecutionIntent, InvalidTransitionError, can_transition, transition_intent
+from scripts.tradier_execution_service import TradierExecutionService
+from tradier_execution_models import InvalidTransitionError as RuntimeInvalidTransitionError
 from scripts.tradier_risk_controls import evaluate_intent
 from scripts.tradier_account import readiness_snapshot
 from scripts.tradier_exit_policy import classify
@@ -51,6 +55,26 @@ Credit Spread Sell Opportunity for SPY (1DTE)**
 
 
 class TradierStackTests(unittest.TestCase):
+    def with_temp_state_paths(self):
+        tempdir = tempfile.TemporaryDirectory()
+        root = Path(tempdir.name)
+        state_path = root / 'tradier_execution_state.json'
+        audit_path = root / 'tradier_audit_log.json'
+        patchers = [
+            patch('scripts.tradier_state_store.EXECUTION_STATE_PATH', state_path),
+            patch('scripts.tradier_state_store.AUDIT_LOG_PATH', audit_path),
+            patch('tradier_state_store.EXECUTION_STATE_PATH', state_path),
+            patch('tradier_state_store.AUDIT_LOG_PATH', audit_path),
+        ]
+        for patcher in patchers:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.addCleanup(tempdir.cleanup)
+        return state_path, audit_path
+
+    def load_json_file(self, path: Path) -> dict:
+        return json.loads(path.read_text(encoding='utf-8'))
+
     def test_occ_option_symbol(self):
         self.assertEqual(occ_option_symbol('IWM', '2026-03-20', 'call', 250), 'IWM260320C00250000')
         self.assertEqual(occ_option_symbol('SPY', '3/21/26', 'put', 510), 'SPY260321P00510000')
@@ -143,6 +167,60 @@ class TradierStackTests(unittest.TestCase):
         ).to_dict()
         with self.assertRaises(InvalidTransitionError):
             transition_intent(intent, 'approved', actor='test')
+
+    def test_persisted_flow_valid_transition_writes_history(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {'tag': 'preview-payload'}
+        broker.preview_order.return_value = {'ok': True}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        result = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)
+
+        persisted = self.load_json_file(state_path)
+        self.assertEqual(len(persisted['intents']), 1)
+        intent = persisted['intents'][0]
+        self.assertEqual(intent['status'], 'previewed')
+        self.assertEqual([entry['to'] for entry in intent['transition_history']], ['queued', 'previewed'])
+        self.assertEqual(intent['transition_history'][0]['from'], 'candidate')
+        self.assertEqual(intent['transition_history'][1]['from'], 'queued')
+        self.assertEqual(result['intent']['transition_history'], intent['transition_history'])
+
+    def test_persisted_flow_invalid_transition_does_not_write_history(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {'tag': 'preview-payload'}
+        broker.preview_order.return_value = {'ok': True}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        before = self.load_json_file(state_path)
+
+        with self.assertRaises((InvalidTransitionError, RuntimeInvalidTransitionError)):
+            service.record_commit(queued, {'id': 'broker-order-1'})
+
+        after = self.load_json_file(state_path)
+        self.assertEqual(after, before)
+        intent = after['intents'][0]
+        self.assertEqual(intent['status'], 'queued')
+        self.assertEqual([entry['to'] for entry in intent['transition_history']], ['queued'])
 
     @patch('scripts.tradier_account.profile')
     @patch('scripts.tradier_account.balances')
