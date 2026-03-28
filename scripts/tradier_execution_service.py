@@ -305,3 +305,20 @@ class TradierExecutionService:
         save_state(state)
         append_audit('intent_reconciled', 'alfred', intent.intent_id, note)
         return reconciled
+
+    def invalidate_external_reference(self, intent_dict: dict[str, Any], *, note: str = 'External reference could not be validated') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        invalidated, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            external_reference_state='invalid_external_reference',
+            external_reference_note=note,
+            reconciliation_state='divergent',
+            reconciliation_note='External linkage broken or mismatched',
+            escalation_state='warning',
+            escalation_reason=note,
+        )
+        save_state(state)
+        append_audit('external_reference_invalidated', 'alfred', intent.intent_id, note)
+        return invalidated
