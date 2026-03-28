@@ -230,6 +230,34 @@ class TradierExecutionService:
         append_audit('execution_attempt_failed', 'alfred', intent.intent_id, reason, {'attempt_id': attempt_id})
         return failed
 
+    def retry_execution_attempt(self, intent_dict: dict[str, Any], *, attempt_id: str, reason: str = 'Retry attempt started') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        retried, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            attempt_state='attempt_in_progress',
+            attempt_count=max(1, int(intent_dict.get('attempt_count') or 0) + 1),
+            latest_attempt_id=attempt_id,
+            latest_attempt_note=reason,
+            readiness_state='ready',
+            readiness_reason='Retry attempt in progress',
+            outcome_state='no_outcome',
+            outcome_reason='',
+            effected_qty=None,
+            escalation_state='warning',
+            escalation_reason=reason,
+            external_reference_state='pending_external_reference',
+            external_reference_id=None,
+            external_reference_system='',
+            external_reference_note='Awaiting broker linkage for retry attempt',
+            reconciliation_state='not_reconciled',
+            reconciliation_note='Retry attempt restarted reconciliation cycle',
+        )
+        save_state(state)
+        append_audit('execution_attempt_retried', 'alfred', intent.intent_id, reason, {'attempt_id': attempt_id})
+        return retried
+
     def record_commit(self, intent_dict: dict[str, Any], broker_response: dict[str, Any]) -> dict[str, Any]:
         intent = self._materialize_intent(intent_dict)
         order = OrderRecord(intent_id=intent.intent_id, broker_order_id=str(broker_response.get('id') or broker_response.get('order', {}).get('id') or ''), status='placed')
