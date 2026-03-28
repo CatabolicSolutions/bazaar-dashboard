@@ -13,6 +13,7 @@ from tradier_intent_provenance import intent_provenance_for_intent
 from tradier_intent_readiness import intent_readiness_for_intent
 from tradier_intent_timing import intent_timing_for_intent
 from tradier_position_linkage import position_linkage_for_intent
+from tradier_reconciliation_state import intent_reconciliation_for_intent
 
 
 OPERATOR_STATE_BY_STATUS = {
@@ -67,6 +68,7 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
     timing = intent_timing_for_intent(intent)
     external_reference = intent_external_reference_for_intent(intent)
     execution_attempt = intent_execution_attempt_for_intent(intent)
+    reconciliation = intent_reconciliation_for_intent(intent)
 
     return {
         'intent_id': intent.get('intent_id'),
@@ -87,4 +89,5 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
         'timing': timing,
         'external_reference': external_reference,
         'execution_attempt': execution_attempt,
+        'reconciliation': reconciliation,
     }

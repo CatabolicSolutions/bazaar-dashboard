@@ -38,6 +38,7 @@ from scripts.tradier_intent_provenance import intent_provenance_for_intent
 from scripts.tradier_intent_readiness import intent_readiness_for_intent
 from scripts.tradier_intent_timing import intent_timing_for_intent
 from scripts.tradier_position_linkage import position_linkage_for_intent
+from scripts.tradier_reconciliation_state import intent_reconciliation_for_intent
 from scripts.tradier_execution_service import TradierExecutionService
 from scripts.tradier_state_store import save_state, transition_persisted_intent
 from tradier_execution_models import InvalidLifecycleStateError as RuntimeInvalidLifecycleStateError
@@ -250,6 +251,7 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(queued['external_reference_state'], 'no_external_reference')
         self.assertEqual(queued['attempt_state'], 'no_attempt')
         self.assertEqual(queued['attempt_count'], 0)
+        self.assertEqual(queued['reconciliation_state'], 'not_reconciled')
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -463,6 +465,56 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_reconciliation_contract_distinguishes_alignment_states(self):
+        not_reconciled = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            reconciliation_state='not_reconciled',
+        ).to_dict()
+        reconciled = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            reconciliation_state='reconciled',
+            reconciliation_note='broker matches internal state',
+        ).to_dict()
+        pending = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            reconciliation_state='pending_confirmation',
+            reconciliation_note='awaiting broker confirmation',
+        ).to_dict()
+        divergent = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            reconciliation_state='divergent',
+            reconciliation_note='fill mismatch detected',
+        ).to_dict()
+
+        self.assertFalse(intent_reconciliation_for_intent(not_reconciled)['is_aligned'])
+        self.assertTrue(intent_reconciliation_for_intent(reconciled)['is_aligned'])
+        self.assertTrue(intent_reconciliation_for_intent(pending)['is_pending_confirmation'])
+        self.assertTrue(intent_reconciliation_for_intent(divergent)['has_mismatch'])
+
     def test_execution_attempt_contract_distinguishes_submission_states(self):
         no_attempt = ExecutionIntent(
             mode='cash_day',
@@ -625,6 +677,7 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(snapshot['timing']['timing_state'], 'time_sensitive')
         self.assertEqual(snapshot['external_reference']['external_reference_state'], 'no_external_reference')
         self.assertEqual(snapshot['execution_attempt']['attempt_state'], 'no_attempt')
+        self.assertEqual(snapshot['reconciliation']['reconciliation_state'], 'not_reconciled')
         self.assertEqual(snapshot['provenance']['strategy_source'], 'tradier_leaders_board')
         self.assertEqual(snapshot['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
         self.assertEqual(snapshot['position_linkage']['position_effect'], 'open')
@@ -1046,6 +1099,93 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_reconciliation_state(self):
+        aligned_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='full_execution',
+            outcome_reason='fully filled',
+            effected_qty=2,
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='linked_external_reference',
+            external_reference_id='ord-123',
+            external_reference_system='tradier',
+            attempt_state='attempt_completed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='reconciled',
+            reconciliation_note='broker matches internal record',
+        ).to_dict()
+        aligned_queued = transition_intent(aligned_candidate, 'queued', actor='test')
+        aligned_previewed = transition_intent(aligned_queued, 'previewed', actor='test')
+        aligned_approved = transition_intent(aligned_previewed, 'approved', actor='test')
+
+        divergent_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='full_execution',
+            outcome_reason='fully filled',
+            effected_qty=2,
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='linked_external_reference',
+            external_reference_id='ord-123',
+            external_reference_system='tradier',
+            attempt_state='attempt_completed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='divergent',
+            reconciliation_note='broker qty mismatch',
+        ).to_dict()
+        divergent_queued = transition_intent(divergent_candidate, 'queued', actor='test')
+        divergent_previewed = transition_intent(divergent_queued, 'previewed', actor='test')
+        divergent_approved = transition_intent(divergent_previewed, 'approved', actor='test')
+
+        aligned_view = interpret_operator_execution_state(aligned_approved)
+        divergent_view = interpret_operator_execution_state(divergent_approved)
+
+        self.assertEqual(aligned_view['status'], 'approved')
+        self.assertEqual(divergent_view['status'], 'approved')
+        self.assertEqual(aligned_view['decision']['decision_state'], divergent_view['decision']['decision_state'])
+        self.assertEqual(aligned_view['readiness']['readiness_state'], divergent_view['readiness']['readiness_state'])
+        self.assertEqual(aligned_view['outcome']['outcome_state'], divergent_view['outcome']['outcome_state'])
+        self.assertEqual(aligned_view['external_reference']['external_reference_state'], divergent_view['external_reference']['external_reference_state'])
+        self.assertEqual(aligned_view['execution_attempt']['attempt_state'], divergent_view['execution_attempt']['attempt_state'])
+        self.assertEqual(aligned_view['execution_context']['allocation']['capital_source'], divergent_view['execution_context']['allocation']['capital_source'])
+        self.assertTrue(aligned_view['reconciliation']['is_aligned'])
+        self.assertEqual(aligned_view['reconciliation']['reconciliation_state'], 'reconciled')
+        self.assertTrue(divergent_view['reconciliation']['has_mismatch'])
+        self.assertEqual(divergent_view['reconciliation']['reconciliation_state'], 'divergent')
 
     def test_identical_execution_semantics_remain_distinguishable_by_attempt_state(self):
         in_progress_candidate = ExecutionIntent(

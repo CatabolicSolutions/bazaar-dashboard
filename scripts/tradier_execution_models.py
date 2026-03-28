@@ -143,6 +143,8 @@ class ExecutionIntent:
     attempt_count: int = 0
     latest_attempt_id: str | None = None
     latest_attempt_note: str = ''
+    reconciliation_state: str = 'not_reconciled'
+    reconciliation_note: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'

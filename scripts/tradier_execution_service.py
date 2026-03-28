@@ -81,6 +81,8 @@ class TradierExecutionService:
             attempt_count=0,
             latest_attempt_id=None,
             latest_attempt_note='',
+            reconciliation_state='not_reconciled',
+            reconciliation_note='',
             notes=notes,
         )
         state = load_state()
