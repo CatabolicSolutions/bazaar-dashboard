@@ -29,6 +29,7 @@ from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_external_reference import intent_external_reference_for_intent
 from scripts.tradier_intent_decision import intent_decision_for_intent
 from scripts.tradier_intent_escalation import intent_escalation_for_intent
 from scripts.tradier_intent_outcome import intent_outcome_for_intent
@@ -245,6 +246,7 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(queued['outcome_state'], 'no_outcome')
         self.assertEqual(queued['escalation_state'], 'no_escalation')
         self.assertEqual(queued['timing_state'], 'no_timing_pressure')
+        self.assertEqual(queued['external_reference_state'], 'no_external_reference')
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -458,6 +460,59 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_external_reference_contract_distinguishes_linkage_states(self):
+        no_ref = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            external_reference_state='no_external_reference',
+        ).to_dict()
+        pending_ref = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            external_reference_state='pending_external_reference',
+            external_reference_note='awaiting broker order id',
+        ).to_dict()
+        linked_ref = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            external_reference_state='linked_external_reference',
+            external_reference_id='ord-123',
+            external_reference_system='tradier',
+        ).to_dict()
+        invalid_ref = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            external_reference_state='invalid_external_reference',
+            external_reference_id='ord-bad',
+            external_reference_system='tradier',
+            external_reference_note='missing upstream order',
+        ).to_dict()
+
+        self.assertFalse(intent_external_reference_for_intent(no_ref)['has_external_reference'])
+        self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
+        self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
+        self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
     def test_composed_execution_snapshot_includes_all_contracts(self):
         candidate = ExecutionIntent(
             mode='cash_day',
@@ -496,6 +551,7 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(snapshot['outcome']['outcome_state'], 'partial_execution')
         self.assertEqual(snapshot['escalation']['escalation_state'], 'warning')
         self.assertEqual(snapshot['timing']['timing_state'], 'time_sensitive')
+        self.assertEqual(snapshot['external_reference']['external_reference_state'], 'no_external_reference')
         self.assertEqual(snapshot['provenance']['strategy_source'], 'tradier_leaders_board')
         self.assertEqual(snapshot['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
         self.assertEqual(snapshot['position_linkage']['position_effect'], 'open')
@@ -917,6 +973,79 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_external_reference_state(self):
+        pending_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='pending_external_reference',
+            external_reference_note='awaiting broker order id',
+        ).to_dict()
+        pending_queued = transition_intent(pending_candidate, 'queued', actor='test')
+        pending_previewed = transition_intent(pending_queued, 'previewed', actor='test')
+        pending_approved = transition_intent(pending_previewed, 'approved', actor='test')
+
+        linked_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='linked_external_reference',
+            external_reference_id='ord-123',
+            external_reference_system='tradier',
+        ).to_dict()
+        linked_queued = transition_intent(linked_candidate, 'queued', actor='test')
+        linked_previewed = transition_intent(linked_queued, 'previewed', actor='test')
+        linked_approved = transition_intent(linked_previewed, 'approved', actor='test')
+
+        pending_view = interpret_operator_execution_state(pending_approved)
+        linked_view = interpret_operator_execution_state(linked_approved)
+
+        self.assertEqual(pending_view['status'], 'approved')
+        self.assertEqual(linked_view['status'], 'approved')
+        self.assertEqual(pending_view['decision']['decision_state'], linked_view['decision']['decision_state'])
+        self.assertEqual(pending_view['readiness']['readiness_state'], linked_view['readiness']['readiness_state'])
+        self.assertEqual(pending_view['outcome']['outcome_state'], linked_view['outcome']['outcome_state'])
+        self.assertEqual(pending_view['escalation']['escalation_state'], linked_view['escalation']['escalation_state'])
+        self.assertEqual(pending_view['timing']['timing_state'], linked_view['timing']['timing_state'])
+        self.assertEqual(pending_view['execution_context']['allocation']['capital_source'], linked_view['execution_context']['allocation']['capital_source'])
+        self.assertTrue(pending_view['external_reference']['reference_pending'])
+        self.assertFalse(pending_view['external_reference']['has_external_reference'])
+        self.assertEqual(linked_view['external_reference']['external_reference_state'], 'linked_external_reference')
+        self.assertTrue(linked_view['external_reference']['has_external_reference'])
+        self.assertTrue(linked_view['external_reference']['reference_valid'])
 
     def test_composed_execution_snapshot_preserves_underlying_distinctions(self):
         warning_candidate = ExecutionIntent(

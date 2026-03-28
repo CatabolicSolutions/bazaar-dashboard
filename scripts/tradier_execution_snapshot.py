@@ -24,6 +24,7 @@ def build_execution_intent_snapshot(intent: dict[str, Any]) -> dict[str, Any]:
         'outcome': operator_view['outcome'],
         'escalation': operator_view['escalation'],
         'timing': operator_view['timing'],
+        'external_reference': operator_view['external_reference'],
         'provenance': operator_view['provenance'],
         'execution_context': operator_view['execution_context'],
         'position_linkage': operator_view['position_linkage'],

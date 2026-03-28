@@ -135,6 +135,10 @@ class ExecutionIntent:
     escalation_reason: str = ''
     timing_state: str = 'no_timing_pressure'
     timing_reason: str = ''
+    external_reference_state: str = 'no_external_reference'
+    external_reference_id: str | None = None
+    external_reference_system: str = ''
+    external_reference_note: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'

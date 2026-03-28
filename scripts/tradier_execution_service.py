@@ -73,6 +73,10 @@ class TradierExecutionService:
             escalation_reason='',
             timing_state='no_timing_pressure',
             timing_reason='',
+            external_reference_state='no_external_reference',
+            external_reference_id=None,
+            external_reference_system='',
+            external_reference_note='',
             notes=notes,
         )
         state = load_state()
