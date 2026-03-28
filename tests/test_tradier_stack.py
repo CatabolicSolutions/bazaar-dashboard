@@ -266,6 +266,61 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(intent['transition_history'][1]['from'], 'queued')
         self.assertEqual(result['intent']['transition_history'], intent['transition_history'])
 
+    def test_service_happy_path_updates_contracts_coherently_across_steps(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        previewed = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        approved = service.approve_intent(previewed, actor='ross', note='Authorized')
+        ready = service.mark_intent_ready(approved, reason='Preview and approval complete')
+        attempting = service.begin_execution_attempt(ready, attempt_id='att-1', note='Submitting to broker')
+        committed = service.record_commit(attempting, {'id': 'broker-order-1'})['intent']
+
+        approved_snapshot = build_execution_intent_snapshot(approved)
+        ready_snapshot = build_execution_intent_snapshot(ready)
+        attempting_snapshot = build_execution_intent_snapshot(attempting)
+        committed_snapshot = build_execution_intent_snapshot(committed)
+        persisted = self.load_json_file(state_path)
+
+        self.assertEqual(approved_snapshot['decision']['decision_state'], 'approved')
+        self.assertEqual(approved_snapshot['lifecycle']['status'], 'approved')
+        self.assertEqual(ready_snapshot['readiness']['readiness_state'], 'ready')
+        self.assertTrue(ready_snapshot['readiness']['is_executable_now'])
+        self.assertEqual(attempting_snapshot['execution_attempt']['attempt_state'], 'attempt_in_progress')
+        self.assertEqual(attempting_snapshot['external_reference']['external_reference_state'], 'pending_external_reference')
+        self.assertEqual(committed_snapshot['lifecycle']['status'], 'committed')
+        self.assertEqual(committed_snapshot['execution_attempt']['attempt_state'], 'attempt_completed')
+        self.assertEqual(committed_snapshot['external_reference']['external_reference_state'], 'linked_external_reference')
+        self.assertEqual(committed_snapshot['external_reference']['external_reference_id'], 'broker-order-1')
+        self.assertEqual(committed_snapshot['outcome']['outcome_state'], 'full_execution')
+        self.assertEqual(committed_snapshot['reconciliation']['reconciliation_state'], 'pending_confirmation')
+        self.assertEqual(persisted['intents'][0]['decision_state'], 'approved')
+        self.assertEqual(persisted['intents'][0]['attempt_state'], 'attempt_completed')
+        self.assertEqual(persisted['intents'][0]['external_reference_id'], 'broker-order-1')
+
     def test_service_flow_valid_multistep_progression_persists_history_order_and_position(self):
         state_path, _ = self.with_temp_state_paths()
         broker = Mock()

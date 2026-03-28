@@ -24,6 +24,19 @@ class TradierExecutionService:
         allowed_keys = set(ExecutionIntent.__dataclass_fields__.keys())
         return ExecutionIntent(**{key: value for key, value in intent_dict.items() if key in allowed_keys})
 
+    def _persist_intent_updates(self, state: dict[str, Any], intent_id: str, **updates: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+        persisted_intent = None
+        for intent in state.get('intents', []):
+            if intent.get('intent_id') == intent_id:
+                persisted_intent = dict(intent)
+                break
+        if persisted_intent is None:
+            raise ValueError(f'Intent not found in persisted state: {intent_id}')
+        persisted_intent.update(updates)
+        state = dict(state)
+        state['intents'] = upsert_by_key(state.get('intents', []), 'intent_id', intent_id, persisted_intent)
+        return persisted_intent, state
+
     def _persist_transition(
         self,
         state: dict[str, Any],
@@ -133,6 +146,51 @@ class TradierExecutionService:
         append_audit('preview_created', 'alfred', intent.intent_id, 'Broker preview created', {'payload': payload})
         return {'intent': previewed, 'preview': record.to_dict(), 'broker_response': preview_response}
 
+    def approve_intent(self, intent_dict: dict[str, Any], *, actor: str = 'alfred', note: str = 'Approved for execution') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        approved, state = self._persist_transition(state, intent.intent_id, 'approved', actor=actor, note=note)
+        approved, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            decision_state='approved',
+            decision_actor=actor,
+            decision_note=note,
+        )
+        save_state(state)
+        append_audit('intent_approved', actor, intent.intent_id, note)
+        return approved
+
+    def mark_intent_ready(self, intent_dict: dict[str, Any], *, reason: str = 'Execution prerequisites satisfied') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        ready, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            readiness_state='ready',
+            readiness_reason=reason,
+        )
+        save_state(state)
+        append_audit('intent_ready', 'alfred', intent.intent_id, reason)
+        return ready
+
+    def begin_execution_attempt(self, intent_dict: dict[str, Any], *, attempt_id: str, note: str = 'Execution attempt started') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        in_progress, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            attempt_state='attempt_in_progress',
+            attempt_count=max(1, int(intent_dict.get('attempt_count') or 0) + 1),
+            latest_attempt_id=attempt_id,
+            latest_attempt_note=note,
+            external_reference_state='pending_external_reference',
+            external_reference_note='Awaiting broker linkage',
+        )
+        save_state(state)
+        append_audit('execution_attempt_started', 'alfred', intent.intent_id, note, {'attempt_id': attempt_id})
+        return in_progress
+
     def record_commit(self, intent_dict: dict[str, Any], broker_response: dict[str, Any]) -> dict[str, Any]:
         intent = self._materialize_intent(intent_dict)
         order = OrderRecord(intent_id=intent.intent_id, broker_order_id=str(broker_response.get('id') or broker_response.get('order', {}).get('id') or ''), status='placed')
@@ -144,6 +202,23 @@ class TradierExecutionService:
             'committed',
             actor='alfred',
             note='Order commit recorded',
+        )
+        committed, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            external_reference_state='linked_external_reference',
+            external_reference_id=order.broker_order_id,
+            external_reference_system='tradier',
+            external_reference_note='Broker order linked',
+            attempt_state='attempt_completed',
+            attempt_count=max(1, int(committed.get('attempt_count') or intent_dict.get('attempt_count') or 0)),
+            latest_attempt_id=committed.get('latest_attempt_id') or 'attempt-1',
+            latest_attempt_note='Execution attempt completed',
+            outcome_state='full_execution',
+            outcome_reason='Broker order recorded as filled-equivalent for happy path',
+            effected_qty=intent.qty,
+            reconciliation_state='pending_confirmation',
+            reconciliation_note='Awaiting broker confirmation after commit',
         )
         state['orders'].append(order.to_dict())
         state['positions'].append(position.to_dict())
