@@ -133,6 +133,8 @@ class ExecutionIntent:
     effected_qty: int | None = None
     escalation_state: str = 'no_escalation'
     escalation_reason: str = ''
+    timing_state: str = 'no_timing_pressure'
+    timing_reason: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'

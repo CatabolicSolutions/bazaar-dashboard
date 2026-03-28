@@ -9,6 +9,7 @@ from tradier_intent_escalation import intent_escalation_for_intent
 from tradier_intent_outcome import intent_outcome_for_intent
 from tradier_intent_provenance import intent_provenance_for_intent
 from tradier_intent_readiness import intent_readiness_for_intent
+from tradier_intent_timing import intent_timing_for_intent
 from tradier_position_linkage import position_linkage_for_intent
 
 
@@ -61,6 +62,7 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
     readiness = intent_readiness_for_intent(intent)
     outcome = intent_outcome_for_intent(intent)
     escalation = intent_escalation_for_intent(intent)
+    timing = intent_timing_for_intent(intent)
 
     return {
         'intent_id': intent.get('intent_id'),
@@ -78,4 +80,5 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
         'readiness': readiness,
         'outcome': outcome,
         'escalation': escalation,
+        'timing': timing,
     }

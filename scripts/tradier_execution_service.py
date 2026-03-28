@@ -71,6 +71,8 @@ class TradierExecutionService:
             effected_qty=None,
             escalation_state='no_escalation',
             escalation_reason='',
+            timing_state='no_timing_pressure',
+            timing_reason='',
             notes=notes,
         )
         state = load_state()
