@@ -31,6 +31,7 @@ from scripts.tradier_execution_governance import InvalidExecutionContractCombina
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_execution_snapshot_api import get_execution_intent_snapshot_payload
 from scripts.tradier_execution_snapshot_serialization import deserialize_execution_intent_snapshot, serialize_execution_intent_snapshot
 from scripts.tradier_execution_attempt import intent_execution_attempt_for_intent
 from scripts.tradier_external_reference import intent_external_reference_for_intent
@@ -639,6 +640,100 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
         self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
         self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
+    def test_snapshot_api_returns_versioned_consumer_payload(self):
+        candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='partial_execution',
+            outcome_reason='1 of 2 filled',
+            effected_qty=1,
+            escalation_state='warning',
+            escalation_reason='spread widened',
+            timing_state='time_sensitive',
+            timing_reason='window closing',
+            external_reference_state='linked_external_reference',
+            external_reference_id='ord-123',
+            external_reference_system='tradier',
+            attempt_state='attempt_completed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='pending_confirmation',
+        ).to_dict()
+        queued = transition_intent(candidate, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+
+        payload = get_execution_intent_snapshot_payload(approved)
+
+        self.assertEqual(payload['kind'], 'tradier.execution_intent_snapshot')
+        self.assertEqual(payload['snapshot_version'], 1)
+        self.assertEqual(payload['snapshot']['lifecycle']['status'], 'approved')
+        self.assertEqual(payload['snapshot']['decision']['decision_state'], 'approved')
+        self.assertEqual(payload['snapshot']['external_reference']['external_reference_state'], 'linked_external_reference')
+        self.assertEqual(payload['snapshot']['execution_attempt']['attempt_state'], 'attempt_completed')
+        self.assertEqual(payload['snapshot']['reconciliation']['reconciliation_state'], 'pending_confirmation')
+
+    def test_snapshot_api_payload_preserves_governed_snapshot_shape(self):
+        candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-abc',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            outcome_state='no_outcome',
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='pending_external_reference',
+            attempt_state='attempt_in_progress',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='pending_confirmation',
+        ).to_dict()
+        queued = transition_intent(candidate, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+
+        payload = get_execution_intent_snapshot_payload(approved)
+        snapshot = payload['snapshot']
+
+        self.assertIn('lifecycle', snapshot)
+        self.assertIn('decision', snapshot)
+        self.assertIn('readiness', snapshot)
+        self.assertIn('outcome', snapshot)
+        self.assertIn('escalation', snapshot)
+        self.assertIn('timing', snapshot)
+        self.assertIn('external_reference', snapshot)
+        self.assertIn('execution_attempt', snapshot)
+        self.assertIn('reconciliation', snapshot)
+        self.assertIn('provenance', snapshot)
+        self.assertIn('execution_context', snapshot)
+        self.assertIn('position_linkage', snapshot)
+        self.assertIn('operator', snapshot)
 
     def test_snapshot_serialization_round_trip_preserves_composed_state(self):
         candidate = ExecutionIntent(
