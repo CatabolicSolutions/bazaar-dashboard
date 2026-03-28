@@ -28,6 +28,7 @@ from scripts.tradier_execution_models import (
 from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
+from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
 from scripts.tradier_intent_decision import intent_decision_for_intent
 from scripts.tradier_intent_escalation import intent_escalation_for_intent
 from scripts.tradier_intent_outcome import intent_outcome_for_intent
@@ -457,6 +458,49 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_composed_execution_snapshot_includes_all_contracts(self):
+        candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='partial_execution',
+            outcome_reason='1 of 2 filled',
+            effected_qty=1,
+            escalation_state='warning',
+            escalation_reason='spread widened',
+            timing_state='time_sensitive',
+            timing_reason='window closing',
+        ).to_dict()
+        queued = transition_intent(candidate, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+
+        snapshot = build_execution_intent_snapshot(approved)
+
+        self.assertEqual(snapshot['lifecycle']['status'], 'approved')
+        self.assertEqual(snapshot['decision']['decision_state'], 'approved')
+        self.assertEqual(snapshot['readiness']['readiness_state'], 'ready')
+        self.assertEqual(snapshot['outcome']['outcome_state'], 'partial_execution')
+        self.assertEqual(snapshot['escalation']['escalation_state'], 'warning')
+        self.assertEqual(snapshot['timing']['timing_state'], 'time_sensitive')
+        self.assertEqual(snapshot['provenance']['strategy_source'], 'tradier_leaders_board')
+        self.assertEqual(snapshot['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
+        self.assertEqual(snapshot['position_linkage']['position_effect'], 'open')
+        self.assertEqual(snapshot['operator']['operator_state'], 'ready_to_send')
+
     def test_intent_timing_contract_distinguishes_urgency_and_expiry_states(self):
         normal = ExecutionIntent(
             mode='cash_day',
@@ -873,6 +917,76 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_composed_execution_snapshot_preserves_underlying_distinctions(self):
+        warning_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='warning',
+            escalation_reason='spread widened but tradable',
+            timing_state='time_sensitive',
+            timing_reason='window closing fast',
+        ).to_dict()
+        warning_queued = transition_intent(warning_candidate, 'queued', actor='test')
+        warning_previewed = transition_intent(warning_queued, 'previewed', actor='test')
+        warning_approved = transition_intent(warning_previewed, 'approved', actor='test')
+
+        blocked_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='blocked',
+            escalation_reason='manual intervention required',
+            timing_state='expired',
+            timing_reason='signal no longer actionable',
+        ).to_dict()
+        blocked_queued = transition_intent(blocked_candidate, 'queued', actor='test')
+        blocked_previewed = transition_intent(blocked_queued, 'previewed', actor='test')
+        blocked_approved = transition_intent(blocked_previewed, 'approved', actor='test')
+
+        warning_snapshot = build_execution_intent_snapshot(warning_approved)
+        blocked_snapshot = build_execution_intent_snapshot(blocked_approved)
+
+        self.assertEqual(warning_snapshot['lifecycle']['status'], blocked_snapshot['lifecycle']['status'])
+        self.assertEqual(warning_snapshot['decision']['decision_state'], blocked_snapshot['decision']['decision_state'])
+        self.assertEqual(warning_snapshot['readiness']['readiness_state'], blocked_snapshot['readiness']['readiness_state'])
+        self.assertEqual(warning_snapshot['outcome']['outcome_state'], blocked_snapshot['outcome']['outcome_state'])
+        self.assertEqual(warning_snapshot['execution_context']['allocation']['capital_source'], blocked_snapshot['execution_context']['allocation']['capital_source'])
+        self.assertEqual(warning_snapshot['position_linkage']['position_effect'], blocked_snapshot['position_linkage']['position_effect'])
+        self.assertEqual(warning_snapshot['provenance']['strategy_source'], blocked_snapshot['provenance']['strategy_source'])
+        self.assertEqual(warning_snapshot['escalation']['escalation_state'], 'warning')
+        self.assertEqual(blocked_snapshot['escalation']['escalation_state'], 'blocked')
+        self.assertEqual(warning_snapshot['timing']['timing_state'], 'time_sensitive')
+        self.assertEqual(blocked_snapshot['timing']['timing_state'], 'expired')
 
     def test_identical_execution_semantics_remain_distinguishable_by_timing_state(self):
         urgent_candidate = ExecutionIntent(
