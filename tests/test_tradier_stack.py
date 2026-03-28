@@ -31,6 +31,7 @@ from scripts.tradier_execution_governance import InvalidExecutionContractCombina
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_desk_action_model import build_trading_desk_action_model
 from scripts.tradier_desk_read_model import build_trading_desk_read_model
 from scripts.tradier_execution_snapshot_api import get_execution_intent_snapshot_payload
 from scripts.tradier_execution_snapshot_queries import (
@@ -907,6 +908,103 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
         self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
         self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
+    def test_trading_desk_action_model_exposes_state_aware_actions(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        ready_leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+        blocked_leader = {
+            'symbol': 'SPY',
+            'strike': 510.0,
+            'option_type': 'put',
+            'expiration': '2026-03-21',
+            'candidate_id': 'SPY-2026-03-21-PUT-510',
+            'mid_price': 2.10,
+        }
+        pending_leader = {
+            'symbol': 'QQQ',
+            'strike': 430.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'QQQ-2026-03-20-CALL-430',
+            'mid_price': 1.50,
+        }
+        divergent_leader = {
+            'symbol': 'DIA',
+            'strike': 390.0,
+            'option_type': 'put',
+            'expiration': '2026-03-20',
+            'candidate_id': 'DIA-2026-03-20-PUT-390',
+            'mid_price': 1.20,
+        }
+
+        ready = service.create_intent_from_leader(ready_leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+        service.mark_intent_ready(ready, reason='Ready now')
+
+        blocked = service.create_intent_from_leader(blocked_leader, mode='cash_day')
+        blocked = service.preview_intent(blocked, expiry='2026-03-21', option_type='put', strike=510.0)['intent']
+        blocked = service.approve_intent(blocked, actor='ross', note='Authorized')
+        blocked = service.block_intent(blocked, reason='Spread widened beyond tolerance', escalation_state='blocked')
+
+        pending = service.create_intent_from_leader(pending_leader, mode='cash_day')
+        pending = service.preview_intent(pending, expiry='2026-03-20', option_type='call', strike=430.0)['intent']
+        pending = service.approve_intent(pending, actor='ross', note='Authorized')
+        pending = service.mark_intent_ready(pending, reason='Ready now')
+        pending = service.begin_execution_attempt(pending, attempt_id='att-pending', note='Submitting to broker')
+        service.record_commit(pending, {'id': 'broker-order-pending'})
+
+        divergent = service.create_intent_from_leader(divergent_leader, mode='cash_day')
+        divergent = service.preview_intent(divergent, expiry='2026-03-20', option_type='put', strike=390.0)['intent']
+        divergent = service.approve_intent(divergent, actor='ross', note='Authorized')
+        divergent = service.mark_intent_ready(divergent, reason='Ready now')
+        divergent = service.begin_execution_attempt(divergent, attempt_id='att-div', note='Submitting to broker')
+        divergent = service.record_commit(divergent, {'id': 'broker-order-div'})['intent']
+        service.invalidate_external_reference(divergent, note='Broker order id could not be revalidated')
+
+        desk = build_trading_desk_action_model(latest_limit=10)
+        views = desk['views']
+
+        self.assertEqual(desk['kind'], 'tradier.trading_desk_action_model')
+        ready_actions = views['ready_intents'][0]['actions']
+        blocked_actions = views['blocked_intents'][0]['actions']
+        pending_actions = views['pending_confirmation_intents'][0]['actions']
+        divergent_actions = views['divergent_intents'][0]['actions']
+
+        self.assertTrue(ready_actions['begin_execution_attempt']['available'])
+        self.assertTrue(ready_actions['block_intent']['available'])
+        self.assertFalse(ready_actions['reconcile_intent']['available'])
+
+        self.assertTrue(blocked_actions['retry_execution_attempt']['available'])
+        self.assertFalse(blocked_actions['begin_execution_attempt']['available'])
+
+        self.assertTrue(pending_actions['reconcile_intent']['available'])
+        self.assertFalse(pending_actions['retry_execution_attempt']['available'])
+
+        self.assertTrue(divergent_actions['invalidate_external_reference']['available'])
+        self.assertFalse(divergent_actions['reconcile_intent']['available'])
 
     def test_trading_desk_read_model_categorizes_operator_views(self):
         self.with_temp_state_paths()
