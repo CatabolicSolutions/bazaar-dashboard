@@ -264,3 +264,16 @@ class TradierExecutionService:
         save_state(state)
         append_audit('order_recorded', 'alfred', intent.intent_id, 'Order commit recorded', {'order_id': order.order_id})
         return {'intent': committed, 'order': order.to_dict(), 'position': position.to_dict()}
+
+    def reconcile_intent(self, intent_dict: dict[str, Any], *, note: str = 'Broker confirmation matched internal record') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        reconciled, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            reconciliation_state='reconciled',
+            reconciliation_note=note,
+        )
+        save_state(state)
+        append_audit('intent_reconciled', 'alfred', intent.intent_id, note)
+        return reconciled

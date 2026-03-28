@@ -380,6 +380,54 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(persisted['intents'][0]['attempt_state'], 'attempt_completed')
         self.assertEqual(persisted['intents'][0]['external_reference_id'], 'broker-order-1')
 
+    def test_service_reconciliation_completion_updates_snapshot_and_persisted_state(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        previewed = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        approved = service.approve_intent(previewed, actor='ross', note='Authorized')
+        ready = service.mark_intent_ready(approved, reason='Preview and approval complete')
+        attempting = service.begin_execution_attempt(ready, attempt_id='att-1', note='Submitting to broker')
+        committed = service.record_commit(attempting, {'id': 'broker-order-1'})['intent']
+        reconciled = service.reconcile_intent(committed, note='Broker confirmation matched internal record')
+
+        committed_snapshot = build_execution_intent_snapshot(committed)
+        reconciled_snapshot = build_execution_intent_snapshot(reconciled)
+        persisted = self.load_json_file(state_path)
+
+        self.assertEqual(committed_snapshot['reconciliation']['reconciliation_state'], 'pending_confirmation')
+        self.assertTrue(committed_snapshot['external_reference']['has_external_reference'])
+        self.assertEqual(reconciled_snapshot['reconciliation']['reconciliation_state'], 'reconciled')
+        self.assertTrue(reconciled_snapshot['reconciliation']['is_aligned'])
+        self.assertEqual(reconciled_snapshot['outcome']['outcome_state'], 'full_execution')
+        self.assertEqual(reconciled_snapshot['external_reference']['external_reference_id'], 'broker-order-1')
+        self.assertEqual(reconciled_snapshot['execution_attempt']['attempt_state'], 'attempt_completed')
+        self.assertEqual(persisted['intents'][0]['reconciliation_state'], 'reconciled')
+        self.assertEqual(persisted['intents'][0]['reconciliation_note'], 'Broker confirmation matched internal record')
+
     def test_service_flow_valid_multistep_progression_persists_history_order_and_position(self):
         state_path, _ = self.with_temp_state_paths()
         broker = Mock()
