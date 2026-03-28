@@ -77,6 +77,10 @@ class TradierExecutionService:
             external_reference_id=None,
             external_reference_system='',
             external_reference_note='',
+            attempt_state='no_attempt',
+            attempt_count=0,
+            latest_attempt_id=None,
+            latest_attempt_note='',
             notes=notes,
         )
         state = load_state()

@@ -4,6 +4,7 @@ from typing import Any
 
 from tradier_execution_context import execution_context_for_intent
 from tradier_execution_models import validate_persisted_intent_lifecycle
+from tradier_execution_attempt import intent_execution_attempt_for_intent
 from tradier_external_reference import intent_external_reference_for_intent
 from tradier_intent_decision import intent_decision_for_intent
 from tradier_intent_escalation import intent_escalation_for_intent
@@ -65,6 +66,7 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
     escalation = intent_escalation_for_intent(intent)
     timing = intent_timing_for_intent(intent)
     external_reference = intent_external_reference_for_intent(intent)
+    execution_attempt = intent_execution_attempt_for_intent(intent)
 
     return {
         'intent_id': intent.get('intent_id'),
@@ -84,4 +86,5 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
         'escalation': escalation,
         'timing': timing,
         'external_reference': external_reference,
+        'execution_attempt': execution_attempt,
     }

@@ -29,6 +29,7 @@ from scripts.tradier_execution_allocation import execution_allocation_for_intent
 from scripts.tradier_execution_context import execution_context_for_intent
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_execution_attempt import intent_execution_attempt_for_intent
 from scripts.tradier_external_reference import intent_external_reference_for_intent
 from scripts.tradier_intent_decision import intent_decision_for_intent
 from scripts.tradier_intent_escalation import intent_escalation_for_intent
@@ -247,6 +248,8 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(queued['escalation_state'], 'no_escalation')
         self.assertEqual(queued['timing_state'], 'no_timing_pressure')
         self.assertEqual(queued['external_reference_state'], 'no_external_reference')
+        self.assertEqual(queued['attempt_state'], 'no_attempt')
+        self.assertEqual(queued['attempt_count'], 0)
 
         persisted = self.load_json_file(state_path)
         self.assertEqual(len(persisted['intents']), 1)
@@ -460,6 +463,75 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_allocation['capital_source'], 'margin_swing_trading_capital')
         self.assertEqual(swing_allocation['account_profile'], 'margin')
 
+    def test_execution_attempt_contract_distinguishes_submission_states(self):
+        no_attempt = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            attempt_state='no_attempt',
+            attempt_count=0,
+        ).to_dict()
+        in_progress = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            attempt_state='attempt_in_progress',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            latest_attempt_note='submitting to broker',
+        ).to_dict()
+        completed = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            attempt_state='attempt_completed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+        ).to_dict()
+        failed = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            attempt_state='attempt_failed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+        ).to_dict()
+        retried = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            allocation_bucket='cash_day_core',
+            attempt_state='retried_attempts',
+            attempt_count=2,
+            latest_attempt_id='att-2',
+            latest_attempt_note='second submission attempt',
+        ).to_dict()
+
+        self.assertFalse(intent_execution_attempt_for_intent(no_attempt)['is_in_progress'])
+        self.assertTrue(intent_execution_attempt_for_intent(in_progress)['is_in_progress'])
+        self.assertTrue(intent_execution_attempt_for_intent(completed)['is_attempt_complete'])
+        self.assertTrue(intent_execution_attempt_for_intent(failed)['is_attempt_failed'])
+        self.assertTrue(intent_execution_attempt_for_intent(retried)['has_multiple_attempts'])
+
     def test_external_reference_contract_distinguishes_linkage_states(self):
         no_ref = ExecutionIntent(
             mode='cash_day',
@@ -552,6 +624,7 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(snapshot['escalation']['escalation_state'], 'warning')
         self.assertEqual(snapshot['timing']['timing_state'], 'time_sensitive')
         self.assertEqual(snapshot['external_reference']['external_reference_state'], 'no_external_reference')
+        self.assertEqual(snapshot['execution_attempt']['attempt_state'], 'no_attempt')
         self.assertEqual(snapshot['provenance']['strategy_source'], 'tradier_leaders_board')
         self.assertEqual(snapshot['execution_context']['allocation']['capital_source'], 'cash_day_trading_capital')
         self.assertEqual(snapshot['position_linkage']['position_effect'], 'open')
@@ -973,6 +1046,83 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(swing_view['execution_context']['allocation']['capital_source'], 'margin_swing_trading_capital')
         self.assertNotEqual(cash_view['execution_context']['review_emphasis'], swing_view['execution_context']['review_emphasis'])
         self.assertNotEqual(cash_view['execution_context']['allocation']['capital_source'], swing_view['execution_context']['allocation']['capital_source'])
+
+    def test_identical_execution_semantics_remain_distinguishable_by_attempt_state(self):
+        in_progress_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='pending_external_reference',
+            attempt_state='attempt_in_progress',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            latest_attempt_note='submitting to broker',
+        ).to_dict()
+        in_progress_queued = transition_intent(in_progress_candidate, 'queued', actor='test')
+        in_progress_previewed = transition_intent(in_progress_queued, 'previewed', actor='test')
+        in_progress_approved = transition_intent(in_progress_previewed, 'approved', actor='test')
+
+        retried_candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='no_outcome',
+            escalation_state='no_escalation',
+            timing_state='no_timing_pressure',
+            external_reference_state='pending_external_reference',
+            attempt_state='retried_attempts',
+            attempt_count=2,
+            latest_attempt_id='att-2',
+            latest_attempt_note='second attempt after timeout',
+        ).to_dict()
+        retried_queued = transition_intent(retried_candidate, 'queued', actor='test')
+        retried_previewed = transition_intent(retried_queued, 'previewed', actor='test')
+        retried_approved = transition_intent(retried_previewed, 'approved', actor='test')
+
+        in_progress_view = interpret_operator_execution_state(in_progress_approved)
+        retried_view = interpret_operator_execution_state(retried_approved)
+
+        self.assertEqual(in_progress_view['status'], 'approved')
+        self.assertEqual(retried_view['status'], 'approved')
+        self.assertEqual(in_progress_view['decision']['decision_state'], retried_view['decision']['decision_state'])
+        self.assertEqual(in_progress_view['readiness']['readiness_state'], retried_view['readiness']['readiness_state'])
+        self.assertEqual(in_progress_view['outcome']['outcome_state'], retried_view['outcome']['outcome_state'])
+        self.assertEqual(in_progress_view['external_reference']['external_reference_state'], retried_view['external_reference']['external_reference_state'])
+        self.assertEqual(in_progress_view['execution_context']['allocation']['capital_source'], retried_view['execution_context']['allocation']['capital_source'])
+        self.assertEqual(in_progress_view['execution_attempt']['attempt_state'], 'attempt_in_progress')
+        self.assertTrue(in_progress_view['execution_attempt']['is_in_progress'])
+        self.assertEqual(retried_view['execution_attempt']['attempt_state'], 'retried_attempts')
+        self.assertTrue(retried_view['execution_attempt']['has_multiple_attempts'])
+        self.assertEqual(retried_view['execution_attempt']['attempt_count'], 2)
 
     def test_identical_execution_semantics_remain_distinguishable_by_external_reference_state(self):
         pending_candidate = ExecutionIntent(

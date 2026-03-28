@@ -139,6 +139,10 @@ class ExecutionIntent:
     external_reference_id: str | None = None
     external_reference_system: str = ''
     external_reference_note: str = ''
+    attempt_state: str = 'no_attempt'
+    attempt_count: int = 0
+    latest_attempt_id: str | None = None
+    latest_attempt_note: str = ''
     intent_id: str = field(default_factory=lambda: new_id('intent'))
     created_at: str = field(default_factory=now_iso)
     status: str = 'candidate'
