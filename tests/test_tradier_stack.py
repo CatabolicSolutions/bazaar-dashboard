@@ -266,6 +266,60 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(intent['transition_history'][1]['from'], 'queued')
         self.assertEqual(result['intent']['transition_history'], intent['transition_history'])
 
+    def test_service_unhappy_path_updates_contracts_coherently_across_steps(self):
+        state_path, _ = self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        previewed = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        approved = service.approve_intent(previewed, actor='ross', note='Authorized')
+        blocked = service.block_intent(approved, reason='Spread widened beyond tolerance', escalation_state='blocked')
+        attempting = service.begin_execution_attempt(blocked, attempt_id='att-fail-1', note='Submitting despite degraded conditions')
+        failed = service.fail_execution_attempt(attempting, attempt_id='att-fail-1', reason='Broker rejected order', escalation_state='blocked')
+
+        approved_snapshot = build_execution_intent_snapshot(approved)
+        blocked_snapshot = build_execution_intent_snapshot(blocked)
+        attempting_snapshot = build_execution_intent_snapshot(attempting)
+        failed_snapshot = build_execution_intent_snapshot(failed)
+        persisted = self.load_json_file(state_path)
+
+        self.assertEqual(approved_snapshot['decision']['decision_state'], 'approved')
+        self.assertEqual(blocked_snapshot['readiness']['readiness_state'], 'blocked')
+        self.assertEqual(blocked_snapshot['escalation']['escalation_state'], 'blocked')
+        self.assertEqual(attempting_snapshot['execution_attempt']['attempt_state'], 'attempt_in_progress')
+        self.assertEqual(attempting_snapshot['external_reference']['external_reference_state'], 'pending_external_reference')
+        self.assertEqual(failed_snapshot['execution_attempt']['attempt_state'], 'attempt_failed')
+        self.assertEqual(failed_snapshot['outcome']['outcome_state'], 'failed_execution')
+        self.assertTrue(failed_snapshot['outcome']['is_failed_execution'])
+        self.assertEqual(failed_snapshot['readiness']['readiness_state'], 'blocked')
+        self.assertEqual(failed_snapshot['escalation']['escalation_state'], 'blocked')
+        self.assertEqual(failed_snapshot['reconciliation']['reconciliation_state'], 'pending_confirmation')
+        self.assertEqual(persisted['intents'][0]['attempt_state'], 'attempt_failed')
+        self.assertEqual(persisted['intents'][0]['outcome_state'], 'failed_execution')
+        self.assertEqual(persisted['intents'][0]['escalation_state'], 'blocked')
+
     def test_service_happy_path_updates_contracts_coherently_across_steps(self):
         state_path, _ = self.with_temp_state_paths()
         broker = Mock()

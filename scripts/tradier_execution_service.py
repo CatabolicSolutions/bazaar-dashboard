@@ -191,6 +191,45 @@ class TradierExecutionService:
         append_audit('execution_attempt_started', 'alfred', intent.intent_id, note, {'attempt_id': attempt_id})
         return in_progress
 
+    def block_intent(self, intent_dict: dict[str, Any], *, reason: str, escalation_state: str = 'blocked') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        blocked, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            readiness_state='blocked',
+            readiness_reason=reason,
+            escalation_state=escalation_state,
+            escalation_reason=reason,
+        )
+        save_state(state)
+        append_audit('intent_blocked', 'alfred', intent.intent_id, reason, {'escalation_state': escalation_state})
+        return blocked
+
+    def fail_execution_attempt(self, intent_dict: dict[str, Any], *, attempt_id: str, reason: str, escalation_state: str = 'blocked') -> dict[str, Any]:
+        intent = self._materialize_intent(intent_dict)
+        state = load_state()
+        failed, state = self._persist_intent_updates(
+            state,
+            intent.intent_id,
+            attempt_state='attempt_failed',
+            attempt_count=max(1, int(intent_dict.get('attempt_count') or 0)),
+            latest_attempt_id=attempt_id,
+            latest_attempt_note=reason,
+            outcome_state='failed_execution',
+            outcome_reason=reason,
+            effected_qty=0,
+            readiness_state='blocked',
+            readiness_reason=reason,
+            escalation_state=escalation_state,
+            escalation_reason=reason,
+            reconciliation_state='pending_confirmation',
+            reconciliation_note='Failure recorded; awaiting external confirmation or operator review',
+        )
+        save_state(state)
+        append_audit('execution_attempt_failed', 'alfred', intent.intent_id, reason, {'attempt_id': attempt_id})
+        return failed
+
     def record_commit(self, intent_dict: dict[str, Any], broker_response: dict[str, Any]) -> dict[str, Any]:
         intent = self._materialize_intent(intent_dict)
         order = OrderRecord(intent_id=intent.intent_id, broker_order_id=str(broker_response.get('id') or broker_response.get('order', {}).get('id') or ''), status='placed')
