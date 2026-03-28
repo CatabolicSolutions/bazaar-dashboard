@@ -31,6 +31,7 @@ from scripts.tradier_execution_governance import InvalidExecutionContractCombina
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_execution_snapshot_serialization import deserialize_execution_intent_snapshot, serialize_execution_intent_snapshot
 from scripts.tradier_execution_attempt import intent_execution_attempt_for_intent
 from scripts.tradier_external_reference import intent_external_reference_for_intent
 from scripts.tradier_intent_decision import intent_decision_for_intent
@@ -638,6 +639,76 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
         self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
         self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
+    def test_snapshot_serialization_round_trip_preserves_composed_state(self):
+        candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            allocation_bucket='cash_day_core',
+            position_relationship='open_new_position',
+            strategy_family='scalping_buy',
+            strategy_source='tradier_leaders_board',
+            strategy_run_id='run-123',
+            origin='system_generated',
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            readiness_reason='all checks complete',
+            outcome_state='partial_execution',
+            outcome_reason='1 of 2 filled',
+            effected_qty=1,
+            escalation_state='warning',
+            escalation_reason='spread widened',
+            timing_state='time_sensitive',
+            timing_reason='window closing',
+            external_reference_state='linked_external_reference',
+            external_reference_id='ord-123',
+            external_reference_system='tradier',
+            attempt_state='attempt_completed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='pending_confirmation',
+        ).to_dict()
+        queued = transition_intent(candidate, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+        snapshot = build_execution_intent_snapshot(approved)
+
+        payload = serialize_execution_intent_snapshot(snapshot)
+        restored = deserialize_execution_intent_snapshot(payload)
+
+        self.assertEqual(restored, snapshot)
+        self.assertEqual(restored['decision']['decision_state'], 'approved')
+        self.assertEqual(restored['outcome']['outcome_state'], 'partial_execution')
+        self.assertEqual(restored['external_reference']['external_reference_state'], 'linked_external_reference')
+        self.assertEqual(restored['execution_attempt']['attempt_state'], 'attempt_completed')
+        self.assertEqual(restored['reconciliation']['reconciliation_state'], 'pending_confirmation')
+
+    def test_snapshot_deserialization_rejects_contradictory_state_without_normalizing(self):
+        bad_snapshot = {
+            'intent_id': 'intent_bad',
+            'lifecycle': {'status': 'approved', 'history_count': 3, 'latest_transition': {'to': 'approved'}},
+            'decision': {'decision_state': 'approved', 'decision_actor': 'ross', 'decision_note': '', 'is_authorized': True, 'is_decision_terminal': False},
+            'readiness': {'readiness_state': 'ready', 'readiness_reason': '', 'is_executable_now': True, 'is_blocked': False},
+            'outcome': {'outcome_state': 'full_execution', 'outcome_reason': 'filled', 'effected_qty': 2, 'has_execution_effect': True, 'is_outcome_complete': True, 'is_failed_execution': False},
+            'escalation': {'escalation_state': 'no_escalation', 'escalation_reason': '', 'needs_operator_attention': False, 'blocks_autonomous_progress': False, 'is_terminal_attention_state': False},
+            'timing': {'timing_state': 'no_timing_pressure', 'timing_reason': '', 'is_urgent': False, 'is_expired': False, 'is_actionable': True},
+            'external_reference': {'external_reference_state': 'no_external_reference', 'external_reference_id': None, 'external_reference_system': '', 'external_reference_note': '', 'has_external_reference': False, 'reference_pending': False, 'reference_valid': False},
+            'execution_attempt': {'attempt_state': 'attempt_completed', 'attempt_count': 1, 'latest_attempt_id': 'att-1', 'latest_attempt_note': '', 'is_in_progress': False, 'is_attempt_complete': True, 'is_attempt_failed': False, 'has_multiple_attempts': False},
+            'reconciliation': {'reconciliation_state': 'not_reconciled', 'reconciliation_note': '', 'is_aligned': False, 'is_pending_confirmation': False, 'has_mismatch': False},
+            'provenance': {'strategy_family': 'scalping_buy', 'strategy_source': 'tradier_leaders_board', 'strategy_run_id': 'run-123', 'origin': 'system_generated'},
+            'execution_context': {'mode': 'cash_day', 'domain': 'cash_day_trading', 'operator_lane': 'day_trade', 'holding_profile': 'intraday', 'capital_treatment': 'cash_settled', 'review_emphasis': 'speed_and_day_trade_rules', 'allocation': {'allocation_bucket': 'cash_day_core', 'capital_source': 'cash_day_trading_capital', 'account_profile': 'cash'}},
+            'position_linkage': {'position_relationship': 'open_new_position', 'position_effect': 'open', 'holding_scope': 'new_exposure', 'position_id': None},
+            'operator': {'operator_state': 'ready_to_send', 'operator_stage': 'execution', 'next_operator_action': 'commit_reject_or_cancel', 'is_terminal': False},
+        }
+
+        payload = {'snapshot_version': 1, 'snapshot': bad_snapshot}
+        with self.assertRaises((InvalidExecutionContractCombinationError, RuntimeInvalidExecutionContractCombinationError)):
+            deserialize_execution_intent_snapshot(payload)
 
     def test_cross_contract_governance_accepts_representative_valid_state(self):
         contracts = {
