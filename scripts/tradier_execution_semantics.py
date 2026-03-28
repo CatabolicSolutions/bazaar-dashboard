@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from tradier_execution_context import execution_context_for_intent
+from tradier_execution_governance import validate_execution_contract_combinations
 from tradier_execution_models import validate_persisted_intent_lifecycle
 from tradier_execution_attempt import intent_execution_attempt_for_intent
 from tradier_external_reference import intent_external_reference_for_intent
@@ -70,7 +71,7 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
     execution_attempt = intent_execution_attempt_for_intent(intent)
     reconciliation = intent_reconciliation_for_intent(intent)
 
-    return {
+    operator_view = {
         'intent_id': intent.get('intent_id'),
         'status': status,
         'operator_state': OPERATOR_STATE_BY_STATUS[status],
@@ -91,3 +92,19 @@ def interpret_operator_execution_state(intent: dict[str, Any]) -> dict[str, Any]
         'execution_attempt': execution_attempt,
         'reconciliation': reconciliation,
     }
+    validate_execution_contract_combinations({
+        'lifecycle': {
+            'status': status,
+            'history_count': len(history),
+            'latest_transition': latest,
+        },
+        'decision': decision,
+        'readiness': readiness,
+        'outcome': outcome,
+        'escalation': escalation,
+        'timing': timing,
+        'external_reference': external_reference,
+        'execution_attempt': execution_attempt,
+        'reconciliation': reconciliation,
+    })
+    return operator_view
