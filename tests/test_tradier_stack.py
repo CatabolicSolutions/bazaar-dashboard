@@ -32,6 +32,11 @@ from scripts.tradier_execution_semantics import interpret_operator_execution_sta
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
 from scripts.tradier_execution_snapshot_api import get_execution_intent_snapshot_payload
+from scripts.tradier_execution_snapshot_queries import (
+    filter_execution_snapshots_by_field,
+    get_execution_snapshot_by_intent_id,
+    list_latest_execution_snapshots,
+)
 from scripts.tradier_execution_snapshot_serialization import deserialize_execution_intent_snapshot, serialize_execution_intent_snapshot
 from scripts.tradier_execution_attempt import intent_execution_attempt_for_intent
 from scripts.tradier_external_reference import intent_external_reference_for_intent
@@ -749,6 +754,72 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
         self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
         self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
+    def test_snapshot_query_boundary_supports_fetch_by_intent_id_latest_and_filter(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader_a = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+        leader_b = {
+            'symbol': 'SPY',
+            'strike': 510.0,
+            'option_type': 'put',
+            'expiration': '2026-03-21',
+            'candidate_id': 'SPY-2026-03-21-PUT-510',
+            'mid_price': 2.10,
+        }
+
+        first = service.create_intent_from_leader(leader_a, mode='cash_day')
+        first = service.preview_intent(first, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        first = service.approve_intent(first, actor='ross', note='Authorized')
+        first = service.mark_intent_ready(first, reason='Ready now')
+
+        second = service.create_intent_from_leader(leader_b, mode='cash_day')
+        second = service.preview_intent(second, expiry='2026-03-21', option_type='put', strike=510.0)['intent']
+        second = service.approve_intent(second, actor='ross', note='Authorized')
+        second = service.block_intent(second, reason='Spread widened beyond tolerance', escalation_state='blocked')
+
+        by_id = get_execution_snapshot_by_intent_id(first['intent_id'])
+        latest = list_latest_execution_snapshots(limit=2)
+        filtered = filter_execution_snapshots_by_field('escalation_state', 'blocked', limit=10)
+
+        self.assertEqual(by_id['kind'], 'tradier.execution_intent_snapshot')
+        self.assertEqual(by_id['snapshot_version'], 1)
+        self.assertEqual(by_id['snapshot']['intent_id'], first['intent_id'])
+        self.assertEqual(by_id['snapshot']['readiness']['readiness_state'], 'ready')
+
+        self.assertEqual(latest['kind'], 'tradier.execution_intent_snapshot_collection')
+        self.assertEqual(latest['query']['mode'], 'latest')
+        self.assertEqual(latest['count'], 2)
+        self.assertTrue(all(item['snapshot_version'] == 1 for item in latest['items']))
+        self.assertEqual(latest['items'][-1]['snapshot']['intent_id'], second['intent_id'])
+
+        self.assertEqual(filtered['kind'], 'tradier.execution_intent_snapshot_collection')
+        self.assertEqual(filtered['query']['mode'], 'filter')
+        self.assertEqual(filtered['count'], 1)
+        self.assertEqual(filtered['items'][0]['snapshot']['intent_id'], second['intent_id'])
+        self.assertEqual(filtered['items'][0]['snapshot']['escalation']['escalation_state'], 'blocked')
+        self.assertEqual(filtered['items'][0]['snapshot']['decision']['decision_state'], 'approved')
 
     def test_snapshot_api_returns_versioned_consumer_payload(self):
         candidate = ExecutionIntent(
