@@ -4,7 +4,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tradier_execution_governance import validate_execution_contract_combinations
 from tradier_execution_models import now_iso, transition_intent, validate_persisted_intent_lifecycle
+from tradier_execution_attempt import intent_execution_attempt_for_intent
+from tradier_external_reference import intent_external_reference_for_intent
+from tradier_intent_decision import intent_decision_for_intent
+from tradier_intent_escalation import intent_escalation_for_intent
+from tradier_intent_outcome import intent_outcome_for_intent
+from tradier_intent_readiness import intent_readiness_for_intent
+from tradier_intent_timing import intent_timing_for_intent
+from tradier_reconciliation_state import intent_reconciliation_for_intent
 
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace/dashboard/state')
 EXECUTION_STATE_PATH = ROOT / 'tradier_execution_state.json'
@@ -40,6 +49,21 @@ def load_state() -> dict[str, Any]:
 def validate_execution_state(state: dict[str, Any]) -> None:
     for intent in state.get('intents', []):
         validate_persisted_intent_lifecycle(intent)
+        validate_execution_contract_combinations({
+            'lifecycle': {
+                'status': intent['status'],
+                'history_count': len(intent.get('transition_history') or []),
+                'latest_transition': (intent.get('transition_history') or [None])[-1],
+            },
+            'decision': intent_decision_for_intent(intent),
+            'readiness': intent_readiness_for_intent(intent),
+            'outcome': intent_outcome_for_intent(intent),
+            'escalation': intent_escalation_for_intent(intent),
+            'timing': intent_timing_for_intent(intent),
+            'external_reference': intent_external_reference_for_intent(intent),
+            'execution_attempt': intent_execution_attempt_for_intent(intent),
+            'reconciliation': intent_reconciliation_for_intent(intent),
+        })
 
 
 def save_state(state: dict[str, Any]) -> dict[str, Any]:

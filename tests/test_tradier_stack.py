@@ -2332,6 +2332,74 @@ class TradierStackTests(unittest.TestCase):
             self.assertEqual(routed.call_args_list[0].args[2], 'queued')
             self.assertEqual(routed.call_args_list[1].args[2], 'previewed')
 
+    def test_save_state_accepts_valid_cross_contract_state(self):
+        self.with_temp_state_paths()
+        candidate = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=1,
+            decision_state='approved',
+            decision_actor='ross',
+            readiness_state='ready',
+            outcome_state='no_outcome',
+            external_reference_state='pending_external_reference',
+            attempt_state='attempt_in_progress',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='pending_confirmation',
+        ).to_dict()
+        queued = transition_intent(candidate, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+        valid_state = {
+            'intents': [approved],
+            'previews': [],
+            'orders': [],
+            'positions': [],
+            'riskDecisions': [],
+        }
+
+        persisted = save_state(valid_state)
+        self.assertEqual(persisted['intents'][0]['status'], 'approved')
+
+    def test_save_state_rejects_cross_contract_contradictions(self):
+        self.with_temp_state_paths()
+        contradictory = ExecutionIntent(
+            mode='cash_day',
+            strategy_type='long_call',
+            symbol='IWM',
+            contract='IWM 250 CALL 2026-03-20',
+            side='buy',
+            qty=2,
+            decision_state='proposed',
+            decision_actor='system',
+            readiness_state='ready',
+            outcome_state='full_execution',
+            outcome_reason='filled',
+            effected_qty=2,
+            external_reference_state='no_external_reference',
+            attempt_state='attempt_completed',
+            attempt_count=1,
+            latest_attempt_id='att-1',
+            reconciliation_state='reconciled',
+        ).to_dict()
+        queued = transition_intent(contradictory, 'queued', actor='test')
+        previewed = transition_intent(queued, 'previewed', actor='test')
+        approved = transition_intent(previewed, 'approved', actor='test')
+        contradictory_state = {
+            'intents': [approved],
+            'previews': [],
+            'orders': [],
+            'positions': [],
+            'riskDecisions': [],
+        }
+
+        with self.assertRaises((InvalidExecutionContractCombinationError, RuntimeInvalidExecutionContractCombinationError)):
+            save_state(contradictory_state)
+
     def test_save_state_rejects_direct_status_write_without_history(self):
         self.with_temp_state_paths()
         direct_write_state = {
