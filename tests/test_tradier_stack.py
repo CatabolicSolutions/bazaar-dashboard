@@ -31,6 +31,7 @@ from scripts.tradier_execution_governance import InvalidExecutionContractCombina
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_dashboard_detail_model import build_tradier_dashboard_detail_model
 from scripts.tradier_dashboard_overview_model import build_tradier_dashboard_overview_model
 from scripts.tradier_desk_action_model import build_trading_desk_action_model
 from scripts.tradier_desk_prioritization_model import build_trading_desk_prioritization_model
@@ -911,6 +912,58 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
         self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
         self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
+    def test_dashboard_detail_model_reports_single_intent_detail_context(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM',
+            'strike': 250.0,
+            'option_type': 'call',
+            'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250',
+            'mid_price': 1.90,
+        }
+
+        queued = service.create_intent_from_leader(leader, mode='cash_day')
+        previewed = service.preview_intent(queued, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        approved = service.approve_intent(previewed, actor='ross', note='Authorized')
+        ready = service.mark_intent_ready(approved, reason='Ready now')
+        attempting = service.begin_execution_attempt(ready, attempt_id='att-1', note='Submitting to broker')
+        committed = service.record_commit(attempting, {'id': 'broker-order-1'})['intent']
+        reconciled = service.reconcile_intent(committed, note='Broker confirmation matched internal record')
+
+        detail = build_tradier_dashboard_detail_model(reconciled)
+
+        self.assertEqual(detail['kind'], 'tradier.dashboard_detail_model')
+        self.assertEqual(detail['snapshot_version'], 1)
+        self.assertEqual(detail['intent_id'], reconciled['intent_id'])
+        self.assertEqual(detail['core']['lifecycle']['status'], 'committed')
+        self.assertEqual(detail['core']['decision']['decision_state'], 'approved')
+        self.assertEqual(detail['core']['readiness']['readiness_state'], 'ready')
+        self.assertEqual(detail['core']['outcome']['outcome_state'], 'full_execution')
+        self.assertEqual(detail['operator_context']['operator']['operator_state'], 'sent_to_broker')
+        self.assertTrue(detail['operator_context']['actions']['invalidate_external_reference']['available'] is False or isinstance(detail['operator_context']['actions']['invalidate_external_reference']['available'], bool))
+        self.assertEqual(detail['external_reference']['external_reference_state'], 'linked_external_reference')
+        self.assertEqual(detail['execution_attempt']['attempt_state'], 'attempt_completed')
+        self.assertEqual(detail['reconciliation']['reconciliation_state'], 'reconciled')
+        self.assertEqual(detail['recent_context']['latest_attempt_id'], 'att-1')
+        self.assertEqual(detail['recent_context']['reconciliation_state'], 'reconciled')
+        self.assertGreaterEqual(detail['recent_context']['history_count'], 4)
 
     def test_dashboard_overview_model_reports_summary_attention_and_recent_activity(self):
         self.with_temp_state_paths()
