@@ -38,6 +38,7 @@ from scripts.tradier_dashboard_attention_feed_model import build_tradier_dashboa
 from scripts.tradier_dashboard_detail_model import build_tradier_dashboard_detail_model
 from scripts.tradier_dashboard_overview_model import build_tradier_dashboard_overview_model
 from scripts.tradier_product_shell_model import build_tradier_product_shell_model
+from scripts.tradier_web_shell_action_endpoint import post_tradier_web_shell_action
 from scripts.tradier_web_shell_endpoint import get_tradier_web_shell_response
 from scripts.tradier_web_shell_model import build_tradier_web_shell_model
 from scripts.tradier_desk_action_model import build_trading_desk_action_model
@@ -1171,6 +1172,67 @@ class TradierStackTests(unittest.TestCase):
         self.assertIn('operator', rendered['selected_detail'])
         self.assertIn('actions', rendered['selected_detail'])
         self.assertEqual(rendered['selected_actions'], rendered['selected_detail']['actions'])
+
+    def test_tradier_web_shell_action_endpoint_executes_allowed_and_rejects_blocked_actions(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        ready_leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+        pending_leader = {
+            'symbol': 'QQQ', 'strike': 430.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'QQQ-2026-03-20-CALL-430', 'mid_price': 1.50,
+        }
+
+        ready = service.create_intent_from_leader(ready_leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+
+        pending = service.create_intent_from_leader(pending_leader, mode='cash_day')
+        pending = service.preview_intent(pending, expiry='2026-03-20', option_type='call', strike=430.0)['intent']
+        pending = service.approve_intent(pending, actor='ross', note='Authorized')
+        pending = service.mark_intent_ready(pending, reason='Ready now')
+        pending = service.begin_execution_attempt(pending, attempt_id='att-1', note='Submitting to broker')
+        pending = service.record_commit(pending, {'id': 'broker-order-1'})['intent']
+
+        allowed = post_tradier_web_shell_action(
+            ready['intent_id'],
+            'mark_intent_ready',
+            {'reason': 'Ready via endpoint'},
+            latest_limit=10,
+        )
+        self.assertEqual(allowed['kind'], 'tradier.web_shell_action_endpoint_response')
+        self.assertEqual(allowed['status'], 'ok')
+        self.assertIsNone(allowed['error'])
+        self.assertEqual(allowed['data']['action_name'], 'mark_intent_ready')
+        self.assertEqual(allowed['data']['action_result']['readiness_state'], 'ready')
+        self.assertEqual(allowed['data']['shell']['kind'], 'tradier.web_shell_endpoint_response')
+
+        blocked = post_tradier_web_shell_action(
+            pending['intent_id'],
+            'retry_execution_attempt',
+            {'attempt_id': 'att-2'},
+            latest_limit=10,
+        )
+        self.assertEqual(blocked['status'], 'rejected')
+        self.assertIn('Action not allowed', blocked['error'])
+        self.assertEqual(blocked['data']['intent_id'], pending['intent_id'])
+        self.assertEqual(blocked['data']['action_name'], 'retry_execution_attempt')
 
     def test_tradier_web_shell_endpoint_returns_stable_shell_payload(self):
         self.with_temp_state_paths()
