@@ -1271,7 +1271,12 @@ class TradierStackTests(unittest.TestCase):
         self.assertIn("<section id='overview' class='panel overview-panel'>", page['html'])
         self.assertIn("<section id='worklist' class='panel worklist-panel'>", page['html'])
         self.assertIn("<section id='detail' class='panel detail-panel'>", page['html'])
+        self.assertIn("<section id='next-actions' class='panel next-actions-panel'>", page['html'])
         self.assertIn("<section id='actions' class='panel actions-panel'>", page['html'])
+        self.assertIn('operator-guidance', page['html'])
+        self.assertIn('Primary next step:', page['html'])
+        self.assertIn('Available now:', page['html'])
+        self.assertIn('Blocked now:', page['html'])
         self.assertIn('touch-target', page['html'])
         self.assertIn('Tradier Operator Shell', page['html'])
 

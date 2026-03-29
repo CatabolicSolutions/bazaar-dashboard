@@ -33,13 +33,27 @@ def render_browser_app_html(rendered: dict[str, Any]) -> str:
         for name, cfg in actions.items()
     )
     detail_html = ''
+    next_actions_html = ''
     if detail and detail['intent_id']:
+        available_actions = [name for name, cfg in actions.items() if cfg['available']]
+        unavailable_actions = [name for name, cfg in actions.items() if not cfg['available']]
+        next_actions_html = (
+            f"<section id='next-actions' class='panel next-actions-panel'>"
+            f"<h2>Next Actions</h2>"
+            f"<p class='operator-guidance'><strong>Primary next step:</strong> {escape(available_actions[0] if available_actions else 'No action available')}</p>"
+            f"<p><strong>Available now:</strong> {escape(', '.join(available_actions) if available_actions else 'None')}</p>"
+            f"<p><strong>Blocked now:</strong> {escape(', '.join(unavailable_actions) if unavailable_actions else 'None')}</p>"
+            f"</section>"
+        )
         detail_html = (
             f"<section id='detail' class='panel detail-panel'>"
             f"<h2>Selected Item</h2>"
             f"<p><strong>Intent:</strong> {escape(detail['intent_id'])}</p>"
             f"<p><strong>Status:</strong> {escape(detail['core']['lifecycle']['status'])}</p>"
             f"<p><strong>Operator State:</strong> {escape(detail['operator']['operator_state'])}</p>"
+            f"<p><strong>Decision:</strong> {escape(detail['core']['decision']['decision_state'])}</p>"
+            f"<p><strong>Readiness:</strong> {escape(detail['core']['readiness']['readiness_state'])}</p>"
+            f"<p><strong>Reconciliation:</strong> {escape(detail['recent_context']['reconciliation_state'])}</p>"
             f"</section>"
         )
 
@@ -84,8 +98,10 @@ def render_browser_app_html(rendered: dict[str, Any]) -> str:
         <ul>{worklist_items}</ul>
       </section>
       {detail_html}
+      {next_actions_html}
       <section id='actions' class='panel actions-panel'>
         <h2>Actions</h2>
+        <p class='operator-guidance'>Use available actions below for the selected item. Disabled actions are intentionally not currently allowed.</p>
         <ul>{action_items}</ul>
       </section>
     </main>
