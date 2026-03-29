@@ -1385,6 +1385,26 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(runtime['config']['is_private_default'])
         runtime['server'].server_close()
 
+    def test_local_network_access_contract_aligns_with_runtime_and_routes(self):
+        contract = Path('/home/catabolic_solutions/.openclaw/workspace/TRADIER_LOCAL_NETWORK_ACCESS.md').read_text(encoding='utf-8')
+        self.assertIn('0.0.0.0', contract)
+        self.assertIn('8123', contract)
+        self.assertIn('/app', contract)
+        self.assertIn('/shell', contract)
+        self.assertIn('/shell/action', contract)
+        self.assertIn('same-network', contract)
+        self.assertIn('No auth', contract)
+
+        runtime = create_runtime_server(TradierRuntimeConfig(host='0.0.0.0', port=8123))
+        self.assertEqual(runtime['config']['host'], '0.0.0.0')
+        self.assertEqual(runtime['config']['port'], 8123)
+        self.assertFalse(runtime['config']['is_private_default'])
+        runtime['server'].server_close()
+
+        page_status, page_payload = dispatch_request('GET', '/app?latest_limit=1')
+        self.assertEqual(page_status, 200)
+        self.assertEqual(page_payload['kind'], 'tradier.browser_page_response')
+
     def test_tradier_runtime_server_exposes_private_default_config_and_server(self):
         runtime = create_runtime_server(TradierRuntimeConfig())
         self.assertEqual(runtime['kind'], 'tradier.runtime_server')
