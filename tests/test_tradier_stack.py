@@ -956,9 +956,12 @@ class TradierStackTests(unittest.TestCase):
 
         default_result = run_cli_shell(['--latest-limit', '10'])
         default_text = render_cli_text(default_result)
-        self.assertIn('TRADIER CLI SHELL', default_text)
-        self.assertIn('WORKLIST', default_text)
-        self.assertIn('SELECTED DETAIL', default_text)
+        self.assertIn('=== TRADIER OPERATOR CLI ===', default_text)
+        self.assertIn('Use --intent-id to focus an item', default_text)
+        self.assertIn('OVERVIEW', default_text)
+        self.assertIn('PRIORITIZED WORKLIST', default_text)
+        self.assertIn('SELECTED ITEM', default_text)
+        self.assertIn('AVAILABLE ACTIONS', default_text)
         self.assertIsNotNone(default_result['shell']['selected_detail'])
 
         selected_result = run_cli_shell(['--latest-limit', '10', '--intent-id', ready['intent_id']])
@@ -973,7 +976,9 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(action_result['action_contract']['intent_id'], ready['intent_id'])
         self.assertEqual(action_result['action_contract']['action_name'], 'begin_execution_attempt')
         self.assertEqual(action_result['action_contract']['params']['attempt_id'], 'att-1')
-        self.assertIn('ACTION CONTRACT', render_cli_text(action_result))
+        rendered_action = render_cli_text(action_result)
+        self.assertIn('ACTION CONTRACT', rendered_action)
+        self.assertIn('begin_execution_attempt', rendered_action)
 
     def test_tradier_cli_shell_executes_allowed_actions_and_blocks_unavailable_ones(self):
         self.with_temp_state_paths()
@@ -1021,7 +1026,9 @@ class TradierStackTests(unittest.TestCase):
         self.assertIsNone(success['action_error'])
         self.assertIsNotNone(success['action_result'])
         self.assertEqual(success['action_result']['readiness_state'], 'ready')
-        self.assertIn('ACTION RESULT', render_cli_text(success))
+        rendered_success = render_cli_text(success)
+        self.assertIn('ACTION RESULT', rendered_success)
+        self.assertIn('AVAILABLE ACTIONS', rendered_success)
 
         blocked = run_cli_shell([
             '--latest-limit', '10',
@@ -1032,7 +1039,9 @@ class TradierStackTests(unittest.TestCase):
         self.assertIsNone(blocked['action_result'])
         self.assertIsNotNone(blocked['action_error'])
         self.assertIn('Action not allowed', blocked['action_error'])
-        self.assertIn('ACTION ERROR', render_cli_text(blocked))
+        rendered_blocked = render_cli_text(blocked)
+        self.assertIn('ACTION ERROR', rendered_blocked)
+        self.assertIn('Action not allowed', rendered_blocked)
 
     def test_tradier_cli_interaction_model_supports_select_view_and_invoke_contract(self):
         self.with_temp_state_paths()

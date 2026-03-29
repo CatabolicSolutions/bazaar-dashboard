@@ -82,27 +82,43 @@ def render_cli_text(result: dict[str, Any]) -> str:
     shell = result['shell']
     selected = shell['selected_detail']
     lines = []
-    lines.append('TRADIER CLI SHELL')
-    lines.append('WORKLIST')
+    lines.append('=== TRADIER OPERATOR CLI ===')
+    lines.append('Use --intent-id to focus an item, --action to invoke an allowed action, and --params-json for action parameters.')
+    lines.append('')
+    lines.append('OVERVIEW')
+    lines.append(f"- worklist items: {len(shell['worklist'])}")
+    lines.append('')
+    lines.append('PRIORITIZED WORKLIST')
     for item in shell['worklist']:
-        lines.append(f"- {item['priority_rank']} {item['priority_category']} {item['intent_id']}")
+        lines.append(
+            f"- [{item['priority_rank']}] {item['priority_category']} | intent={item['intent_id']}"
+        )
     if selected is not None:
-        lines.append('SELECTED DETAIL')
-        lines.append(f"intent_id: {selected['intent_id']}")
-        lines.append(f"status: {selected['core']['lifecycle']['status']}")
-        lines.append(f"operator_state: {selected['operator']['operator_state']}")
-        lines.append('ACTIONS')
+        lines.append('')
+        lines.append('SELECTED ITEM')
+        lines.append(f"- intent_id: {selected['intent_id']}")
+        lines.append(f"- lifecycle_status: {selected['core']['lifecycle']['status']}")
+        lines.append(f"- operator_state: {selected['operator']['operator_state']}")
+        lines.append(f"- decision_state: {selected['core']['decision']['decision_state']}")
+        lines.append(f"- readiness_state: {selected['core']['readiness']['readiness_state']}")
+        lines.append(f"- reconciliation_state: {selected['recent_context']['reconciliation_state']}")
+        lines.append('')
+        lines.append('AVAILABLE ACTIONS')
         for action_name, config in selected['actions'].items():
-            lines.append(f"- {action_name}: {'available' if config['available'] else 'unavailable'}")
+            status = 'available' if config['available'] else 'unavailable'
+            lines.append(f"- {action_name}: {status}")
     if result['action_contract'] is not None:
+        lines.append('')
         lines.append('ACTION CONTRACT')
-        lines.append(json.dumps(result['action_contract'], sort_keys=True))
+        lines.append(json.dumps(result['action_contract'], sort_keys=True, indent=2))
     if result.get('action_result') is not None:
+        lines.append('')
         lines.append('ACTION RESULT')
-        lines.append(json.dumps(result['action_result'], sort_keys=True))
+        lines.append(json.dumps(result['action_result'], sort_keys=True, indent=2))
     if result.get('action_error') is not None:
+        lines.append('')
         lines.append('ACTION ERROR')
-        lines.append(result['action_error'])
+        lines.append(f"- {result['action_error']}")
     return '\n'.join(lines)
 
 
