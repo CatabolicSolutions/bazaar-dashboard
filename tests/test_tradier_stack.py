@@ -40,6 +40,7 @@ from scripts.tradier_dashboard_attention_feed_model import build_tradier_dashboa
 from scripts.tradier_dashboard_detail_model import build_tradier_dashboard_detail_model
 from scripts.tradier_dashboard_overview_model import build_tradier_dashboard_overview_model
 from scripts.tradier_product_shell_model import build_tradier_product_shell_model
+from scripts.tradier_runtime_server import TradierRuntimeConfig, create_runtime_server
 from scripts.tradier_ui_page_flow import run_tradier_ui_page_flow
 from scripts.tradier_ui_render_model import render_tradier_ui_shell
 from scripts.tradier_web_server import dispatch_request
@@ -1367,6 +1368,21 @@ class TradierStackTests(unittest.TestCase):
         self.assertIsNotNone(ui['detail_panel']['intent_id'])
         self.assertIsNotNone(ui['detail_panel']['core'])
         self.assertIsNotNone(ui['actions_panel'])
+
+    def test_tradier_runtime_server_exposes_private_default_config_and_server(self):
+        runtime = create_runtime_server(TradierRuntimeConfig())
+        self.assertEqual(runtime['kind'], 'tradier.runtime_server')
+        self.assertEqual(runtime['config']['host'], '127.0.0.1')
+        self.assertEqual(runtime['config']['port'], 8000)
+        self.assertTrue(runtime['config']['is_private_default'])
+        runtime['server'].server_close()
+
+    def test_tradier_runtime_server_accepts_explicit_local_network_config(self):
+        runtime = create_runtime_server(TradierRuntimeConfig(host='0.0.0.0', port=8123))
+        self.assertEqual(runtime['config']['host'], '0.0.0.0')
+        self.assertEqual(runtime['config']['port'], 8123)
+        self.assertFalse(runtime['config']['is_private_default'])
+        runtime['server'].server_close()
 
     def test_tradier_web_server_dispatches_read_and_action_routes(self):
         self.with_temp_state_paths()
