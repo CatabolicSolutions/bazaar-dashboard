@@ -38,6 +38,7 @@ from scripts.tradier_dashboard_attention_feed_model import build_tradier_dashboa
 from scripts.tradier_dashboard_detail_model import build_tradier_dashboard_detail_model
 from scripts.tradier_dashboard_overview_model import build_tradier_dashboard_overview_model
 from scripts.tradier_product_shell_model import build_tradier_product_shell_model
+from scripts.tradier_ui_page_flow import run_tradier_ui_page_flow
 from scripts.tradier_ui_render_model import render_tradier_ui_shell
 from scripts.tradier_web_server import dispatch_request
 from scripts.tradier_web_shell_action_endpoint import post_tradier_web_shell_action
@@ -1174,6 +1175,50 @@ class TradierStackTests(unittest.TestCase):
         self.assertIn('operator', rendered['selected_detail'])
         self.assertIn('actions', rendered['selected_detail'])
         self.assertEqual(rendered['selected_actions'], rendered['selected_detail']['actions'])
+
+    def test_tradier_ui_page_flow_renders_acts_and_rerenders(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+
+        ready = service.create_intent_from_leader(leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+
+        flow = run_tradier_ui_page_flow(
+            'mark_intent_ready',
+            intent_id=ready['intent_id'],
+            params={'reason': 'Ready via page flow'},
+            latest_limit=10,
+        )
+
+        self.assertEqual(flow['initial']['status_code'], 200)
+        self.assertEqual(flow['initial']['render']['kind'], 'tradier.ui_render_model')
+        self.assertEqual(flow['action']['status_code'], 200)
+        self.assertEqual(flow['action']['response']['status'], 'ok')
+        self.assertEqual(flow['action']['response']['data']['action_name'], 'mark_intent_ready')
+        self.assertEqual(flow['refreshed']['status_code'], 200)
+        self.assertEqual(flow['refreshed']['render']['kind'], 'tradier.ui_render_model')
+        self.assertEqual(flow['refreshed']['render']['detail_panel']['intent_id'], ready['intent_id'])
+        self.assertEqual(flow['refreshed']['render']['detail_panel']['core']['readiness']['readiness_state'], 'ready')
+        self.assertEqual(flow['refreshed']['shell']['data']['selected_detail']['core']['readiness']['readiness_state'], 'ready')
 
     def test_tradier_ui_render_model_renders_server_backed_shell_sections(self):
         self.with_temp_state_paths()
