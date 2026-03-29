@@ -1432,6 +1432,24 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(action_status, 404)
         self.assertEqual(action_payload['status'], 'not_found')
 
+    def test_single_operator_access_contract_aligns_with_runtime_posture(self):
+        contract = Path('/home/catabolic_solutions/.openclaw/workspace/TRADIER_SINGLE_OPERATOR_ACCESS.md').read_text(encoding='utf-8')
+        self.assertIn('one', contract)
+        self.assertIn('127.0.0.1', contract)
+        self.assertIn('0.0.0.0', contract)
+        self.assertIn('not internet-safe', contract)
+        self.assertIn('not multi-user', contract)
+        self.assertIn('GET /app', contract)
+        self.assertIn('POST /shell/action', contract)
+
+        private_runtime = create_runtime_server(TradierRuntimeConfig())
+        self.assertTrue(private_runtime['config']['is_private_default'])
+        private_runtime['server'].server_close()
+
+        lan_runtime = create_runtime_server(TradierRuntimeConfig(host='0.0.0.0', port=8123))
+        self.assertFalse(lan_runtime['config']['is_private_default'])
+        lan_runtime['server'].server_close()
+
     def test_tradier_runtime_server_exposes_private_default_config_and_server(self):
         runtime = create_runtime_server(TradierRuntimeConfig())
         self.assertEqual(runtime['kind'], 'tradier.runtime_server')
