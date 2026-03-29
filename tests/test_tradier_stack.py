@@ -1405,6 +1405,33 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(page_status, 200)
         self.assertEqual(page_payload['kind'], 'tradier.browser_page_response')
 
+    def test_local_network_launch_contract_aligns_with_runtime_page_and_action_routes(self):
+        launch = Path('/home/catabolic_solutions/.openclaw/workspace/TRADIER_LOCAL_NETWORK_LAUNCH.md').read_text(encoding='utf-8')
+        self.assertIn('0.0.0.0', launch)
+        self.assertIn('8123', launch)
+        self.assertIn('http://<lan-ip>:8123/app', launch)
+        self.assertIn('GET /app', launch)
+        self.assertIn('POST /shell/action', launch)
+        self.assertIn('local/private only', launch)
+
+        runtime = create_runtime_server(TradierRuntimeConfig(host='0.0.0.0', port=8123))
+        self.assertEqual(runtime['config']['host'], '0.0.0.0')
+        self.assertEqual(runtime['config']['port'], 8123)
+        runtime['server'].server_close()
+
+        page_status, page_payload = dispatch_request('GET', '/app?latest_limit=1')
+        self.assertEqual(page_status, 200)
+        self.assertEqual(page_payload['kind'], 'tradier.browser_page_response')
+
+        action_status, action_payload = dispatch_request('POST', '/shell/action', {
+            'intent_id': 'missing-intent',
+            'action_name': 'mark_intent_ready',
+            'params': {},
+            'latest_limit': 1,
+        })
+        self.assertEqual(action_status, 404)
+        self.assertEqual(action_payload['status'], 'not_found')
+
     def test_tradier_runtime_server_exposes_private_default_config_and_server(self):
         runtime = create_runtime_server(TradierRuntimeConfig())
         self.assertEqual(runtime['kind'], 'tradier.runtime_server')
