@@ -1265,11 +1265,13 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(page['kind'], 'tradier.browser_app_shell')
         self.assertEqual(page['status_code'], 200)
         self.assertEqual(page['render_model']['kind'], 'tradier.ui_render_model')
-        self.assertIn('<main id=\'app-shell\'>', page['html'])
-        self.assertIn('<section id=\'overview\'>', page['html'])
-        self.assertIn('<section id=\'worklist\'>', page['html'])
-        self.assertIn('<section id=\'detail\'>', page['html'])
-        self.assertIn('<section id=\'actions\'>', page['html'])
+        self.assertIn("<main id='app-shell' class='responsive-shell mobile-first'>", page['html'])
+        self.assertIn("<meta name='viewport' content='width=device-width, initial-scale=1'>", page['html'])
+        self.assertIn("<section id='overview' class='panel overview-panel'>", page['html'])
+        self.assertIn("<section id='worklist' class='panel worklist-panel'>", page['html'])
+        self.assertIn("<section id='detail' class='panel detail-panel'>", page['html'])
+        self.assertIn("<section id='actions' class='panel actions-panel'>", page['html'])
+        self.assertIn('touch-target', page['html'])
         self.assertIn('Tradier Operator Shell', page['html'])
 
     def test_tradier_ui_page_flow_renders_acts_and_rerenders(self):

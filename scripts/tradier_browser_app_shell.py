@@ -23,19 +23,19 @@ def build_browser_app_shell(*, latest_limit: int = 20, detail_intent_id: str | N
 def render_browser_app_html(rendered: dict[str, Any]) -> str:
     overview = rendered['overview_panel']
     worklist_items = ''.join(
-        f"<li data-priority='{escape(str(item['priority_rank']))}'><strong>{escape(item['priority_category'])}</strong> — {escape(item['intent_id'])}</li>"
+        f"<li class='worklist-item' data-priority='{escape(str(item['priority_rank']))}'><strong>{escape(item['priority_category'])}</strong> — {escape(item['intent_id'])}</li>"
         for item in rendered['worklist_panel']
     )
     detail = rendered['detail_panel']
     actions = rendered['actions_panel'] or {}
     action_items = ''.join(
-        f"<li><button data-action='{escape(name)}' {'disabled' if not cfg['available'] else ''}>{escape(name)}</button></li>"
+        f"<li class='action-item'><button class='touch-target' data-action='{escape(name)}' {'disabled' if not cfg['available'] else ''}>{escape(name)}</button></li>"
         for name, cfg in actions.items()
     )
     detail_html = ''
     if detail and detail['intent_id']:
         detail_html = (
-            f"<section id='detail'>"
+            f"<section id='detail' class='panel detail-panel'>"
             f"<h2>Selected Item</h2>"
             f"<p><strong>Intent:</strong> {escape(detail['intent_id'])}</p>"
             f"<p><strong>Status:</strong> {escape(detail['core']['lifecycle']['status'])}</p>"
@@ -48,15 +48,29 @@ def render_browser_app_html(rendered: dict[str, Any]) -> str:
 <html>
   <head>
     <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
     <title>Tradier Operator Shell</title>
+    <style>
+      :root {{ color-scheme: light dark; }}
+      body {{ margin: 0; font-family: system-ui, sans-serif; line-height: 1.4; }}
+      #app-shell {{ display: grid; grid-template-columns: 1fr; gap: 12px; padding: 12px; max-width: 1200px; margin: 0 auto; }}
+      .panel {{ border: 1px solid #8884; border-radius: 12px; padding: 12px; background: #ffffff08; }}
+      .touch-target {{ min-height: 44px; padding: 10px 12px; width: 100%; text-align: left; }}
+      .worklist-item, .action-item {{ margin: 8px 0; }}
+      @media (min-width: 900px) {{
+        #app-shell.responsive-shell {{ grid-template-columns: 1fr 1fr; align-items: start; }}
+        #overview, #worklist {{ grid-column: 1; }}
+        #detail, #actions {{ grid-column: 2; }}
+      }}
+    </style>
   </head>
   <body>
-    <main id='app-shell'>
-      <header>
+    <main id='app-shell' class='responsive-shell mobile-first'>
+      <header class='panel'>
         <h1>{escape(rendered['header']['title'])}</h1>
         <p>Status: {escape(rendered['header']['status'])}</p>
       </header>
-      <section id='overview'>
+      <section id='overview' class='panel overview-panel'>
         <h2>Overview</h2>
         <ul>
           <li>Ready: {overview['ready_count']}</li>
@@ -65,12 +79,12 @@ def render_browser_app_html(rendered: dict[str, Any]) -> str:
           <li>Divergent: {overview['divergent_count']}</li>
         </ul>
       </section>
-      <section id='worklist'>
+      <section id='worklist' class='panel worklist-panel'>
         <h2>Worklist</h2>
         <ul>{worklist_items}</ul>
       </section>
       {detail_html}
-      <section id='actions'>
+      <section id='actions' class='panel actions-panel'>
         <h2>Actions</h2>
         <ul>{action_items}</ul>
       </section>
