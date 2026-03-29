@@ -1204,26 +1204,29 @@ class TradierStackTests(unittest.TestCase):
         ready = service.create_intent_from_leader(leader, mode='cash_day')
         ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
         ready = service.approve_intent(ready, actor='ross', note='Authorized')
+        ready = service.mark_intent_ready(ready, reason='Ready before browser flow')
 
         flow = run_tradier_browser_page_flow(
-            'mark_intent_ready',
+            'begin_execution_attempt',
             intent_id=ready['intent_id'],
-            params={'reason': 'Ready via browser flow'},
+            params={'attempt_id': 'att-browser-1', 'note': 'Started via browser flow'},
             latest_limit=10,
         )
 
         self.assertEqual(flow['initial']['status_code'], 200)
         self.assertEqual(flow['initial']['page']['kind'], 'tradier.browser_page_response')
-        self.assertIn('<main id=\'app-shell\'>', flow['initial']['page']['data']['html'])
+        self.assertIn('<main id=\'app-shell\'', flow['initial']['page']['data']['html'])
         self.assertEqual(flow['action']['status_code'], 200)
         self.assertEqual(flow['action']['response']['status'], 'ok')
-        self.assertEqual(flow['action']['response']['data']['action_name'], 'mark_intent_ready')
+        self.assertEqual(flow['action']['response']['data']['action_name'], 'begin_execution_attempt')
         self.assertEqual(flow['refreshed']['status_code'], 200)
         self.assertEqual(flow['refreshed']['page']['kind'], 'tradier.browser_page_response')
         self.assertEqual(
             flow['refreshed']['page']['data']['render_model']['detail_panel']['core']['readiness']['readiness_state'],
             'ready',
         )
+        selected_actions = flow['refreshed']['page']['data']['render_model']['actions_panel']
+        self.assertIn('retry_execution_attempt', selected_actions)
 
     def test_tradier_browser_app_shell_builds_first_page_from_server_backed_shell(self):
         self.with_temp_state_paths()
@@ -1575,18 +1578,28 @@ class TradierStackTests(unittest.TestCase):
         pending = service.begin_execution_attempt(pending, attempt_id='att-1', note='Submitting to broker')
         pending = service.record_commit(pending, {'id': 'broker-order-1'})['intent']
 
-        allowed = post_tradier_web_shell_action(
+        ready = post_tradier_web_shell_action(
             ready['intent_id'],
             'mark_intent_ready',
             {'reason': 'Ready via endpoint'},
             latest_limit=10,
         )
-        self.assertEqual(allowed['kind'], 'tradier.web_shell_action_endpoint_response')
-        self.assertEqual(allowed['status'], 'ok')
-        self.assertIsNone(allowed['error'])
-        self.assertEqual(allowed['data']['action_name'], 'mark_intent_ready')
-        self.assertEqual(allowed['data']['action_result']['readiness_state'], 'ready')
-        self.assertEqual(allowed['data']['shell']['kind'], 'tradier.web_shell_endpoint_response')
+        self.assertEqual(ready['kind'], 'tradier.web_shell_action_endpoint_response')
+        self.assertEqual(ready['status'], 'ok')
+        self.assertIsNone(ready['error'])
+        self.assertEqual(ready['data']['action_name'], 'mark_intent_ready')
+        self.assertEqual(ready['data']['action_result']['readiness_state'], 'ready')
+        self.assertEqual(ready['data']['shell']['kind'], 'tradier.web_shell_endpoint_response')
+
+        begin = post_tradier_web_shell_action(
+            ready['data']['intent_id'],
+            'begin_execution_attempt',
+            {'attempt_id': 'att-web-1', 'note': 'Started via web action'},
+            latest_limit=10,
+        )
+        self.assertEqual(begin['status'], 'ok')
+        self.assertEqual(begin['data']['action_name'], 'begin_execution_attempt')
+        self.assertEqual(begin['data']['action_result']['attempt_state'], 'attempt_in_progress')
 
         blocked = post_tradier_web_shell_action(
             pending['intent_id'],

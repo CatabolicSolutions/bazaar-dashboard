@@ -22,6 +22,7 @@ def _load_intent_by_id(intent_id: str) -> dict[str, Any] | None:
 def _execute_action(intent: dict[str, Any], action_name: str, params: dict[str, Any]) -> dict[str, Any]:
     service = TradierExecutionService()
     action_map = {
+        'begin_execution_attempt': lambda: service.begin_execution_attempt(intent, attempt_id=params['attempt_id'], note=params.get('note', 'Execution attempt via endpoint')),
         'mark_intent_ready': lambda: service.mark_intent_ready(intent, reason=params.get('reason', 'Ready via endpoint')),
         'block_intent': lambda: service.block_intent(intent, reason=params.get('reason', 'Blocked via endpoint'), escalation_state=params.get('escalation_state', 'blocked')),
         'retry_execution_attempt': lambda: service.retry_execution_attempt(intent, attempt_id=params['attempt_id'], reason=params.get('reason', 'Retry via endpoint')),
