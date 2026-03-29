@@ -31,6 +31,7 @@ from scripts.tradier_execution_governance import InvalidExecutionContractCombina
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_browser_app_shell import build_browser_app_shell
 from scripts.tradier_cli_interaction_model import build_cli_action_invocation, build_tradier_cli_interaction_model
 from scripts.tradier_cli_render_model import render_tradier_cli_product_shell
 from scripts.tradier_cli_shell import render_cli_text, run_cli_shell
@@ -1175,6 +1176,54 @@ class TradierStackTests(unittest.TestCase):
         self.assertIn('operator', rendered['selected_detail'])
         self.assertIn('actions', rendered['selected_detail'])
         self.assertEqual(rendered['selected_actions'], rendered['selected_detail']['actions'])
+
+    def test_tradier_browser_app_shell_builds_first_page_from_server_backed_shell(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        ready_leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+        blocked_leader = {
+            'symbol': 'SPY', 'strike': 510.0, 'option_type': 'put', 'expiration': '2026-03-21',
+            'candidate_id': 'SPY-2026-03-21-PUT-510', 'mid_price': 2.10,
+        }
+
+        ready = service.create_intent_from_leader(ready_leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+        service.mark_intent_ready(ready, reason='Ready now')
+
+        blocked = service.create_intent_from_leader(blocked_leader, mode='cash_day')
+        blocked = service.preview_intent(blocked, expiry='2026-03-21', option_type='put', strike=510.0)['intent']
+        blocked = service.approve_intent(blocked, actor='ross', note='Authorized')
+        service.block_intent(blocked, reason='Spread widened beyond tolerance', escalation_state='blocked')
+
+        page = build_browser_app_shell(latest_limit=10)
+
+        self.assertEqual(page['kind'], 'tradier.browser_app_shell')
+        self.assertEqual(page['status_code'], 200)
+        self.assertEqual(page['render_model']['kind'], 'tradier.ui_render_model')
+        self.assertIn('<main id=\'app-shell\'>', page['html'])
+        self.assertIn('<section id=\'overview\'>', page['html'])
+        self.assertIn('<section id=\'worklist\'>', page['html'])
+        self.assertIn('<section id=\'detail\'>', page['html'])
+        self.assertIn('<section id=\'actions\'>', page['html'])
+        self.assertIn('Tradier Operator Shell', page['html'])
 
     def test_tradier_ui_page_flow_renders_acts_and_rerenders(self):
         self.with_temp_state_paths()
