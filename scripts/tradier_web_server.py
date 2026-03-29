@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from tradier_browser_app_shell import build_browser_app_shell
 from tradier_web_shell_action_endpoint import post_tradier_web_shell_action
 from tradier_web_shell_endpoint import get_tradier_web_shell_response
 
@@ -17,6 +18,12 @@ def dispatch_request(method: str, path: str, body: dict[str, Any] | None = None)
         latest_limit = int(query.get('latest_limit', ['20'])[0])
         detail_intent_id = query.get('detail_intent_id', [None])[0]
         return 200, get_tradier_web_shell_response(latest_limit=latest_limit, detail_intent_id=detail_intent_id)
+
+    if method == 'GET' and parsed.path == '/app':
+        latest_limit = int(query.get('latest_limit', ['20'])[0])
+        detail_intent_id = query.get('detail_intent_id', [None])[0]
+        page = build_browser_app_shell(latest_limit=latest_limit, detail_intent_id=detail_intent_id)
+        return 200, {'kind': 'tradier.browser_page_response', 'status': 'ok', 'data': page}
 
     if method == 'POST' and parsed.path == '/shell/action':
         payload = body or {}

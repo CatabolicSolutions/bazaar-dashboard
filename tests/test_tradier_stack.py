@@ -1361,6 +1361,12 @@ class TradierStackTests(unittest.TestCase):
         self.assertEqual(read_payload['kind'], 'tradier.web_shell_endpoint_response')
         self.assertEqual(read_payload['status'], 'ok')
 
+        page_status, page_payload = dispatch_request('GET', '/app?latest_limit=10')
+        self.assertEqual(page_status, 200)
+        self.assertEqual(page_payload['kind'], 'tradier.browser_page_response')
+        self.assertEqual(page_payload['status'], 'ok')
+        self.assertIn('<main id=\'app-shell\'>', page_payload['data']['html'])
+
         action_status, action_payload = dispatch_request('POST', '/shell/action', {
             'intent_id': ready['intent_id'],
             'action_name': 'mark_intent_ready',
