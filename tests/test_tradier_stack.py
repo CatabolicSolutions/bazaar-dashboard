@@ -32,6 +32,7 @@ from scripts.tradier_execution_semantics import interpret_operator_execution_sta
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
 from scripts.tradier_browser_app_shell import build_browser_app_shell
+from scripts.tradier_browser_page_flow import run_tradier_browser_page_flow
 from scripts.tradier_cli_interaction_model import build_cli_action_invocation, build_tradier_cli_interaction_model
 from scripts.tradier_cli_render_model import render_tradier_cli_product_shell
 from scripts.tradier_cli_shell import render_cli_text, run_cli_shell
@@ -1176,6 +1177,52 @@ class TradierStackTests(unittest.TestCase):
         self.assertIn('operator', rendered['selected_detail'])
         self.assertIn('actions', rendered['selected_detail'])
         self.assertEqual(rendered['selected_actions'], rendered['selected_detail']['actions'])
+
+    def test_tradier_browser_page_flow_serves_acts_and_refreshes(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+
+        ready = service.create_intent_from_leader(leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+
+        flow = run_tradier_browser_page_flow(
+            'mark_intent_ready',
+            intent_id=ready['intent_id'],
+            params={'reason': 'Ready via browser flow'},
+            latest_limit=10,
+        )
+
+        self.assertEqual(flow['initial']['status_code'], 200)
+        self.assertEqual(flow['initial']['page']['kind'], 'tradier.browser_page_response')
+        self.assertIn('<main id=\'app-shell\'>', flow['initial']['page']['data']['html'])
+        self.assertEqual(flow['action']['status_code'], 200)
+        self.assertEqual(flow['action']['response']['status'], 'ok')
+        self.assertEqual(flow['action']['response']['data']['action_name'], 'mark_intent_ready')
+        self.assertEqual(flow['refreshed']['status_code'], 200)
+        self.assertEqual(flow['refreshed']['page']['kind'], 'tradier.browser_page_response')
+        self.assertEqual(
+            flow['refreshed']['page']['data']['render_model']['detail_panel']['core']['readiness']['readiness_state'],
+            'ready',
+        )
 
     def test_tradier_browser_app_shell_builds_first_page_from_server_backed_shell(self):
         self.with_temp_state_paths()
