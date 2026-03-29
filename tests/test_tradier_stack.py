@@ -31,7 +31,9 @@ from scripts.tradier_execution_governance import InvalidExecutionContractCombina
 from scripts.tradier_execution_semantics import interpret_operator_execution_state
 from tradier_execution_governance import InvalidExecutionContractCombinationError as RuntimeInvalidExecutionContractCombinationError
 from scripts.tradier_execution_snapshot import build_execution_intent_snapshot
+from scripts.tradier_cli_interaction_model import build_cli_action_invocation, build_tradier_cli_interaction_model
 from scripts.tradier_cli_render_model import render_tradier_cli_product_shell
+from scripts.tradier_cli_shell import render_cli_text, run_cli_shell
 from scripts.tradier_dashboard_attention_feed_model import build_tradier_dashboard_attention_feed_model
 from scripts.tradier_dashboard_detail_model import build_tradier_dashboard_detail_model
 from scripts.tradier_dashboard_overview_model import build_tradier_dashboard_overview_model
@@ -915,6 +917,119 @@ class TradierStackTests(unittest.TestCase):
         self.assertTrue(intent_external_reference_for_intent(pending_ref)['reference_pending'])
         self.assertTrue(intent_external_reference_for_intent(linked_ref)['reference_valid'])
         self.assertFalse(intent_external_reference_for_intent(invalid_ref)['reference_valid'])
+
+    def test_tradier_cli_shell_runs_render_select_and_invoke(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        ready_leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+        blocked_leader = {
+            'symbol': 'SPY', 'strike': 510.0, 'option_type': 'put', 'expiration': '2026-03-21',
+            'candidate_id': 'SPY-2026-03-21-PUT-510', 'mid_price': 2.10,
+        }
+
+        ready = service.create_intent_from_leader(ready_leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+        ready = service.mark_intent_ready(ready, reason='Ready now')
+
+        blocked = service.create_intent_from_leader(blocked_leader, mode='cash_day')
+        blocked = service.preview_intent(blocked, expiry='2026-03-21', option_type='put', strike=510.0)['intent']
+        blocked = service.approve_intent(blocked, actor='ross', note='Authorized')
+        blocked = service.block_intent(blocked, reason='Spread widened beyond tolerance', escalation_state='blocked')
+
+        default_result = run_cli_shell(['--latest-limit', '10'])
+        default_text = render_cli_text(default_result)
+        self.assertIn('TRADIER CLI SHELL', default_text)
+        self.assertIn('WORKLIST', default_text)
+        self.assertIn('SELECTED DETAIL', default_text)
+        self.assertIsNotNone(default_result['shell']['selected_detail'])
+
+        selected_result = run_cli_shell(['--latest-limit', '10', '--intent-id', ready['intent_id']])
+        self.assertEqual(selected_result['shell']['selected_detail']['intent_id'], ready['intent_id'])
+
+        action_result = run_cli_shell([
+            '--latest-limit', '10',
+            '--intent-id', ready['intent_id'],
+            '--action', 'begin_execution_attempt',
+            '--params-json', '{"attempt_id": "att-1"}'
+        ])
+        self.assertEqual(action_result['action_contract']['intent_id'], ready['intent_id'])
+        self.assertEqual(action_result['action_contract']['action_name'], 'begin_execution_attempt')
+        self.assertEqual(action_result['action_contract']['params']['attempt_id'], 'att-1')
+        self.assertIn('ACTION CONTRACT', render_cli_text(action_result))
+
+    def test_tradier_cli_interaction_model_supports_select_view_and_invoke_contract(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        ready_leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+        blocked_leader = {
+            'symbol': 'SPY', 'strike': 510.0, 'option_type': 'put', 'expiration': '2026-03-21',
+            'candidate_id': 'SPY-2026-03-21-PUT-510', 'mid_price': 2.10,
+        }
+
+        ready = service.create_intent_from_leader(ready_leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+        ready = service.mark_intent_ready(ready, reason='Ready now')
+
+        blocked = service.create_intent_from_leader(blocked_leader, mode='cash_day')
+        blocked = service.preview_intent(blocked, expiry='2026-03-21', option_type='put', strike=510.0)['intent']
+        blocked = service.approve_intent(blocked, actor='ross', note='Authorized')
+        blocked = service.block_intent(blocked, reason='Spread widened beyond tolerance', escalation_state='blocked')
+
+        interaction = build_tradier_cli_interaction_model(latest_limit=10)
+
+        self.assertEqual(interaction['kind'], 'tradier.cli_interaction_model')
+        self.assertGreaterEqual(len(interaction['worklist']), 2)
+        self.assertIsNotNone(interaction['selected_detail'])
+        self.assertIsNotNone(interaction['action_invocation'])
+        selected_id = interaction['selected_detail']['intent_id']
+        self.assertEqual(selected_id, interaction['action_invocation']['intent_id'])
+        self.assertIn('required_fields', interaction['action_invocation']['invoke_contract'])
+        self.assertIn('action_name', interaction['action_invocation']['invoke_contract']['required_fields'])
+
+        ready_interaction = build_tradier_cli_interaction_model(latest_limit=10, selected_intent_id=ready['intent_id'])
+        self.assertEqual(ready_interaction['selected_detail']['intent_id'], ready['intent_id'])
+        self.assertTrue(ready_interaction['selected_detail']['actions']['begin_execution_attempt']['available'])
+
+        invocation = build_cli_action_invocation(ready['intent_id'], 'begin_execution_attempt', {'attempt_id': 'att-1'})
+        self.assertEqual(invocation['intent_id'], ready['intent_id'])
+        self.assertEqual(invocation['action_name'], 'begin_execution_attempt')
+        self.assertEqual(invocation['params']['attempt_id'], 'att-1')
 
     def test_tradier_cli_render_model_renders_overview_worklist_detail_and_actions(self):
         self.with_temp_state_paths()
