@@ -38,6 +38,7 @@ from scripts.tradier_dashboard_attention_feed_model import build_tradier_dashboa
 from scripts.tradier_dashboard_detail_model import build_tradier_dashboard_detail_model
 from scripts.tradier_dashboard_overview_model import build_tradier_dashboard_overview_model
 from scripts.tradier_product_shell_model import build_tradier_product_shell_model
+from scripts.tradier_web_shell_endpoint import get_tradier_web_shell_response
 from scripts.tradier_web_shell_model import build_tradier_web_shell_model
 from scripts.tradier_desk_action_model import build_trading_desk_action_model
 from scripts.tradier_desk_prioritization_model import build_trading_desk_prioritization_model
@@ -1170,6 +1171,53 @@ class TradierStackTests(unittest.TestCase):
         self.assertIn('operator', rendered['selected_detail'])
         self.assertIn('actions', rendered['selected_detail'])
         self.assertEqual(rendered['selected_actions'], rendered['selected_detail']['actions'])
+
+    def test_tradier_web_shell_endpoint_returns_stable_shell_payload(self):
+        self.with_temp_state_paths()
+        broker = Mock()
+        broker.build_option_payload.return_value = {
+            'class': 'option',
+            'symbol': 'IWM',
+            'option_symbol': 'IWM260320C00250000',
+            'side': 'buy_to_open',
+            'quantity': 1,
+            'type': 'limit',
+            'duration': 'day',
+            'price': 1.90,
+            'tag': 'preview-payload',
+        }
+        broker.preview_order.return_value = {'ok': True, 'preview_id': 'pv-1'}
+        service = TradierExecutionService(broker=broker)
+
+        ready_leader = {
+            'symbol': 'IWM', 'strike': 250.0, 'option_type': 'call', 'expiration': '2026-03-20',
+            'candidate_id': 'IWM-2026-03-20-CALL-250', 'mid_price': 1.90,
+        }
+        blocked_leader = {
+            'symbol': 'SPY', 'strike': 510.0, 'option_type': 'put', 'expiration': '2026-03-21',
+            'candidate_id': 'SPY-2026-03-21-PUT-510', 'mid_price': 2.10,
+        }
+
+        ready = service.create_intent_from_leader(ready_leader, mode='cash_day')
+        ready = service.preview_intent(ready, expiry='2026-03-20', option_type='call', strike=250.0)['intent']
+        ready = service.approve_intent(ready, actor='ross', note='Authorized')
+        service.mark_intent_ready(ready, reason='Ready now')
+
+        blocked = service.create_intent_from_leader(blocked_leader, mode='cash_day')
+        blocked = service.preview_intent(blocked, expiry='2026-03-21', option_type='put', strike=510.0)['intent']
+        blocked = service.approve_intent(blocked, actor='ross', note='Authorized')
+        service.block_intent(blocked, reason='Spread widened beyond tolerance', escalation_state='blocked')
+
+        response = get_tradier_web_shell_response(latest_limit=10)
+
+        self.assertEqual(response['kind'], 'tradier.web_shell_endpoint_response')
+        self.assertEqual(response['status'], 'ok')
+        self.assertEqual(response['data']['kind'], 'tradier.web_shell_model')
+        self.assertIn('overview', response['data'])
+        self.assertIn('worklist', response['data'])
+        self.assertIn('selected_detail', response['data'])
+        self.assertIn('selected_actions', response['data'])
+        self.assertGreaterEqual(len(response['data']['worklist']['items']), 2)
 
     def test_tradier_web_shell_model_exposes_overview_worklist_detail_and_actions(self):
         self.with_temp_state_paths()
