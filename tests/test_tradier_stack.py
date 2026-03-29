@@ -1369,6 +1369,22 @@ class TradierStackTests(unittest.TestCase):
         self.assertIsNotNone(ui['detail_panel']['core'])
         self.assertIsNotNone(ui['actions_panel'])
 
+    def test_operator_run_usage_contract_aligns_with_runtime_defaults(self):
+        runbook = Path('/home/catabolic_solutions/.openclaw/workspace/TRADIER_OPERATOR_RUNBOOK.md').read_text(encoding='utf-8')
+        self.assertIn('127.0.0.1', runbook)
+        self.assertIn('8000', runbook)
+        self.assertIn('0.0.0.0', runbook)
+        self.assertIn('GET /app', runbook)
+        self.assertIn('GET /shell', runbook)
+        self.assertIn('POST /shell/action', runbook)
+        self.assertIn('not public internet exposure', runbook)
+
+        runtime = create_runtime_server(TradierRuntimeConfig())
+        self.assertEqual(runtime['config']['host'], '127.0.0.1')
+        self.assertEqual(runtime['config']['port'], 8000)
+        self.assertTrue(runtime['config']['is_private_default'])
+        runtime['server'].server_close()
+
     def test_tradier_runtime_server_exposes_private_default_config_and_server(self):
         runtime = create_runtime_server(TradierRuntimeConfig())
         self.assertEqual(runtime['kind'], 'tradier.runtime_server')
