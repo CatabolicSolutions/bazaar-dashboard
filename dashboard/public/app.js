@@ -135,6 +135,68 @@ function stateBanner(text, tone = 'neutral') {
   return `<div class="state-banner ${tone}">${escapeHtml(text)}</div>`;
 }
 
+function summaryField(label, value, kind = '') {
+  return `
+    <div class="summary-field ${kind}">
+      <div class="label">${escapeHtml(label)}</div>
+      <div class="value">${escapeHtml(value)}</div>
+    </div>
+  `;
+}
+
+function renderSummaryStrip(leader, stateMeta = null) {
+  const wrap = document.getElementById('summaryStripWrap');
+  if (!leader) {
+    wrap.className = 'summary-strip-wrap placeholder';
+    if (stateMeta?.kind === 'loading') {
+      wrap.innerHTML = stateBanner('Loading selected-item operator summary…', 'loading');
+      return;
+    }
+    if (stateMeta?.kind === 'error') {
+      wrap.innerHTML = stateBanner(stateMeta.message || 'Unable to load selected-item summary.', 'bad');
+      return;
+    }
+    if (stateMeta?.kind === 'empty') {
+      wrap.innerHTML = stateBanner('No operator summary is available because no Tradier leaders are present.', 'warn');
+      return;
+    }
+    wrap.textContent = 'Select a Tradier leader to view operator summary.';
+    return;
+  }
+
+  const state = getLeaderState(leader);
+  const feedback = getSelectedLeaderFeedback(leader);
+  const latestAction = feedback?.action || 'No local action yet';
+  const latestStateChange = feedback?.stateChange || 'No recent selected-item state change recorded.';
+  const localTrigger = state.queueItem?.trigger || leader.entry || '—';
+  const localInvalidation = state.watchItem?.invalidation || leader.invalidation || '—';
+
+  wrap.className = 'summary-strip-wrap';
+  wrap.innerHTML = `
+    ${stateMeta?.kind === 'selection-reset' ? stateBanner('Operator summary was re-anchored to the current selected leader after refresh.', 'warn') : ''}
+    <div class="summary-strip-head">
+      <div>
+        <div class="summary-title">${escapeHtml(leaderDisplayName(leader))}</div>
+        <div class="muted small">${escapeHtml(formatSection(leader.section))} · ${escapeHtml(leaderKey(leader))}</div>
+      </div>
+      <div class="badge-stack">
+        ${state.queued ? statusBadge('Queued: yes', 'queued') : statusBadge('Queued: no', 'neutral')}
+        ${state.watched ? statusBadge('Watched: yes', 'watch') : statusBadge('Watched: no', 'neutral')}
+        ${feedback ? statusBadge('Recent feedback', 'recent') : ''}
+      </div>
+    </div>
+    <div class="summary-strip-grid">
+      ${summaryField('Selected Leader', leaderDisplayName(leader), 'wide')}
+      ${summaryField('Queued', state.queued ? 'Yes' : 'No')}
+      ${summaryField('Watched', state.watched ? 'Yes' : 'No')}
+      ${summaryField('Latest Local Action', latestAction)}
+      ${summaryField('Local Trigger', localTrigger, 'wide')}
+      ${summaryField('Local Invalidation', localInvalidation, 'wide')}
+      ${summaryField('Latest State Change', latestStateChange, 'wide strong')}
+    </div>
+  `;
+}
+
 function renderOverview(snapshot) {
   const health = snapshot.systemHealth || {};
   const tradier = snapshot.tradier || {};
@@ -166,18 +228,21 @@ function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
   if (currentUiMode === 'loading') {
     wrap.innerHTML = stateBanner('Loading local Tradier snapshot…', 'loading');
+    renderSummaryStrip(null, { kind: 'loading' });
     renderDetail(null, { kind: 'loading' });
     renderActions(null, { kind: 'loading' });
     return;
   }
   if (currentUiMode === 'error') {
     wrap.innerHTML = stateBanner(currentLoadError || 'Snapshot load failed.', 'bad');
+    renderSummaryStrip(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
     renderDetail(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
     renderActions(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
     return;
   }
   if (!leaders?.length) {
     wrap.innerHTML = stateBanner('No Tradier leaders are currently available from local board data.', 'warn');
+    renderSummaryStrip(null, { kind: 'empty' });
     renderDetail(null, { kind: 'empty' });
     renderActions(null, { kind: 'empty' });
     return;
@@ -223,8 +288,10 @@ function renderLeaders(leaders) {
     });
   });
 
-  renderDetail(selectedLeader, missingPreviousSelection ? { kind: 'selection-reset' } : null);
-  renderActions(selectedLeader, missingPreviousSelection ? { kind: 'selection-reset' } : null);
+  const selectionMeta = missingPreviousSelection ? { kind: 'selection-reset' } : null;
+  renderSummaryStrip(selectedLeader, selectionMeta);
+  renderDetail(selectedLeader, selectionMeta);
+  renderActions(selectedLeader, selectionMeta);
 }
 
 function detailField(label, value, wide = false) {
