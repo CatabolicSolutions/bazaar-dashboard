@@ -32,6 +32,27 @@ function getSelectedLeader() {
   return currentSnapshot?.tradier?.leaders?.[selectedLeaderIndex] || null;
 }
 
+function getLeaderState(leader) {
+  if (!leader) return { queued: false, watched: false, queueItem: null, watchItem: null };
+  const positions = currentSnapshot?.activePositions?.positions || [];
+  const queue = currentSnapshot?.executionQueue?.queue || [];
+  const instrument = leaderInstrument(leader);
+
+  const queueItem = queue.find(item => item.symbol === leader.symbol && item.instrument === instrument) || null;
+  const watchItem = positions.find(item => item.symbol === leader.symbol && item.instrument === instrument && item.status === 'watch') || null;
+
+  return {
+    queued: Boolean(queueItem),
+    watched: Boolean(watchItem),
+    queueItem,
+    watchItem,
+  };
+}
+
+function statusBadge(label, kind = 'neutral') {
+  return `<span class="status-chip ${kind}">${escapeHtml(label)}</span>`;
+}
+
 function renderOverview(snapshot) {
   const health = snapshot.systemHealth || {};
   const tradier = snapshot.tradier || {};
@@ -68,23 +89,32 @@ function renderLeaders(leaders) {
     selectedLeaderIndex = 0;
   }
 
-  wrap.innerHTML = leaders.map((leader, index) => `
-    <button class="leader-row ${index === selectedLeaderIndex ? 'selected' : ''}" data-index="${index}">
-      <div class="leader-row-top">
-        <div>
-          <div class="section">${escapeHtml(formatSection(leader.section))}</div>
-          <div class="headline">${escapeHtml(leaderDisplayName(leader))}</div>
+  wrap.innerHTML = leaders.map((leader, index) => {
+    const state = getLeaderState(leader);
+    const stateBadges = [
+      leader.fallback ? '<span class="pill warn-pill">Fallback Expiry</span>' : `<span class="pill neutral-pill">${escapeHtml(leader.label || 'Primary')}</span>`,
+      state.queued ? statusBadge('Queued', 'queued') : '',
+      state.watched ? statusBadge('Watching', 'watch') : '',
+    ].filter(Boolean).join('');
+
+    return `
+      <button class="leader-row ${index === selectedLeaderIndex ? 'selected' : ''}" data-index="${index}">
+        <div class="leader-row-top">
+          <div>
+            <div class="section">${escapeHtml(formatSection(leader.section))}</div>
+            <div class="headline">${escapeHtml(leaderDisplayName(leader))}</div>
+          </div>
+          <div class="badge-stack">${stateBadges}</div>
         </div>
-        <div class="pill ${leader.fallback ? 'warn-pill' : 'neutral-pill'}">${leader.fallback ? 'Fallback Expiry' : escapeHtml(leader.label || 'Primary')}</div>
-      </div>
-      <div class="leader-row-grid">
-        <div><span class="label">Underlying</span><span class="value">${escapeHtml(leader.underlying)}</span></div>
-        <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)}</span></div>
-        <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)}</span></div>
-        <div><span class="label">Confidence</span><span class="value">${escapeHtml(leader.confidence)}</span></div>
-      </div>
-    </button>
-  `).join('');
+        <div class="leader-row-grid">
+          <div><span class="label">Underlying</span><span class="value">${escapeHtml(leader.underlying)}</span></div>
+          <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)}</span></div>
+          <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)}</span></div>
+          <div><span class="label">Confidence</span><span class="value">${escapeHtml(leader.confidence)}</span></div>
+        </div>
+      </button>
+    `;
+  }).join('');
 
   wrap.querySelectorAll('.leader-row').forEach(button => {
     button.addEventListener('click', () => {
@@ -116,9 +146,21 @@ function renderDetail(leader) {
     return;
   }
 
+  const state = getLeaderState(leader);
+  const stateSummary = [
+    state.queued ? statusBadge('Already queued', 'queued') : statusBadge('Not queued', 'neutral'),
+    state.watched ? statusBadge('On watch list', 'watch') : statusBadge('Not watched', 'neutral'),
+  ].join('');
+
   meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
   wrap.className = 'detail-wrap';
   wrap.innerHTML = `
+    <div class="detail-state-row">
+      <div>
+        <div class="label">Local Action State</div>
+        <div class="badge-stack">${stateSummary}</div>
+      </div>
+    </div>
     <div class="detail-grid">
       ${detailField('Symbol', leader.symbol)}
       ${detailField('Option Type', leader.option_type)}
@@ -130,6 +172,10 @@ function renderDetail(leader) {
       ${detailField('Bid / Ask', `${leader.bid || '—'} / ${leader.ask || '—'}`)}
       ${detailField('Section', formatSection(leader.section))}
       ${detailField('Fallback Expiry', leader.fallback ? 'Yes' : 'No')}
+      ${detailField('Queue Status', state.queued ? 'Queued in local execution queue' : 'Not queued locally')}
+      ${detailField('Watch Status', state.watched ? 'Tracked in local watch state' : 'Not watched locally')}
+      ${state.queueItem ? detailField('Queued Trigger', state.queueItem.trigger || '—', true) : ''}
+      ${state.watchItem ? detailField('Watch Invalidation', state.watchItem.invalidation || '—', true) : ''}
       ${detailField('Thesis', leader.thesis, true)}
       ${detailField('Entry', leader.entry, true)}
       ${detailField('Invalidation', leader.invalidation, true)}
@@ -142,38 +188,33 @@ function renderDetail(leader) {
   `;
 }
 
-function itemExists(list = [], predicate) {
-  return list.some(predicate);
-}
-
 function inferActions(leader) {
   if (!leader) return [];
 
-  const positions = currentSnapshot?.activePositions?.positions || [];
-  const queue = currentSnapshot?.executionQueue?.queue || [];
-  const instrument = leaderInstrument(leader);
-
-  const queued = itemExists(queue, item => item.symbol === leader.symbol && item.instrument === instrument);
-  const watched = itemExists(positions, item => item.symbol === leader.symbol && item.instrument === instrument && item.status === 'watch');
+  const state = getLeaderState(leader);
 
   return [
     {
       key: 'queue_selected_leader',
       title: 'Add to execution queue',
-      detail: queued
+      detail: state.queued
         ? 'Selected ticket is already represented in local execution queue state.'
         : 'Write this selected Tradier ticket into local execution queue state.',
-      disabled: queued,
-      cta: queued ? 'Already queued' : 'Queue Selected Ticket',
+      disabled: state.queued,
+      cta: state.queued ? 'Already queued' : 'Queue Selected Ticket',
+      stateLabel: state.queued ? 'Visible state: queued' : 'Visible state: not queued',
+      stateKind: state.queued ? 'queued' : 'neutral',
     },
     {
       key: 'watch_selected_leader',
       title: 'Add to watch list',
-      detail: watched
+      detail: state.watched
         ? 'Selected ticket is already represented in local active_positions state as watch.'
         : 'Write this selected Tradier ticket into local watch state for operator tracking.',
-      disabled: watched,
-      cta: watched ? 'Already watching' : 'Watch Selected Ticket',
+      disabled: state.watched,
+      cta: state.watched ? 'Already watching' : 'Watch Selected Ticket',
+      stateLabel: state.watched ? 'Visible state: watching' : 'Visible state: not watched',
+      stateKind: state.watched ? 'watch' : 'neutral',
     },
   ];
 }
@@ -224,18 +265,28 @@ function renderActions(leader) {
     return;
   }
 
+  const state = getLeaderState(leader);
   const actions = inferActions(leader);
+  const actionStateSummary = [
+    state.queued ? statusBadge('Queued in local state', 'queued') : statusBadge('Queue pending', 'neutral'),
+    state.watched ? statusBadge('Watching in local state', 'watch') : statusBadge('Watch pending', 'neutral'),
+  ].join('');
+
   wrap.className = 'actions-wrap';
   wrap.innerHTML = `
     <div class="action-summary">
       <div class="action-summary-title">Selected Ticket</div>
       <div class="action-summary-value">${escapeHtml(leaderDisplayName(leader))}</div>
+      <div class="badge-stack">${actionStateSummary}</div>
       <div class="muted small">Real local actions only. No remote execution or workflow expansion.</div>
     </div>
     <div class="action-list">
       ${actions.map(action => `
         <div class="action-item">
-          <div class="action-title">${escapeHtml(action.title)}</div>
+          <div class="action-item-top">
+            <div class="action-title">${escapeHtml(action.title)}</div>
+            ${statusBadge(action.stateLabel, action.stateKind)}
+          </div>
           <div class="action-detail">${escapeHtml(action.detail)}</div>
           <button class="action-btn" data-action-key="${escapeHtml(action.key)}" ${action.disabled ? 'disabled' : ''}>${escapeHtml(action.cta)}</button>
         </div>
