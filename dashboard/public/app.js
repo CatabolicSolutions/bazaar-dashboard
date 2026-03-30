@@ -24,6 +24,14 @@ function leaderDisplayName(leader) {
   return `${leader.symbol || '—'} ${leader.option_type || ''} ${leader.strike || ''} ${leader.exp || ''}`.trim();
 }
 
+function leaderInstrument(leader) {
+  return `${leader.exp || ''} ${leader.strike || ''} ${leader.option_type || ''}`.trim();
+}
+
+function getSelectedLeader() {
+  return currentSnapshot?.tradier?.leaders?.[selectedLeaderIndex] || null;
+}
+
 function renderOverview(snapshot) {
   const health = snapshot.systemHealth || {};
   const tradier = snapshot.tradier || {};
@@ -134,33 +142,78 @@ function renderDetail(leader) {
   `;
 }
 
+function itemExists(list = [], predicate) {
+  return list.some(predicate);
+}
+
 function inferActions(leader) {
   if (!leader) return [];
-  const actions = [];
-  actions.push({
-    title: 'Validate entry discipline',
-    detail: leader.entry || 'Confirm trigger conditions before acting.',
+
+  const positions = currentSnapshot?.activePositions?.positions || [];
+  const queue = currentSnapshot?.executionQueue?.queue || [];
+  const instrument = leaderInstrument(leader);
+
+  const queued = itemExists(queue, item => item.symbol === leader.symbol && item.instrument === instrument);
+  const watched = itemExists(positions, item => item.symbol === leader.symbol && item.instrument === instrument && item.status === 'watch');
+
+  return [
+    {
+      key: 'queue_selected_leader',
+      title: 'Add to execution queue',
+      detail: queued
+        ? 'Selected ticket is already represented in local execution queue state.'
+        : 'Write this selected Tradier ticket into local execution queue state.',
+      disabled: queued,
+      cta: queued ? 'Already queued' : 'Queue Selected Ticket',
+    },
+    {
+      key: 'watch_selected_leader',
+      title: 'Add to watch list',
+      detail: watched
+        ? 'Selected ticket is already represented in local active_positions state as watch.'
+        : 'Write this selected Tradier ticket into local watch state for operator tracking.',
+      disabled: watched,
+      cta: watched ? 'Already watching' : 'Watch Selected Ticket',
+    },
+  ];
+}
+
+async function runSelectedAction(actionKey) {
+  const leader = getSelectedLeader();
+  const status = document.getElementById('actionStatus');
+  if (!leader || !status) return;
+
+  status.textContent = 'Submitting local action…';
+  status.className = 'action-status muted small';
+
+  const res = await fetch('/api/actions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: actionKey, leader }),
   });
-  actions.push({
-    title: 'Respect invalidation',
-    detail: leader.invalidation || 'Set stop / failure condition before execution.',
-  });
-  actions.push({
-    title: leader.section === 'premium' ? 'Structure as defined-risk spread' : 'Stage premium outlay',
-    detail: leader.section === 'premium'
-      ? 'Keep premium candidates spread-defined; avoid naked premium.'
-      : 'Treat directional leader as a premium-outlay scalp candidate with size discipline.',
-  });
-  if (leader.targets) {
-    actions.push({ title: 'Plan exits', detail: leader.targets });
+  const data = await res.json();
+
+  if (!res.ok || !data.ok) {
+    status.textContent = `Action failed: ${data.error || 'unknown error'}`;
+    status.className = 'action-status bad small';
+    return;
   }
-  if (leader.fallback) {
-    actions.push({
-      title: 'Fallback expiry check',
-      detail: 'Confirm the expiry is acceptable before treating this as executable parity.',
-    });
-  }
-  return actions;
+
+  status.textContent = `${data.action} saved at ${data.updatedAt}`;
+  status.className = 'action-status good small';
+  await refresh();
+}
+
+function bindActionButtons() {
+  document.querySelectorAll('[data-action-key]').forEach(button => {
+    button.addEventListener('click', () => runSelectedAction(button.dataset.actionKey).catch(err => {
+      const status = document.getElementById('actionStatus');
+      if (status) {
+        status.textContent = err.message;
+        status.className = 'action-status bad small';
+      }
+    }));
+  });
 }
 
 function renderActions(leader) {
@@ -177,17 +230,20 @@ function renderActions(leader) {
     <div class="action-summary">
       <div class="action-summary-title">Selected Ticket</div>
       <div class="action-summary-value">${escapeHtml(leaderDisplayName(leader))}</div>
-      <div class="muted small">Local-only operator guidance from current artifact data.</div>
+      <div class="muted small">Real local actions only. No remote execution or workflow expansion.</div>
     </div>
     <div class="action-list">
       ${actions.map(action => `
         <div class="action-item">
           <div class="action-title">${escapeHtml(action.title)}</div>
           <div class="action-detail">${escapeHtml(action.detail)}</div>
+          <button class="action-btn" data-action-key="${escapeHtml(action.key)}" ${action.disabled ? 'disabled' : ''}>${escapeHtml(action.cta)}</button>
         </div>
       `).join('')}
     </div>
+    <div id="actionStatus" class="action-status muted small">Selected-item actions write only to current local dashboard state files.</div>
   `;
+  bindActionButtons();
 }
 
 function renderTradierSlice() {

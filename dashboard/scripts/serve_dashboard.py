@@ -3,12 +3,16 @@ from pathlib import Path
 import subprocess
 import os
 import json
+from datetime import datetime, timezone
 
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
 PUBLIC = ROOT / 'dashboard' / 'public'
 BUILDER = ROOT / 'dashboard' / 'scripts' / 'build_snapshot.py'
 SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
 SAVE_QUEUE = ROOT / 'dashboard' / 'scripts' / 'save_queue.py'
+POSITIONS_STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
+QUEUE_STATE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
+
 
 class Handler(SimpleHTTPRequestHandler):
     def refresh_snapshot(self):
@@ -16,6 +20,23 @@ class Handler(SimpleHTTPRequestHandler):
             subprocess.run(['bash', '-lc', f'source ~/.profile >/dev/null 2>&1; source ~/.bashrc >/dev/null 2>&1; python3 {BUILDER}'], cwd=str(ROOT), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception:
             pass
+
+    def read_json(self, path, default):
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except Exception:
+                return default
+        return default
+
+    def write_json(self, path, payload):
+        path.write_text(json.dumps(payload, indent=2))
+
+    def json_response(self, status_code, payload):
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode())
 
     def do_GET(self):
         self.refresh_snapshot()
@@ -35,10 +56,73 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(proc.stdout)
         else:
-            self.send_response(500)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'ok': False, 'error': proc.stderr.decode() or 'save failed'}).encode())
+            self.json_response(500, {'ok': False, 'error': proc.stderr.decode() or 'save failed'})
+
+    def _queue_selected_leader(self, leader):
+        state = self.read_json(QUEUE_STATE, {'updatedAt': None, 'queue': []})
+        queue = state.get('queue', [])
+        instrument = f"{leader.get('exp', '')} {leader.get('strike', '')} {leader.get('option_type', '')}".strip()
+        item = {
+            'symbol': str(leader.get('symbol', '')).strip(),
+            'instrument': instrument,
+            'side': 'buy' if leader.get('section') == 'directional' else 'sell_spread_candidate',
+            'trigger': str(leader.get('entry', '')).strip(),
+            'thesis': str(leader.get('thesis', '')).strip(),
+            'priority': 'high' if leader.get('section') == 'directional' else 'normal',
+            'status': 'queued',
+            'notes': f"dashboard selected-item action | {leader.get('headline', '')}".strip(),
+        }
+        queue = [q for q in queue if not (q.get('symbol') == item['symbol'] and q.get('instrument') == item['instrument'] and q.get('status') == item['status'])]
+        queue.insert(0, item)
+        out = {
+            'updatedAt': datetime.now(timezone.utc).isoformat(),
+            'queue': queue,
+        }
+        self.write_json(QUEUE_STATE, out)
+        self.refresh_snapshot()
+        return {'ok': True, 'action': 'queue_selected_leader', 'item': item, 'count': len(queue), 'updatedAt': out['updatedAt']}
+
+    def _watch_selected_leader(self, leader):
+        state = self.read_json(POSITIONS_STATE, {'updatedAt': None, 'positions': []})
+        positions = state.get('positions', [])
+        instrument = f"{leader.get('exp', '')} {leader.get('strike', '')} {leader.get('option_type', '')}".strip()
+        position = {
+            'symbol': str(leader.get('symbol', '')).strip(),
+            'instrument': instrument,
+            'entry': str(leader.get('bid', '')).strip(),
+            'current': str(leader.get('ask', '')).strip(),
+            'size': '',
+            'invalidation': str(leader.get('invalidation', '')).strip(),
+            'targets': str(leader.get('targets', '')).strip(),
+            'notes': f"dashboard watchlist action | {leader.get('headline', '')}".strip(),
+            'status': 'watch',
+        }
+        positions = [p for p in positions if not (p.get('symbol') == position['symbol'] and p.get('instrument') == position['instrument'])]
+        positions.insert(0, position)
+        out = {
+            'updatedAt': datetime.now(timezone.utc).isoformat(),
+            'positions': positions,
+        }
+        self.write_json(POSITIONS_STATE, out)
+        self.refresh_snapshot()
+        return {'ok': True, 'action': 'watch_selected_leader', 'item': position, 'count': len(positions), 'updatedAt': out['updatedAt']}
+
+    def _handle_action(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+        except Exception:
+            return self.json_response(400, {'ok': False, 'error': 'invalid json'})
+
+        action = payload.get('action')
+        leader = payload.get('leader') or {}
+        if not leader.get('symbol') or not leader.get('exp') or not leader.get('strike') or not leader.get('option_type'):
+            return self.json_response(400, {'ok': False, 'error': 'selected leader payload missing required fields'})
+
+        if action == 'queue_selected_leader':
+            return self.json_response(200, self._queue_selected_leader(leader))
+        if action == 'watch_selected_leader':
+            return self.json_response(200, self._watch_selected_leader(leader))
+        return self.json_response(404, {'ok': False, 'error': 'unknown action'})
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length', '0'))
@@ -47,8 +131,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self._run_save(SAVE_POSITIONS, body)
         if self.path == '/api/queue':
             return self._run_save(SAVE_QUEUE, body)
+        if self.path == '/api/actions':
+            return self._handle_action(body)
         self.send_response(404)
         self.end_headers()
+
 
 os.chdir(PUBLIC)
 server = ThreadingHTTPServer(('0.0.0.0', 8765), Handler)
