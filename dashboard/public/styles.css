@@ -52,6 +52,12 @@ h1, h2 { margin: 0 0 8px; }
 .value { font-weight: 700; }
 .feedback-title { font-weight: 800; margin-bottom: 6px; }
 .feedback-body { line-height: 1.45; margin-bottom: 6px; }
+.state-banner { grid-column: 1 / -1; border-radius: 10px; padding: 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.45; }
+.state-banner.neutral { background: rgba(255,255,255,0.03); color: var(--muted); }
+.state-banner.loading { background: rgba(107, 160, 255, 0.10); color: #9fc0ff; border-color: rgba(107,160,255,0.35); }
+.state-banner.warn { background: rgba(255,180,84,0.10); color: var(--warn); border-color: rgba(255,180,84,0.35); }
+.state-banner.bad { background: rgba(255,107,107,0.10); color: var(--bad); border-color: rgba(255,107,107,0.35); }
+.state-banner.good { background: rgba(81,216,138,0.10); color: var(--good); border-color: rgba(81,216,138,0.35); }
 
 .leaders-wrap { display: grid; gap: 12px; }
 .leader-row { width: 100%; text-align: left; background: rgba(255,255,255,0.02); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: grid; gap: 12px; }

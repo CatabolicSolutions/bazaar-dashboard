@@ -2,6 +2,8 @@ let currentSnapshot = null;
 let selectedLeaderIndex = 0;
 let selectedLeaderKey = null;
 let lastActionStatus = null;
+let currentUiMode = 'loading';
+let currentLoadError = null;
 
 async function loadSnapshot() {
   const res = await fetch('./snapshot.json?ts=' + Date.now());
@@ -35,19 +37,46 @@ function leaderKey(leader) {
   return [leader.symbol || '', leader.exp || '', leader.strike || '', leader.option_type || '', leader.section || ''].join('|');
 }
 
+function getSnapshotAgeMinutes(snapshot) {
+  const updatedAt = snapshot?.systemHealth?.tradierBoardUpdatedAt;
+  if (!updatedAt) return null;
+  const ms = Date.now() - new Date(updatedAt).getTime();
+  if (!Number.isFinite(ms)) return null;
+  return ms / 60000;
+}
+
+function describeSnapshotHealth(snapshot) {
+  if (!snapshot) {
+    return { tone: 'warn', text: 'Snapshot not loaded yet.' };
+  }
+  const boardPresent = snapshot?.systemHealth?.tradierBoardPresent;
+  const ageMinutes = getSnapshotAgeMinutes(snapshot);
+  if (!boardPresent) {
+    return { tone: 'bad', text: 'Tradier board artifact is missing. Dashboard is running without current board data.' };
+  }
+  if (ageMinutes !== null && ageMinutes > 120) {
+    return { tone: 'warn', text: `Tradier board artifact looks stale (${Math.round(ageMinutes)} min old). Verify local refresh path.` };
+  }
+  return { tone: 'good', text: 'Tradier board artifact is available.' };
+}
+
 function syncSelectedLeader(leaders = []) {
   if (!leaders.length) {
     selectedLeaderIndex = 0;
     selectedLeaderKey = null;
-    return null;
+    return { leader: null, missingPreviousSelection: false };
   }
 
   if (selectedLeaderKey) {
     const matchedIndex = leaders.findIndex(leader => leaderKey(leader) === selectedLeaderKey);
     if (matchedIndex >= 0) {
       selectedLeaderIndex = matchedIndex;
-      return leaders[matchedIndex];
+      return { leader: leaders[matchedIndex], missingPreviousSelection: false };
     }
+    const fallbackLeader = leaders[0];
+    selectedLeaderIndex = 0;
+    selectedLeaderKey = leaderKey(fallbackLeader);
+    return { leader: fallbackLeader, missingPreviousSelection: true };
   }
 
   if (selectedLeaderIndex >= leaders.length) {
@@ -56,7 +85,7 @@ function syncSelectedLeader(leaders = []) {
 
   const leader = leaders[selectedLeaderIndex];
   selectedLeaderKey = leaderKey(leader);
-  return leader;
+  return { leader, missingPreviousSelection: false };
 }
 
 function setSelectedLeader(index, leaders) {
@@ -66,7 +95,7 @@ function setSelectedLeader(index, leaders) {
 }
 
 function getSelectedLeader() {
-  return syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
+  return syncSelectedLeader(currentSnapshot?.tradier?.leaders || []).leader;
 }
 
 function getLeaderState(leader) {
@@ -102,10 +131,15 @@ function statusBadge(label, kind = 'neutral') {
   return `<span class="status-chip ${kind}">${escapeHtml(label)}</span>`;
 }
 
+function stateBanner(text, tone = 'neutral') {
+  return `<div class="state-banner ${tone}">${escapeHtml(text)}</div>`;
+}
+
 function renderOverview(snapshot) {
   const health = snapshot.systemHealth || {};
   const tradier = snapshot.tradier || {};
   const overview = tradier.overview || {};
+  const healthSummary = describeSnapshotHealth(snapshot);
   const items = [
     ['Board Status', health.tradierBoardPresent ? 'Present' : 'Missing', health.tradierBoardPresent ? 'good' : 'bad'],
     ['Board Updated', health.tradierBoardUpdatedAt || 'N/A', 'muted'],
@@ -117,26 +151,44 @@ function renderOverview(snapshot) {
     ['Latest Commit', health.latestCommit || 'N/A', 'muted'],
   ];
 
-  document.getElementById('overviewGrid').innerHTML = items.map(([label, value, klass]) => `
-    <div class="overview-item">
-      <div class="label">${escapeHtml(label)}</div>
-      <div class="value ${klass}">${escapeHtml(value)}</div>
-    </div>
-  `).join('');
+  document.getElementById('overviewGrid').innerHTML = `
+    ${stateBanner(healthSummary.text, healthSummary.tone)}
+    ${items.map(([label, value, klass]) => `
+      <div class="overview-item">
+        <div class="label">${escapeHtml(label)}</div>
+        <div class="value ${klass}">${escapeHtml(value)}</div>
+      </div>
+    `).join('')}
+  `;
 }
 
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
+  if (currentUiMode === 'loading') {
+    wrap.innerHTML = stateBanner('Loading local Tradier snapshot…', 'loading');
+    renderDetail(null, { kind: 'loading' });
+    renderActions(null, { kind: 'loading' });
+    return;
+  }
+  if (currentUiMode === 'error') {
+    wrap.innerHTML = stateBanner(currentLoadError || 'Snapshot load failed.', 'bad');
+    renderDetail(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
+    renderActions(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
+    return;
+  }
   if (!leaders?.length) {
-    wrap.innerHTML = '<div class="placeholder">No Tradier leaders parsed yet.</div>';
-    renderDetail(null);
-    renderActions(null);
+    wrap.innerHTML = stateBanner('No Tradier leaders are currently available from local board data.', 'warn');
+    renderDetail(null, { kind: 'empty' });
+    renderActions(null, { kind: 'empty' });
     return;
   }
 
-  const selectedLeader = syncSelectedLeader(leaders);
+  const { leader: selectedLeader, missingPreviousSelection } = syncSelectedLeader(leaders);
+  const selectionBanner = missingPreviousSelection
+    ? stateBanner('Previously selected leader disappeared after refresh. Dashboard re-anchored to the first available local leader.', 'warn')
+    : '';
 
-  wrap.innerHTML = leaders.map((leader, index) => {
+  wrap.innerHTML = selectionBanner + leaders.map((leader, index) => {
     const state = getLeaderState(leader);
     const feedback = getSelectedLeaderFeedback(leader);
     const stateBadges = [
@@ -171,8 +223,8 @@ function renderLeaders(leaders) {
     });
   });
 
-  renderDetail(selectedLeader);
-  renderActions(selectedLeader);
+  renderDetail(selectedLeader, missingPreviousSelection ? { kind: 'selection-reset' } : null);
+  renderActions(selectedLeader, missingPreviousSelection ? { kind: 'selection-reset' } : null);
 }
 
 function detailField(label, value, wide = false) {
@@ -184,12 +236,24 @@ function detailField(label, value, wide = false) {
   `;
 }
 
-function renderDetail(leader) {
+function renderDetail(leader, stateMeta = null) {
   const wrap = document.getElementById('detailWrap');
   const meta = document.getElementById('selectedMeta');
   if (!leader) {
     meta.textContent = 'No leader selected';
     wrap.className = 'detail-wrap placeholder';
+    if (stateMeta?.kind === 'loading') {
+      wrap.innerHTML = stateBanner('Loading selected Tradier item…', 'loading');
+      return;
+    }
+    if (stateMeta?.kind === 'error') {
+      wrap.innerHTML = stateBanner(stateMeta.message || 'Unable to load selected item detail.', 'bad');
+      return;
+    }
+    if (stateMeta?.kind === 'empty') {
+      wrap.innerHTML = stateBanner('No selected-item detail is available because no Tradier leaders were parsed.', 'warn');
+      return;
+    }
     wrap.textContent = 'Select a Tradier leader to inspect ticket detail.';
     return;
   }
@@ -201,10 +265,13 @@ function renderDetail(leader) {
     state.watched ? statusBadge('On watch list', 'watch') : statusBadge('Not watched', 'neutral'),
     feedback ? statusBadge('Recent action recorded', 'recent') : '',
   ].filter(Boolean).join('');
+  const staleNote = describeSnapshotHealth(currentSnapshot);
 
   meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
   wrap.className = 'detail-wrap';
   wrap.innerHTML = `
+    ${stateMeta?.kind === 'selection-reset' ? stateBanner('Selected detail was re-anchored because the previous leader disappeared after refresh.', 'warn') : ''}
+    ${staleNote.tone !== 'good' ? stateBanner(staleNote.text, staleNote.tone) : ''}
     <div class="detail-state-row">
       <div>
         <div class="label">Local Action State</div>
@@ -322,10 +389,22 @@ function bindActionButtons() {
   });
 }
 
-function renderActions(leader) {
+function renderActions(leader, stateMeta = null) {
   const wrap = document.getElementById('actionsWrap');
   if (!leader) {
     wrap.className = 'actions-wrap placeholder';
+    if (stateMeta?.kind === 'loading') {
+      wrap.innerHTML = stateBanner('Loading selected-item action state…', 'loading');
+      return;
+    }
+    if (stateMeta?.kind === 'error') {
+      wrap.innerHTML = stateBanner(stateMeta.message || 'Unable to load selected-item actions.', 'bad');
+      return;
+    }
+    if (stateMeta?.kind === 'empty') {
+      wrap.innerHTML = stateBanner('No selected-item actions are available because no Tradier leaders are present.', 'warn');
+      return;
+    }
     wrap.textContent = 'Select a Tradier leader to view local next actions.';
     return;
   }
@@ -345,6 +424,7 @@ function renderActions(leader) {
 
   wrap.className = 'actions-wrap';
   wrap.innerHTML = `
+    ${stateMeta?.kind === 'selection-reset' ? stateBanner('Actions were re-anchored to a new selected leader after refresh.', 'warn') : ''}
     <div class="action-summary">
       <div class="action-summary-title">Selected Ticket</div>
       <div class="action-summary-value">${escapeHtml(leaderDisplayName(leader))}</div>
@@ -377,16 +457,30 @@ function renderActions(leader) {
 }
 
 function renderTradierSlice() {
-  if (!currentSnapshot) return;
-  renderOverview(currentSnapshot);
-  renderLeaders(currentSnapshot.tradier?.leaders || []);
+  if (!currentSnapshot && currentUiMode !== 'loading') return;
+  if (currentSnapshot) {
+    renderOverview(currentSnapshot);
+  }
+  renderLeaders(currentSnapshot?.tradier?.leaders || []);
 }
 
 async function refresh() {
-  currentSnapshot = await loadSnapshot();
-  syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
-  document.getElementById('updatedAt').textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
+  currentUiMode = 'loading';
+  currentLoadError = null;
   renderTradierSlice();
+  try {
+    currentSnapshot = await loadSnapshot();
+    currentUiMode = 'ready';
+    syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
+    document.getElementById('updatedAt').textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
+    renderTradierSlice();
+  } catch (err) {
+    currentUiMode = 'error';
+    currentLoadError = err.message;
+    document.getElementById('updatedAt').textContent = 'Snapshot unavailable';
+    renderTradierSlice();
+    throw err;
+  }
 }
 
 document.getElementById('refreshBtn').addEventListener('click', refresh);
