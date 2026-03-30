@@ -3,6 +3,7 @@ from pathlib import Path
 import subprocess
 import os
 import json
+import argparse
 from datetime import datetime, timezone
 
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
@@ -41,6 +42,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         self.refresh_snapshot()
+        if self.path in ('/app', '/app/'):
+            self.path = '/index.html'
         return super().do_GET()
 
     def _run_save(self, script_path, body):
@@ -180,7 +183,16 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
 
 
-os.chdir(PUBLIC)
-server = ThreadingHTTPServer(('0.0.0.0', 8765), Handler)
-print('Dashboard serving on http://0.0.0.0:8765')
-server.serve_forever()
+def parse_args():
+    parser = argparse.ArgumentParser(description='Serve the Tradier local dashboard.')
+    parser.add_argument('--host', default=os.environ.get('TRADIER_DASHBOARD_HOST', '0.0.0.0'))
+    parser.add_argument('--port', type=int, default=int(os.environ.get('TRADIER_DASHBOARD_PORT', '8765')))
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    os.chdir(PUBLIC)
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    print(f'Dashboard serving on http://{args.host}:{args.port}')
+    server.serve_forever()
