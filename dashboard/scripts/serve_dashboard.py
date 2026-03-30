@@ -12,6 +12,7 @@ SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
 SAVE_QUEUE = ROOT / 'dashboard' / 'scripts' / 'save_queue.py'
 POSITIONS_STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE_STATE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
+ACTION_FEEDBACK_STATE = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -58,6 +59,22 @@ class Handler(SimpleHTTPRequestHandler):
         else:
             self.json_response(500, {'ok': False, 'error': proc.stderr.decode() or 'save failed'})
 
+    def _record_action_feedback(self, *, leader, action, result, state_change):
+        instrument = f"{leader.get('exp', '')} {leader.get('strike', '')} {leader.get('option_type', '')}".strip()
+        payload = {
+            'updatedAt': datetime.now(timezone.utc).isoformat(),
+            'feedback': {
+                'symbol': str(leader.get('symbol', '')).strip(),
+                'instrument': instrument,
+                'headline': str(leader.get('headline', '')).strip(),
+                'action': action,
+                'result': result,
+                'stateChange': state_change,
+            },
+        }
+        self.write_json(ACTION_FEEDBACK_STATE, payload)
+        return payload
+
     def _queue_selected_leader(self, leader):
         state = self.read_json(QUEUE_STATE, {'updatedAt': None, 'queue': []})
         queue = state.get('queue', [])
@@ -79,8 +96,21 @@ class Handler(SimpleHTTPRequestHandler):
             'queue': queue,
         }
         self.write_json(QUEUE_STATE, out)
+        feedback = self._record_action_feedback(
+            leader=leader,
+            action='queue_selected_leader',
+            result='Applied local queue action',
+            state_change='Selected item is now queued in local execution queue state.',
+        )
         self.refresh_snapshot()
-        return {'ok': True, 'action': 'queue_selected_leader', 'item': item, 'count': len(queue), 'updatedAt': out['updatedAt']}
+        return {
+            'ok': True,
+            'action': 'queue_selected_leader',
+            'item': item,
+            'count': len(queue),
+            'updatedAt': out['updatedAt'],
+            'feedback': feedback['feedback'],
+        }
 
     def _watch_selected_leader(self, leader):
         state = self.read_json(POSITIONS_STATE, {'updatedAt': None, 'positions': []})
@@ -104,8 +134,21 @@ class Handler(SimpleHTTPRequestHandler):
             'positions': positions,
         }
         self.write_json(POSITIONS_STATE, out)
+        feedback = self._record_action_feedback(
+            leader=leader,
+            action='watch_selected_leader',
+            result='Applied local watch action',
+            state_change='Selected item is now tracked in local watch state.',
+        )
         self.refresh_snapshot()
-        return {'ok': True, 'action': 'watch_selected_leader', 'item': position, 'count': len(positions), 'updatedAt': out['updatedAt']}
+        return {
+            'ok': True,
+            'action': 'watch_selected_leader',
+            'item': position,
+            'count': len(positions),
+            'updatedAt': out['updatedAt'],
+            'feedback': feedback['feedback'],
+        }
 
     def _handle_action(self, body):
         try:

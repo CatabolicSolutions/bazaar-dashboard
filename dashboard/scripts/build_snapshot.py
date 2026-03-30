@@ -9,6 +9,7 @@ OUT = ROOT / 'dashboard' / 'public' / 'snapshot.json'
 BOARD = ROOT / 'out' / 'tradier_leaders_board.txt'
 ACTIVE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
+ACTION_FEEDBACK = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
 TRADIER_EXECUTION_STATE = ROOT / 'dashboard' / 'state' / 'tradier_execution_state.json'
 TRADIER_AUDIT_LOG = ROOT / 'dashboard' / 'state' / 'tradier_audit_log.json'
 
@@ -111,6 +112,7 @@ snapshot = {
         'leaders': leaders,
         'overview': build_tradier_overview(leaders, board_meta),
         'runNotes': board_meta.get('runNotes', []),
+        'actionFeedback': read_json(ACTION_FEEDBACK),
     },
     'activePositions': read_json(ACTIVE),
     'executionQueue': read_json(QUEUE),

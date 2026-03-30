@@ -49,6 +49,18 @@ function getLeaderState(leader) {
   };
 }
 
+function getSelectedLeaderFeedback(leader) {
+  const payload = currentSnapshot?.tradier?.actionFeedback || {};
+  const feedback = payload.feedback;
+  if (!leader || !feedback) return null;
+  const instrument = leaderInstrument(leader);
+  if (feedback.symbol !== leader.symbol || feedback.instrument !== instrument) return null;
+  return {
+    updatedAt: payload.updatedAt,
+    ...feedback,
+  };
+}
+
 function statusBadge(label, kind = 'neutral') {
   return `<span class="status-chip ${kind}">${escapeHtml(label)}</span>`;
 }
@@ -91,10 +103,12 @@ function renderLeaders(leaders) {
 
   wrap.innerHTML = leaders.map((leader, index) => {
     const state = getLeaderState(leader);
+    const feedback = getSelectedLeaderFeedback(leader);
     const stateBadges = [
       leader.fallback ? '<span class="pill warn-pill">Fallback Expiry</span>' : `<span class="pill neutral-pill">${escapeHtml(leader.label || 'Primary')}</span>`,
       state.queued ? statusBadge('Queued', 'queued') : '',
       state.watched ? statusBadge('Watching', 'watch') : '',
+      feedback ? statusBadge('Recent action', 'recent') : '',
     ].filter(Boolean).join('');
 
     return `
@@ -147,10 +161,12 @@ function renderDetail(leader) {
   }
 
   const state = getLeaderState(leader);
+  const feedback = getSelectedLeaderFeedback(leader);
   const stateSummary = [
     state.queued ? statusBadge('Already queued', 'queued') : statusBadge('Not queued', 'neutral'),
     state.watched ? statusBadge('On watch list', 'watch') : statusBadge('Not watched', 'neutral'),
-  ].join('');
+    feedback ? statusBadge('Recent action recorded', 'recent') : '',
+  ].filter(Boolean).join('');
 
   meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
   wrap.className = 'detail-wrap';
@@ -161,6 +177,14 @@ function renderDetail(leader) {
         <div class="badge-stack">${stateSummary}</div>
       </div>
     </div>
+    ${feedback ? `
+      <div class="detail-feedback-row">
+        <div class="label">Recent Action Result</div>
+        <div class="feedback-title">${escapeHtml(feedback.result)}</div>
+        <div class="feedback-body">${escapeHtml(feedback.stateChange)}</div>
+        <div class="muted small">${escapeHtml(feedback.action)} · ${escapeHtml(feedback.updatedAt || 'unknown time')}</div>
+      </div>
+    ` : ''}
     <div class="detail-grid">
       ${detailField('Symbol', leader.symbol)}
       ${detailField('Option Type', leader.option_type)}
@@ -240,7 +264,8 @@ async function runSelectedAction(actionKey) {
     return;
   }
 
-  status.textContent = `${data.action} saved at ${data.updatedAt}`;
+  const feedbackText = data.feedback?.stateChange || `${data.action} saved at ${data.updatedAt}`;
+  status.textContent = feedbackText;
   status.className = 'action-status good small';
   await refresh();
 }
@@ -266,11 +291,13 @@ function renderActions(leader) {
   }
 
   const state = getLeaderState(leader);
+  const feedback = getSelectedLeaderFeedback(leader);
   const actions = inferActions(leader);
   const actionStateSummary = [
     state.queued ? statusBadge('Queued in local state', 'queued') : statusBadge('Queue pending', 'neutral'),
     state.watched ? statusBadge('Watching in local state', 'watch') : statusBadge('Watch pending', 'neutral'),
-  ].join('');
+    feedback ? statusBadge('Recent action feedback live', 'recent') : '',
+  ].filter(Boolean).join('');
 
   wrap.className = 'actions-wrap';
   wrap.innerHTML = `
@@ -280,6 +307,14 @@ function renderActions(leader) {
       <div class="badge-stack">${actionStateSummary}</div>
       <div class="muted small">Real local actions only. No remote execution or workflow expansion.</div>
     </div>
+    ${feedback ? `
+      <div class="action-feedback-box">
+        <div class="label">What Just Happened</div>
+        <div class="feedback-title">${escapeHtml(feedback.result)}</div>
+        <div class="feedback-body">${escapeHtml(feedback.stateChange)}</div>
+        <div class="muted small">${escapeHtml(feedback.action)} · ${escapeHtml(feedback.updatedAt || 'unknown time')}</div>
+      </div>
+    ` : ''}
     <div class="action-list">
       ${actions.map(action => `
         <div class="action-item">
