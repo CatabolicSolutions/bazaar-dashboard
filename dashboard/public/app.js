@@ -1,266 +1,213 @@
+let currentSnapshot = null;
+let selectedLeaderIndex = 0;
+
 async function loadSnapshot() {
   const res = await fetch('./snapshot.json?ts=' + Date.now());
   if (!res.ok) throw new Error('Failed to load snapshot');
   return res.json();
 }
 
-function renderHealth(health) {
-  const wrap = document.getElementById('healthGrid');
+function escapeHtml(value) {
+  return String(value ?? '—')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function formatSection(section) {
+  return section === 'premium' ? 'Premium / Credit' : 'Directional / Scalping';
+}
+
+function leaderDisplayName(leader) {
+  return `${leader.symbol || '—'} ${leader.option_type || ''} ${leader.strike || ''} ${leader.exp || ''}`.trim();
+}
+
+function renderOverview(snapshot) {
+  const health = snapshot.systemHealth || {};
+  const tradier = snapshot.tradier || {};
+  const overview = tradier.overview || {};
   const items = [
-    ['Tradier API Key', health.tradierApiKeyLoaded ? 'Loaded' : 'Missing', health.tradierApiKeyLoaded ? 'good' : 'bad'],
-    ['Board Artifact', health.tradierBoardPresent ? 'Present' : 'Missing', health.tradierBoardPresent ? 'good' : 'bad'],
+    ['Board Status', health.tradierBoardPresent ? 'Present' : 'Missing', health.tradierBoardPresent ? 'good' : 'bad'],
     ['Board Updated', health.tradierBoardUpdatedAt || 'N/A', 'muted'],
+    ['Leaders Parsed', overview.leaderCount ?? tradier.leaders?.length ?? 0, 'accent'],
+    ['Directional', overview.directionalCount ?? 0, 'muted'],
+    ['Premium', overview.premiumCount ?? 0, 'muted'],
+    ['Fallback Leaders', overview.fallbackCount ?? 0, overview.fallbackCount ? 'warn' : 'good'],
+    ['VIX', overview.vix ?? 'N/A', 'muted'],
     ['Latest Commit', health.latestCommit || 'N/A', 'muted'],
   ];
-  wrap.innerHTML = items.map(([label, value, klass]) => `
-    <div class="health-item">
-      <div class="label">${label}</div>
-      <div class="value ${klass}">${value}</div>
+
+  document.getElementById('overviewGrid').innerHTML = items.map(([label, value, klass]) => `
+    <div class="overview-item">
+      <div class="label">${escapeHtml(label)}</div>
+      <div class="value ${klass}">${escapeHtml(value)}</div>
     </div>
   `).join('');
-}
-
-function renderBoard(raw) {
-  document.getElementById('boardPreview').textContent = raw || 'No board available.';
-}
-
-function noteCard(label, value) {
-  return `<div class="leader-note"><div class="label">${label}</div><div class="value">${value || '—'}</div></div>`;
 }
 
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
   if (!leaders?.length) {
-    wrap.innerHTML = '<div class="placeholder">No leaders parsed yet.</div>';
+    wrap.innerHTML = '<div class="placeholder">No Tradier leaders parsed yet.</div>';
+    renderDetail(null);
+    renderActions(null);
     return;
   }
-  wrap.innerHTML = leaders.map(leader => `
-    <div class="leader">
-      <div>
-        <div class="section">${leader.section}</div>
-        <div class="headline">${leader.symbol || ''} ${leader.option_type || ''} ${leader.strike || ''} ${leader.exp || ''}</div>
-        <div class="muted small">${leader.label || leader.headline}</div>
-        ${leader.fallback ? '<div class="fallback-flag">Fallback Expiry</div>' : ''}
+
+  if (selectedLeaderIndex >= leaders.length) {
+    selectedLeaderIndex = 0;
+  }
+
+  wrap.innerHTML = leaders.map((leader, index) => `
+    <button class="leader-row ${index === selectedLeaderIndex ? 'selected' : ''}" data-index="${index}">
+      <div class="leader-row-top">
+        <div>
+          <div class="section">${escapeHtml(formatSection(leader.section))}</div>
+          <div class="headline">${escapeHtml(leaderDisplayName(leader))}</div>
+        </div>
+        <div class="pill ${leader.fallback ? 'warn-pill' : 'neutral-pill'}">${leader.fallback ? 'Fallback Expiry' : escapeHtml(leader.label || 'Primary')}</div>
       </div>
-      <div class="leader-meta">
-        <div class="meta"><div class="label">Underlying</div><div class="value">${leader.underlying || '—'}</div></div>
-        <div class="meta"><div class="label">Delta</div><div class="value">${leader.delta || '—'}</div></div>
-        <div class="meta"><div class="label">Bid / Ask</div><div class="value">${leader.bid || '—'} / ${leader.ask || '—'}</div></div>
-        <div class="meta"><div class="label">Confidence</div><div class="value">${leader['confidence'] || '—'}</div></div>
+      <div class="leader-row-grid">
+        <div><span class="label">Underlying</span><span class="value">${escapeHtml(leader.underlying)}</span></div>
+        <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)}</span></div>
+        <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)}</span></div>
+        <div><span class="label">Confidence</span><span class="value">${escapeHtml(leader.confidence)}</span></div>
       </div>
-      <div class="leader-notes">
-        ${noteCard('Thesis', leader['thesis'])}
-        ${noteCard('Entry', leader['entry'])}
-        ${noteCard('Invalidation', leader['invalidation'])}
-        ${noteCard('Targets', leader['targets'])}
-        ${noteCard('Risk', leader['risk'])}
-        ${noteCard('Note', leader['note'])}
-      </div>
-    </div>
+    </button>
   `).join('');
+
+  wrap.querySelectorAll('.leader-row').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedLeaderIndex = Number(button.dataset.index);
+      renderTradierSlice();
+    });
+  });
+
+  renderDetail(leaders[selectedLeaderIndex]);
+  renderActions(leaders[selectedLeaderIndex]);
 }
 
-function positionTemplate(position = {}) {
-  return {
-    symbol: position.symbol || '',
-    instrument: position.instrument || '',
-    entry: position.entry || '',
-    current: position.current || '',
-    size: position.size || '',
-    invalidation: position.invalidation || '',
-    targets: position.targets || '',
-    notes: position.notes || '',
-    status: position.status || 'open',
-  };
-}
-
-function queueTemplate(item = {}) {
-  return {
-    symbol: item.symbol || '',
-    instrument: item.instrument || '',
-    side: item.side || '',
-    trigger: item.trigger || '',
-    thesis: item.thesis || '',
-    priority: item.priority || 'normal',
-    status: item.status || 'queued',
-    notes: item.notes || '',
-  };
-}
-
-function collectPositions() {
-  return Array.from(document.querySelectorAll('.position-card')).map(card => ({
-    symbol: card.querySelector('[name="symbol"]').value,
-    instrument: card.querySelector('[name="instrument"]').value,
-    entry: card.querySelector('[name="entry"]').value,
-    current: card.querySelector('[name="current"]').value,
-    size: card.querySelector('[name="size"]').value,
-    invalidation: card.querySelector('[name="invalidation"]').value,
-    targets: card.querySelector('[name="targets"]').value,
-    notes: card.querySelector('[name="notes"]').value,
-    status: card.querySelector('[name="status"]').value,
-  }));
-}
-
-function collectQueue() {
-  return Array.from(document.querySelectorAll('.queue-card')).map(card => ({
-    symbol: card.querySelector('[name="symbol"]').value,
-    instrument: card.querySelector('[name="instrument"]').value,
-    side: card.querySelector('[name="side"]').value,
-    trigger: card.querySelector('[name="trigger"]').value,
-    thesis: card.querySelector('[name="thesis"]').value,
-    priority: card.querySelector('[name="priority"]').value,
-    status: card.querySelector('[name="status"]').value,
-    notes: card.querySelector('[name="notes"]').value,
-  }));
-}
-
-function makePositionCard(position = {}) {
-  const p = positionTemplate(position);
+function detailField(label, value, wide = false) {
   return `
-    <div class="position-card">
-      <div class="position-grid">
-        <input name="symbol" placeholder="Symbol" value="${p.symbol}">
-        <input name="instrument" placeholder="Instrument" value="${p.instrument}">
-        <input name="entry" placeholder="Entry" value="${p.entry}">
-        <input name="current" placeholder="Current" value="${p.current}">
-        <input name="size" placeholder="Size" value="${p.size}">
-        <select name="status">
-          <option value="open" ${p.status === 'open' ? 'selected' : ''}>open</option>
-          <option value="watch" ${p.status === 'watch' ? 'selected' : ''}>watch</option>
-          <option value="closed" ${p.status === 'closed' ? 'selected' : ''}>closed</option>
-        </select>
-        <textarea name="invalidation" placeholder="Invalidation">${p.invalidation}</textarea>
-        <textarea name="targets" placeholder="Targets">${p.targets}</textarea>
-        <textarea name="notes" placeholder="Notes">${p.notes}</textarea>
-      </div>
-      <div class="position-actions">
-        <div class="muted small">Editable position state</div>
-        <button class="link-btn remove-position-btn">Remove</button>
-      </div>
+    <div class="detail-field ${wide ? 'wide' : ''}">
+      <div class="label">${escapeHtml(label)}</div>
+      <div class="value">${escapeHtml(value)}</div>
     </div>
   `;
 }
 
-function makeQueueCard(item = {}) {
-  const q = queueTemplate(item);
-  return `
-    <div class="queue-card">
-      <div class="queue-grid">
-        <input name="symbol" placeholder="Symbol" value="${q.symbol}">
-        <input name="instrument" placeholder="Instrument" value="${q.instrument}">
-        <input name="side" placeholder="Side" value="${q.side}">
-        <input name="trigger" placeholder="Trigger" value="${q.trigger}">
-        <select name="priority">
-          <option value="low" ${q.priority === 'low' ? 'selected' : ''}>low</option>
-          <option value="normal" ${q.priority === 'normal' ? 'selected' : ''}>normal</option>
-          <option value="high" ${q.priority === 'high' ? 'selected' : ''}>high</option>
-        </select>
-        <select name="status">
-          <option value="queued" ${q.status === 'queued' ? 'selected' : ''}>queued</option>
-          <option value="approved" ${q.status === 'approved' ? 'selected' : ''}>approved</option>
-          <option value="entered" ${q.status === 'entered' ? 'selected' : ''}>entered</option>
-          <option value="closed" ${q.status === 'closed' ? 'selected' : ''}>closed</option>
-        </select>
-        <textarea name="thesis" placeholder="Thesis">${q.thesis}</textarea>
-        <textarea name="notes" placeholder="Notes">${q.notes}</textarea>
-      </div>
-      <div class="position-actions">
-        <div class="muted small">Editable execution queue item</div>
-        <button class="link-btn remove-queue-btn">Remove</button>
-      </div>
+function renderDetail(leader) {
+  const wrap = document.getElementById('detailWrap');
+  const meta = document.getElementById('selectedMeta');
+  if (!leader) {
+    meta.textContent = 'No leader selected';
+    wrap.className = 'detail-wrap placeholder';
+    wrap.textContent = 'Select a Tradier leader to inspect ticket detail.';
+    return;
+  }
+
+  meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
+  wrap.className = 'detail-wrap';
+  wrap.innerHTML = `
+    <div class="detail-grid">
+      ${detailField('Symbol', leader.symbol)}
+      ${detailField('Option Type', leader.option_type)}
+      ${detailField('Strike', leader.strike)}
+      ${detailField('Expiry', leader.exp)}
+      ${detailField('DTE Label', leader.label)}
+      ${detailField('Underlying', leader.underlying)}
+      ${detailField('Delta', leader.delta)}
+      ${detailField('Bid / Ask', `${leader.bid || '—'} / ${leader.ask || '—'}`)}
+      ${detailField('Section', formatSection(leader.section))}
+      ${detailField('Fallback Expiry', leader.fallback ? 'Yes' : 'No')}
+      ${detailField('Thesis', leader.thesis, true)}
+      ${detailField('Entry', leader.entry, true)}
+      ${detailField('Invalidation', leader.invalidation, true)}
+      ${detailField('Targets', leader.targets, true)}
+      ${detailField('Risk', leader.risk, true)}
+      ${detailField('Confidence', leader.confidence, true)}
+      ${leader.note ? detailField('Note', leader.note, true) : ''}
+      ${detailField('Source Headline', leader.headline, true)}
     </div>
   `;
 }
 
-function bindPositionActions() {
-  document.querySelectorAll('.remove-position-btn').forEach(btn => {
-    btn.onclick = () => btn.closest('.position-card').remove();
+function inferActions(leader) {
+  if (!leader) return [];
+  const actions = [];
+  actions.push({
+    title: 'Validate entry discipline',
+    detail: leader.entry || 'Confirm trigger conditions before acting.',
   });
-}
-
-function bindQueueActions() {
-  document.querySelectorAll('.remove-queue-btn').forEach(btn => {
-    btn.onclick = () => btn.closest('.queue-card').remove();
+  actions.push({
+    title: 'Respect invalidation',
+    detail: leader.invalidation || 'Set stop / failure condition before execution.',
   });
-}
-
-function renderPositions(state) {
-  const wrap = document.getElementById('positionsWrap');
-  const positions = state?.positions || [];
-  const cards = positions.length ? positions.map(makePositionCard).join('') : makePositionCard();
-  wrap.innerHTML = cards + '<button id="addPositionBtn" class="link-btn">Add Position</button>';
-  bindPositionActions();
-  document.getElementById('addPositionBtn').onclick = () => {
-    document.getElementById('addPositionBtn').insertAdjacentHTML('beforebegin', makePositionCard());
-    bindPositionActions();
-  };
-  document.getElementById('positionsStatus').textContent = state?.updatedAt ? `Last saved: ${state.updatedAt}` : 'Unsaved draft';
-}
-
-function renderQueue(state) {
-  const wrap = document.getElementById('queueWrap');
-  const queue = state?.queue || [];
-  const cards = queue.length ? queue.map(makeQueueCard).join('') : makeQueueCard();
-  wrap.innerHTML = cards + '<button id="addQueueBtn" class="link-btn">Add Queue Item</button>';
-  bindQueueActions();
-  document.getElementById('addQueueBtn').onclick = () => {
-    document.getElementById('addQueueBtn').insertAdjacentHTML('beforebegin', makeQueueCard());
-    bindQueueActions();
-  };
-  document.getElementById('queueStatus').textContent = state?.updatedAt ? `Last saved: ${state.updatedAt}` : 'Unsaved draft';
-}
-
-async function savePositions() {
-  const payload = { positions: collectPositions() };
-  const res = await fetch('/api/positions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+  actions.push({
+    title: leader.section === 'premium' ? 'Structure as defined-risk spread' : 'Stage premium outlay',
+    detail: leader.section === 'premium'
+      ? 'Keep premium candidates spread-defined; avoid naked premium.'
+      : 'Treat directional leader as a premium-outlay scalp candidate with size discipline.',
   });
-  const data = await res.json();
-  const status = document.getElementById('positionsStatus');
-  if (!res.ok || !data.ok) {
-    status.textContent = `Save failed: ${data.error || 'unknown error'}`;
+  if (leader.targets) {
+    actions.push({ title: 'Plan exits', detail: leader.targets });
+  }
+  if (leader.fallback) {
+    actions.push({
+      title: 'Fallback expiry check',
+      detail: 'Confirm the expiry is acceptable before treating this as executable parity.',
+    });
+  }
+  return actions;
+}
+
+function renderActions(leader) {
+  const wrap = document.getElementById('actionsWrap');
+  if (!leader) {
+    wrap.className = 'actions-wrap placeholder';
+    wrap.textContent = 'Select a Tradier leader to view local next actions.';
     return;
   }
-  status.textContent = `Saved ${data.count} position(s) at ${data.updatedAt}`;
-  await refresh();
+
+  const actions = inferActions(leader);
+  wrap.className = 'actions-wrap';
+  wrap.innerHTML = `
+    <div class="action-summary">
+      <div class="action-summary-title">Selected Ticket</div>
+      <div class="action-summary-value">${escapeHtml(leaderDisplayName(leader))}</div>
+      <div class="muted small">Local-only operator guidance from current artifact data.</div>
+    </div>
+    <div class="action-list">
+      ${actions.map(action => `
+        <div class="action-item">
+          <div class="action-title">${escapeHtml(action.title)}</div>
+          <div class="action-detail">${escapeHtml(action.detail)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
-async function saveQueue() {
-  const payload = { queue: collectQueue() };
-  const res = await fetch('/api/queue', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  const status = document.getElementById('queueStatus');
-  if (!res.ok || !data.ok) {
-    status.textContent = `Save failed: ${data.error || 'unknown error'}`;
-    return;
-  }
-  status.textContent = `Saved ${data.count} queue item(s) at ${data.updatedAt}`;
-  await refresh();
+function renderTradierSlice() {
+  if (!currentSnapshot) return;
+  renderOverview(currentSnapshot);
+  renderLeaders(currentSnapshot.tradier?.leaders || []);
 }
 
 async function refresh() {
-  const snapshot = await loadSnapshot();
-  document.getElementById('updatedAt').textContent = `Snapshot: ${snapshot.updatedAt}`;
-  renderHealth(snapshot.systemHealth || {});
-  renderBoard(snapshot.tradier?.rawBoard || '');
-  renderLeaders(snapshot.tradier?.leaders || []);
-  renderPositions(snapshot.activePositions || {});
-  renderQueue(snapshot.executionQueue || {});
+  currentSnapshot = await loadSnapshot();
+  document.getElementById('updatedAt').textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
+  renderTradierSlice();
 }
 
 document.getElementById('refreshBtn').addEventListener('click', refresh);
-document.getElementById('savePositionsBtn').addEventListener('click', savePositions);
-document.getElementById('saveQueueBtn').addEventListener('click', saveQueue);
 refresh().catch(err => {
   document.getElementById('serverState').textContent = 'ERROR';
   document.getElementById('serverState').className = 'status-pill bad';
-  document.getElementById('boardPreview').textContent = err.message;
+  document.getElementById('detailWrap').className = 'detail-wrap placeholder';
+  document.getElementById('detailWrap').textContent = err.message;
 });
 setInterval(() => {
   refresh().catch(() => {});

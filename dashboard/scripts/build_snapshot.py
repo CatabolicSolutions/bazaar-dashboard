@@ -46,19 +46,25 @@ def parse_headline(stripped):
 def parse_board(text):
     lines = [line.rstrip() for line in text.splitlines()]
     leaders = []
+    run_notes = []
+    vix = None
     section = None
     current = None
     for line in lines:
-        if line == 'Directional / Scalping Leaders':
+        stripped = line.strip()
+        if stripped.startswith('VIX:'):
+            vix = stripped.split(':', 1)[1].strip()
+            continue
+        if stripped == 'Directional / Scalping Leaders':
             section = 'directional'
             continue
-        if line == 'Premium / Credit Leaders':
+        if stripped == 'Premium / Credit Leaders':
             section = 'premium'
             continue
-        if line == 'Run Notes':
+        if stripped == 'Run Notes':
             section = 'notes'
+            current = None
             continue
-        stripped = line.strip()
         if section in ('directional', 'premium') and stripped[:2].rstrip('.').isdigit() and '. ' in stripped:
             parsed = parse_headline(stripped)
             current = {'section': section, 'details': [], **parsed}
@@ -69,8 +75,28 @@ def parse_board(text):
             if ': ' in line:
                 key, value = line.strip().split(': ', 1)
                 current[key.lower()] = value
-    return leaders
+            continue
+        if section == 'notes' and stripped.startswith('- '):
+            run_notes.append(stripped[2:])
+    return leaders, {'vix': vix, 'runNotes': run_notes}
 
+
+def build_tradier_overview(leaders, board_meta):
+    directional = [leader for leader in leaders if leader.get('section') == 'directional']
+    premium = [leader for leader in leaders if leader.get('section') == 'premium']
+    fallback = [leader for leader in leaders if leader.get('fallback')]
+    return {
+        'leaderCount': len(leaders),
+        'directionalCount': len(directional),
+        'premiumCount': len(premium),
+        'fallbackCount': len(fallback),
+        'vix': board_meta.get('vix'),
+        'runNotes': board_meta.get('runNotes', []),
+    }
+
+
+raw_board = read_text(BOARD)
+leaders, board_meta = parse_board(raw_board)
 
 snapshot = {
     'updatedAt': datetime.now(timezone.utc).isoformat(),
@@ -81,8 +107,10 @@ snapshot = {
         'latestCommit': cmd('git log --oneline -n 1'),
     },
     'tradier': {
-        'rawBoard': read_text(BOARD),
-        'leaders': parse_board(read_text(BOARD)),
+        'rawBoard': raw_board,
+        'leaders': leaders,
+        'overview': build_tradier_overview(leaders, board_meta),
+        'runNotes': board_meta.get('runNotes', []),
     },
     'activePositions': read_json(ACTIVE),
     'executionQueue': read_json(QUEUE),

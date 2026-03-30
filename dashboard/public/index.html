@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bazaar Trading Desk</title>
+  <title>Bazaar Trading Desk — Tradier Slice</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -11,62 +11,47 @@
     <header class="topbar">
       <div>
         <div class="eyebrow">BAZAAR OF FORTUNES</div>
-        <h1>Trading Desk</h1>
+        <h1>Tradier Local Dashboard</h1>
+        <div class="muted small">First local vertical slice · single-operator · artifact-driven</div>
       </div>
       <div class="topbar-actions">
         <button id="refreshBtn">Refresh Snapshot</button>
-        <div class="status-pill" id="serverState">LIVE</div>
-        <div id="updatedAt" class="muted"></div>
+        <div class="status-pill" id="serverState">LOCAL</div>
+        <div id="updatedAt" class="muted small"></div>
       </div>
     </header>
 
     <main class="grid">
-      <section class="card card-health">
-        <div class="card-header">
-          <h2>System Health</h2>
-          <div class="muted small">Tradier-first control plane</div>
-        </div>
-        <div id="healthGrid" class="health-grid"></div>
-      </section>
-
       <section class="card card-overview">
         <div class="card-header">
-          <h2>Market Overview</h2>
-          <div class="muted small">Live board artifact preview</div>
+          <h2>Overview</h2>
+          <div class="muted small">Minimal Tradier state</div>
         </div>
-        <pre id="boardPreview" class="mono preview"></pre>
+        <div id="overviewGrid" class="overview-grid"></div>
       </section>
 
-      <section class="card card-leaders">
-        <h2>Tradier Leaders</h2>
+      <section class="card card-board">
+        <div class="card-header">
+          <h2>Tradier Leaders Board</h2>
+          <div class="muted small">Rendered from current local board artifact</div>
+        </div>
         <div id="leadersWrap" class="leaders-wrap"></div>
       </section>
 
-      <section class="card card-positions">
+      <section class="card card-detail">
         <div class="card-header">
-          <h2>Active Positions</h2>
-          <button id="savePositionsBtn">Save Positions</button>
+          <h2>Ticket Detail</h2>
+          <div id="selectedMeta" class="muted small">No leader selected</div>
         </div>
-        <div id="positionsWrap" class="stack"></div>
-        <div class="muted small" id="positionsStatus"></div>
+        <div id="detailWrap" class="detail-wrap placeholder">Select a Tradier leader to inspect ticket detail.</div>
       </section>
 
-      <section class="card card-queue">
+      <section class="card card-actions">
         <div class="card-header">
-          <h2>Execution Queue</h2>
-          <button id="saveQueueBtn">Save Queue</button>
+          <h2>Actions</h2>
+          <div class="muted small">Minimal selected-item operator panel</div>
         </div>
-        <div id="queueWrap" class="stack"></div>
-        <div class="muted small" id="queueStatus"></div>
-      </section>
-
-      <section class="card card-notes">
-        <h2>Desk Notes</h2>
-        <ul>
-          <li>Tradier is the live execution engine.</li>
-          <li>Kalshi remains R&amp;D until /coinflip matures.</li>
-          <li>Discord is comms; workspace state files are machine truth.</li>
-        </ul>
+        <div id="actionsWrap" class="actions-wrap placeholder">Select a Tradier leader to view local next actions.</div>
       </section>
     </main>
   </div>
