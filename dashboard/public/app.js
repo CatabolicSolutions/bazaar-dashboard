@@ -1,5 +1,7 @@
 let currentSnapshot = null;
 let selectedLeaderIndex = 0;
+let selectedLeaderKey = null;
+let lastActionStatus = null;
 
 async function loadSnapshot() {
   const res = await fetch('./snapshot.json?ts=' + Date.now());
@@ -28,8 +30,43 @@ function leaderInstrument(leader) {
   return `${leader.exp || ''} ${leader.strike || ''} ${leader.option_type || ''}`.trim();
 }
 
+function leaderKey(leader) {
+  if (!leader) return null;
+  return [leader.symbol || '', leader.exp || '', leader.strike || '', leader.option_type || '', leader.section || ''].join('|');
+}
+
+function syncSelectedLeader(leaders = []) {
+  if (!leaders.length) {
+    selectedLeaderIndex = 0;
+    selectedLeaderKey = null;
+    return null;
+  }
+
+  if (selectedLeaderKey) {
+    const matchedIndex = leaders.findIndex(leader => leaderKey(leader) === selectedLeaderKey);
+    if (matchedIndex >= 0) {
+      selectedLeaderIndex = matchedIndex;
+      return leaders[matchedIndex];
+    }
+  }
+
+  if (selectedLeaderIndex >= leaders.length) {
+    selectedLeaderIndex = 0;
+  }
+
+  const leader = leaders[selectedLeaderIndex];
+  selectedLeaderKey = leaderKey(leader);
+  return leader;
+}
+
+function setSelectedLeader(index, leaders) {
+  selectedLeaderIndex = index;
+  selectedLeaderKey = leaderKey(leaders[index]);
+  renderTradierSlice();
+}
+
 function getSelectedLeader() {
-  return currentSnapshot?.tradier?.leaders?.[selectedLeaderIndex] || null;
+  return syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
 }
 
 function getLeaderState(leader) {
@@ -97,9 +134,7 @@ function renderLeaders(leaders) {
     return;
   }
 
-  if (selectedLeaderIndex >= leaders.length) {
-    selectedLeaderIndex = 0;
-  }
+  const selectedLeader = syncSelectedLeader(leaders);
 
   wrap.innerHTML = leaders.map((leader, index) => {
     const state = getLeaderState(leader);
@@ -112,7 +147,7 @@ function renderLeaders(leaders) {
     ].filter(Boolean).join('');
 
     return `
-      <button class="leader-row ${index === selectedLeaderIndex ? 'selected' : ''}" data-index="${index}">
+      <button class="leader-row ${leaderKey(leader) === leaderKey(selectedLeader) ? 'selected' : ''}" data-index="${index}">
         <div class="leader-row-top">
           <div>
             <div class="section">${escapeHtml(formatSection(leader.section))}</div>
@@ -132,13 +167,12 @@ function renderLeaders(leaders) {
 
   wrap.querySelectorAll('.leader-row').forEach(button => {
     button.addEventListener('click', () => {
-      selectedLeaderIndex = Number(button.dataset.index);
-      renderTradierSlice();
+      setSelectedLeader(Number(button.dataset.index), leaders);
     });
   });
 
-  renderDetail(leaders[selectedLeaderIndex]);
-  renderActions(leaders[selectedLeaderIndex]);
+  renderDetail(selectedLeader);
+  renderActions(selectedLeader);
 }
 
 function detailField(label, value, wide = false) {
@@ -200,6 +234,7 @@ function renderDetail(leader) {
       ${detailField('Watch Status', state.watched ? 'Tracked in local watch state' : 'Not watched locally')}
       ${state.queueItem ? detailField('Queued Trigger', state.queueItem.trigger || '—', true) : ''}
       ${state.watchItem ? detailField('Watch Invalidation', state.watchItem.invalidation || '—', true) : ''}
+      ${detailField('Selected Key', leaderKey(leader), true)}
       ${detailField('Thesis', leader.thesis, true)}
       ${detailField('Entry', leader.entry, true)}
       ${detailField('Invalidation', leader.invalidation, true)}
@@ -264,8 +299,13 @@ async function runSelectedAction(actionKey) {
     return;
   }
 
-  const feedbackText = data.feedback?.stateChange || `${data.action} saved at ${data.updatedAt}`;
-  status.textContent = feedbackText;
+  lastActionStatus = {
+    leaderKey: leaderKey(leader),
+    message: data.feedback?.stateChange || `${data.action} saved at ${data.updatedAt}`,
+    updatedAt: data.updatedAt,
+  };
+
+  status.textContent = lastActionStatus.message;
   status.className = 'action-status good small';
   await refresh();
 }
@@ -299,6 +339,10 @@ function renderActions(leader) {
     feedback ? statusBadge('Recent action feedback live', 'recent') : '',
   ].filter(Boolean).join('');
 
+  const coherentStatus = lastActionStatus && lastActionStatus.leaderKey === leaderKey(leader)
+    ? `${lastActionStatus.message} · coherent after refresh`
+    : 'Selected-item actions write only to current local dashboard state files.';
+
   wrap.className = 'actions-wrap';
   wrap.innerHTML = `
     <div class="action-summary">
@@ -327,7 +371,7 @@ function renderActions(leader) {
         </div>
       `).join('')}
     </div>
-    <div id="actionStatus" class="action-status muted small">Selected-item actions write only to current local dashboard state files.</div>
+    <div id="actionStatus" class="action-status ${(lastActionStatus && lastActionStatus.leaderKey === leaderKey(leader)) ? 'good' : 'muted'} small">${escapeHtml(coherentStatus)}</div>
   `;
   bindActionButtons();
 }
@@ -340,6 +384,7 @@ function renderTradierSlice() {
 
 async function refresh() {
   currentSnapshot = await loadSnapshot();
+  syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
   document.getElementById('updatedAt').textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
   renderTradierSlice();
 }
