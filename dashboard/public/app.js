@@ -685,10 +685,79 @@ function renderActions(leader, stateMeta = null) {
   bindActionButtons();
 }
 
+function renderPositions(positions) {
+  const wrap = document.getElementById('positionsWrap');
+  if (!wrap) return;
+  
+  // Combine positions from both activePositions and tradierExecution state
+  const activePositions = positions || [];
+  const executionPositions = currentSnapshot?.tradierExecution?.positions || [];
+  
+  // Merge and dedupe by position_id
+  const allPositions = [...activePositions];
+  executionPositions.forEach(ep => {
+    const exists = allPositions.some(ap => ap.position_id === ep.position_id);
+    if (!exists) {
+      allPositions.push({
+        symbol: ep.symbol,
+        instrument: ep.contract?.split(' ', 1)[1] || ep.contract,
+        entry: String(ep.entry_price),
+        current: String(ep.entry_price),
+        size: String(ep.qty),
+        status: ep.current_status || 'open',
+        position_id: ep.position_id,
+        notes: ep.notes || '',
+      });
+    }
+  });
+  
+  const openPositions = allPositions.filter(p => p.status === 'open');
+  
+  if (openPositions.length === 0) {
+    wrap.className = 'positions-wrap placeholder';
+    wrap.innerHTML = stateBanner('No open positions. Execute a trade to see positions here.', 'neutral');
+    return;
+  }
+  
+  wrap.className = 'positions-wrap';
+  wrap.innerHTML = `
+    <div class="positions-header">
+      <span class="positions-count">${openPositions.length} open position${openPositions.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="positions-list">
+      ${openPositions.map(pos => `
+        <div class="position-row">
+          <div class="position-main">
+            <div class="position-symbol">${escapeHtml(pos.symbol)}</div>
+            <div class="position-instrument">${escapeHtml(pos.instrument)}</div>
+            ${statusBadge(pos.status, pos.status === 'open' ? 'good' : 'neutral')}
+          </div>
+          <div class="position-details">
+            <div class="position-field">
+              <span class="label">Entry</span>
+              <span class="value">$${escapeHtml(pos.entry)}</span>
+            </div>
+            <div class="position-field">
+              <span class="label">Size</span>
+              <span class="value">${escapeHtml(pos.size)}</span>
+            </div>
+            <div class="position-field">
+              <span class="label">Position ID</span>
+              <span class="value muted">${escapeHtml(pos.position_id?.slice(-8) || 'N/A')}</span>
+            </div>
+          </div>
+          ${pos.notes ? `<div class="position-notes">${escapeHtml(pos.notes)}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderTradierSlice() {
   if (!currentSnapshot && currentUiMode !== 'loading') return;
   if (currentSnapshot) {
     renderOverview(currentSnapshot);
+    renderPositions(currentSnapshot?.activePositions?.positions || []);
   }
   renderLeaders(currentSnapshot?.tradier?.leaders || []);
 }

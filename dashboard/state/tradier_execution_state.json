@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-31T04:53:26.020053+00:00",
+  "updatedAt": "2026-03-31T04:59:05.015944+00:00",
   "intents": [
     {
       "mode": "cash_day",
@@ -585,6 +585,82 @@
         }
       ],
       "updated_at": "2026-03-31T04:53:26.018429+00:00"
+    },
+    {
+      "mode": "cash_day",
+      "strategy_type": "long_put",
+      "symbol": "SPY",
+      "contract": "SPY 395 PUT 2026-03-31",
+      "side": "buy",
+      "qty": 1,
+      "limit_price": "0.01",
+      "time_in_force": "day",
+      "source": "leader",
+      "candidate_id": "SPY-2026-03-31-PUT-395",
+      "notes": "Dashboard execution: Position sync test",
+      "allocation_bucket": "cash_day_core",
+      "position_relationship": "open_new_position",
+      "position_id": null,
+      "strategy_family": "long_put",
+      "strategy_source": "tradier_leaders_board",
+      "strategy_run_id": "SPY-2026-03-31-PUT-395",
+      "origin": "system_generated",
+      "decision_state": "approved",
+      "decision_actor": "dashboard",
+      "decision_note": "Approved via dashboard",
+      "readiness_state": "ready",
+      "readiness_reason": "Dashboard approval received",
+      "outcome_state": "full_execution",
+      "outcome_reason": "Broker order recorded as filled-equivalent for happy path",
+      "effected_qty": 1,
+      "escalation_state": "no_escalation",
+      "escalation_reason": "",
+      "timing_state": "no_timing_pressure",
+      "timing_reason": "",
+      "external_reference_state": "linked_external_reference",
+      "external_reference_id": "119301060",
+      "external_reference_system": "tradier",
+      "external_reference_note": "Broker order linked",
+      "attempt_state": "attempt_completed",
+      "attempt_count": 1,
+      "latest_attempt_id": "attempt_aa9265e320a1",
+      "latest_attempt_note": "Execution attempt completed",
+      "reconciliation_state": "reconciled",
+      "reconciliation_note": "Order placed via dashboard",
+      "intent_id": "intent_e0cdde2d5311",
+      "created_at": "2026-03-31T04:59:03.799231+00:00",
+      "status": "committed",
+      "transition_history": [
+        {
+          "from": "candidate",
+          "to": "queued",
+          "actor": "alfred",
+          "note": "Created cash_day intent from SPY-2026-03-31-PUT-395",
+          "timestamp": "2026-03-31T04:59:03.799487+00:00"
+        },
+        {
+          "from": "queued",
+          "to": "previewed",
+          "actor": "alfred",
+          "note": "Broker preview created",
+          "timestamp": "2026-03-31T04:59:04.721212+00:00"
+        },
+        {
+          "from": "previewed",
+          "to": "approved",
+          "actor": "dashboard",
+          "note": "Approved via dashboard",
+          "timestamp": "2026-03-31T04:59:04.723306+00:00"
+        },
+        {
+          "from": "approved",
+          "to": "committed",
+          "actor": "alfred",
+          "note": "Order commit recorded",
+          "timestamp": "2026-03-31T04:59:05.014081+00:00"
+        }
+      ],
+      "updated_at": "2026-03-31T04:59:05.014089+00:00"
     }
   ],
   "previews": [
@@ -627,6 +703,26 @@
       "warnings": [],
       "preview_id": "preview_9db7a5e8133a",
       "timestamp": "2026-03-31T04:53:25.748548+00:00"
+    },
+    {
+      "intent_id": "intent_e0cdde2d5311",
+      "broker_payload_summary": {
+        "class": "option",
+        "symbol": "SPY",
+        "option_symbol": "SPY260331P00395000",
+        "side": "buy_to_open",
+        "quantity": 1,
+        "type": "limit",
+        "duration": "day",
+        "tag": "alfred-cash-day-intent-e0cdde2d5311",
+        "price": 0.01
+      },
+      "estimated_cost": null,
+      "fees": null,
+      "buying_power_effect": null,
+      "warnings": [],
+      "preview_id": "preview_3a431a31728f",
+      "timestamp": "2026-03-31T04:59:04.720506+00:00"
     }
   ],
   "orders": [
@@ -639,6 +735,16 @@
       "submitted_at": "2026-03-31T04:53:26.018152+00:00",
       "filled_at": null,
       "order_id": "order_d317df19e693"
+    },
+    {
+      "intent_id": "intent_e0cdde2d5311",
+      "broker_order_id": "119301060",
+      "status": "placed",
+      "avg_fill_price": null,
+      "remaining_qty": null,
+      "submitted_at": "2026-03-31T04:59:05.013746+00:00",
+      "filled_at": null,
+      "order_id": "order_291ffd5534a8"
     }
   ],
   "positions": [
@@ -655,6 +761,20 @@
       "opened_at": "2026-03-31T04:53:26.018184+00:00",
       "closed_at": null,
       "position_id": "position_8a51e9329000"
+    },
+    {
+      "mode": "cash_day",
+      "symbol": "SPY",
+      "contract": "SPY 395 PUT 2026-03-31",
+      "qty": 1,
+      "entry_price": "0.01",
+      "current_status": "open",
+      "invalidation": "",
+      "targets": "",
+      "notes": "",
+      "opened_at": "2026-03-31T04:59:05.013780+00:00",
+      "closed_at": null,
+      "position_id": "position_5fe86edf93b5"
     }
   ],
   "riskDecisions": [
@@ -833,6 +953,28 @@
         }
       },
       "timestamp": "2026-03-31T04:53:25.493580+00:00"
+    },
+    {
+      "intent_id": "intent_e0cdde2d5311",
+      "mode": "cash_day",
+      "allowed": true,
+      "reasons": [],
+      "checks": {
+        "mode": "cash_day",
+        "strategy_allowed": true,
+        "qty_within_cap": true,
+        "time_in_force_day_only": true,
+        "account_ready_flag": true,
+        "open_positions_count": 1,
+        "estimated_notional": 1.0,
+        "buying_power_reference": 198.91,
+        "manual_limit_drift": {
+          "mark_price": null,
+          "limit_price": "0.01",
+          "max_drift_pct": 0.05
+        }
+      },
+      "timestamp": "2026-03-31T04:59:04.311174+00:00"
     }
   ]
 }

@@ -109,6 +109,71 @@ h1, h2 { margin: 0 0 8px; }
   padding: 16px;
   margin-top: 12px;
 }
+
+/* Positions Panel Styles */
+.card-positions { grid-column: span 12; }
+.positions-wrap { display: grid; gap: 12px; }
+.positions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.positions-count {
+  font-weight: 700;
+  color: var(--good);
+}
+.positions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.position-row {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+.position-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.position-symbol {
+  font-weight: 800;
+  font-size: 16px;
+}
+.position-instrument {
+  color: var(--muted);
+  font-size: 13px;
+}
+.position-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.position-field {
+  display: flex;
+  flex-direction: column;
+}
+.position-field .label {
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.position-field .value {
+  font-weight: 700;
+  font-size: 13px;
+}
+.position-notes {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
 .preview-title {
   font-weight: 800;
   font-size: 16px;

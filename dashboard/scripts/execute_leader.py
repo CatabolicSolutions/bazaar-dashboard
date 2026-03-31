@@ -23,6 +23,50 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _add_to_dashboard_positions(position: dict) -> None:
+    """Add executed position to dashboard active_positions.json"""
+    positions_file = ROOT / 'dashboard' / 'state' / 'active_positions.json'
+    
+    # Read existing state
+    if positions_file.exists():
+        try:
+            state = json.loads(positions_file.read_text())
+        except Exception:
+            state = {'updatedAt': None, 'positions': []}
+    else:
+        state = {'updatedAt': None, 'positions': []}
+    
+    positions = state.get('positions', [])
+    
+    # Convert execution position format to dashboard format
+    contract = position.get('contract', '')
+    instrument = contract.split(' ', 1)[1] if ' ' in contract else contract
+    
+    position_entry = {
+        'symbol': position.get('symbol', ''),
+        'instrument': instrument,
+        'entry': str(position.get('entry_price', '')),
+        'current': str(position.get('entry_price', '')),
+        'size': str(position.get('qty', 1)),
+        'invalidation': position.get('invalidation', ''),
+        'targets': position.get('targets', ''),
+        'notes': f"Live execution | {contract} | Order via dashboard",
+        'status': 'open',
+        'position_id': position.get('position_id', ''),
+        'execution_time': now_iso(),
+    }
+    
+    positions.insert(0, position_entry)
+    
+    out = {
+        'updatedAt': now_iso(),
+        'positions': positions,
+    }
+    
+    positions_file.write_text(json.dumps(out, indent=2))
+    print(f"Position recorded to dashboard: {position.get('symbol')} {instrument}", file=sys.stderr)
+
+
 def execute_leader(leader: dict, qty: int = 1, mode: str = 'cash_day') -> dict:
     """
     Execute a trade from dashboard leader data
@@ -159,12 +203,17 @@ def approve_and_execute(intent_id: str) -> dict:
         # Reconcile
         reconciled = service.reconcile_intent(commit_result.get('intent', {}), note='Order placed via dashboard')
         
+        # Also update dashboard active_positions.json
+        position = commit_result.get('position', {})
+        if position:
+            _add_to_dashboard_positions(position)
+        
         return {
             'ok': True,
             'stage': 'executed',
             'intent_id': intent_id,
             'order': commit_result.get('order', {}),
-            'position': commit_result.get('position', {}),
+            'position': position,
             'broker_response': order_response,
             'message': 'Order placed successfully'
         }

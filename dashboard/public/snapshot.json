@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-03-31T04:53:49.452471+00:00",
+  "updatedAt": "2026-03-31T05:00:50.022233+00:00",
   "systemHealth": {
     "tradierBoardPresent": true,
     "tradierBoardUpdatedAt": "2026-03-30T19:30:55.911786+00:00",
     "tradierApiKeyLoaded": true,
-    "latestCommit": "f114491 Add dashboard-to-Tradier execution bridge"
+    "latestCommit": "1a8bff4 Fix Tradier API integration for dashboard execution"
   },
   "tradier": {
     "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\nVIX: 31.34\n\nDirectional / Scalping Leaders\n1. AAPL PUT | Underlying 245.98 | Strike 250.00 | Exp 2026-04-06 | 7DTE | \u0394 -0.6290 | Bid/Ask 5.75/5.95\n   Candidate ID: AAPL-2026-04-06-PUT-250\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n2. QQQ PUT | Underlying 556.31 | Strike 570.00 | Exp 2026-04-13 | 14DTE | \u0394 -0.6375 | Bid/Ask 18.51/21.11\n   Candidate ID: QQQ-2026-04-13-PUT-570\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n3. IWM PUT | Underlying 239.07 | Strike 244.00 | Exp 2026-04-06 | 7DTE | \u0394 -0.6406 | Bid/Ask 7.04/7.12\n   Candidate ID: IWM-2026-04-06-PUT-244\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n4. NVDA CALL | Underlying 164.68 | Strike 162.50 | Exp 2026-04-06 | 7DTE | \u0394 0.6418 | Bid/Ask 4.85/4.90\n   Candidate ID: NVDA-2026-04-06-CALL-162.5\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n5. TSLA CALL | Underlying 352.97 | Strike 345.00 | Exp 2026-04-13 | 14DTE | \u0394 0.6438 | Bid/Ask 17.40/17.75\n   Candidate ID: TSLA-2026-04-13-CALL-345\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n\nPremium / Credit Leaders\n1. IWM CALL | Underlying 239.07 | Strike 251.00 | Exp 2026-04-06 | 7DTE | \u0394 0.1395 | Bid/Ask 0.59/0.62\n   Candidate ID: IWM-2026-04-06-CALL-251\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n2. XSP CALL | Underlying 632.32 | Strike 656.00 | Exp 2026-04-06 | 7DTE | \u0394 0.1405 | Bid/Ask 1.17/1.25\n   Candidate ID: XSP-2026-04-06-CALL-656\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n3. SPY CALL | Underlying 630.00 | Strike 654.00 | Exp 2026-04-06 | 7DTE | \u0394 0.1390 | Bid/Ask 1.15/1.16\n   Candidate ID: SPY-2026-04-06-CALL-654\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n4. TSLA PUT | Underlying 352.97 | Strike 330.00 | Exp 2026-04-06 | 7DTE | \u0394 -0.1417 | Bid/Ask 2.20/2.24\n   Candidate ID: TSLA-2026-04-06-PUT-330\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n5. XSP PUT | Underlying 632.32 | Strike 590.00 | Exp 2026-04-13 | 14DTE | \u0394 -0.1435 | Bid/Ask 2.78/2.87\n   Candidate ID: XSP-2026-04-13-PUT-590\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n\nRun Notes\n- Leaders emitted: 27\n- Fallback-expiry leaders: 0\n- All leaders matched requested expiry intent directly\n\n",
@@ -340,8 +340,21 @@
     }
   },
   "activePositions": {
-    "updatedAt": "2026-03-24T06:18:26.740338+00:00",
+    "updatedAt": "2026-03-31T04:59:05.017423+00:00",
     "positions": [
+      {
+        "symbol": "SPY",
+        "instrument": "395 PUT 2026-03-31",
+        "entry": "0.01",
+        "current": "0.01",
+        "size": "1",
+        "invalidation": "",
+        "targets": "",
+        "notes": "Live execution | SPY 395 PUT 2026-03-31 | Order via dashboard",
+        "status": "open",
+        "position_id": "position_5fe86edf93b5",
+        "execution_time": "2026-03-31T04:59:05.017416+00:00"
+      },
       {
         "symbol": "IWM",
         "instrument": "248C",
@@ -381,7 +394,7 @@
     ]
   },
   "tradierExecution": {
-    "updatedAt": "2026-03-31T04:53:26.020053+00:00",
+    "updatedAt": "2026-03-31T04:59:05.015944+00:00",
     "intents": [
       {
         "mode": "cash_day",
@@ -967,6 +980,82 @@
           }
         ],
         "updated_at": "2026-03-31T04:53:26.018429+00:00"
+      },
+      {
+        "mode": "cash_day",
+        "strategy_type": "long_put",
+        "symbol": "SPY",
+        "contract": "SPY 395 PUT 2026-03-31",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": "0.01",
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "SPY-2026-03-31-PUT-395",
+        "notes": "Dashboard execution: Position sync test",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "long_put",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "SPY-2026-03-31-PUT-395",
+        "origin": "system_generated",
+        "decision_state": "approved",
+        "decision_actor": "dashboard",
+        "decision_note": "Approved via dashboard",
+        "readiness_state": "ready",
+        "readiness_reason": "Dashboard approval received",
+        "outcome_state": "full_execution",
+        "outcome_reason": "Broker order recorded as filled-equivalent for happy path",
+        "effected_qty": 1,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "linked_external_reference",
+        "external_reference_id": "119301060",
+        "external_reference_system": "tradier",
+        "external_reference_note": "Broker order linked",
+        "attempt_state": "attempt_completed",
+        "attempt_count": 1,
+        "latest_attempt_id": "attempt_aa9265e320a1",
+        "latest_attempt_note": "Execution attempt completed",
+        "reconciliation_state": "reconciled",
+        "reconciliation_note": "Order placed via dashboard",
+        "intent_id": "intent_e0cdde2d5311",
+        "created_at": "2026-03-31T04:59:03.799231+00:00",
+        "status": "committed",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day intent from SPY-2026-03-31-PUT-395",
+            "timestamp": "2026-03-31T04:59:03.799487+00:00"
+          },
+          {
+            "from": "queued",
+            "to": "previewed",
+            "actor": "alfred",
+            "note": "Broker preview created",
+            "timestamp": "2026-03-31T04:59:04.721212+00:00"
+          },
+          {
+            "from": "previewed",
+            "to": "approved",
+            "actor": "dashboard",
+            "note": "Approved via dashboard",
+            "timestamp": "2026-03-31T04:59:04.723306+00:00"
+          },
+          {
+            "from": "approved",
+            "to": "committed",
+            "actor": "alfred",
+            "note": "Order commit recorded",
+            "timestamp": "2026-03-31T04:59:05.014081+00:00"
+          }
+        ],
+        "updated_at": "2026-03-31T04:59:05.014089+00:00"
       }
     ],
     "previews": [
@@ -1009,6 +1098,26 @@
         "warnings": [],
         "preview_id": "preview_9db7a5e8133a",
         "timestamp": "2026-03-31T04:53:25.748548+00:00"
+      },
+      {
+        "intent_id": "intent_e0cdde2d5311",
+        "broker_payload_summary": {
+          "class": "option",
+          "symbol": "SPY",
+          "option_symbol": "SPY260331P00395000",
+          "side": "buy_to_open",
+          "quantity": 1,
+          "type": "limit",
+          "duration": "day",
+          "tag": "alfred-cash-day-intent-e0cdde2d5311",
+          "price": 0.01
+        },
+        "estimated_cost": null,
+        "fees": null,
+        "buying_power_effect": null,
+        "warnings": [],
+        "preview_id": "preview_3a431a31728f",
+        "timestamp": "2026-03-31T04:59:04.720506+00:00"
       }
     ],
     "orders": [
@@ -1021,6 +1130,16 @@
         "submitted_at": "2026-03-31T04:53:26.018152+00:00",
         "filled_at": null,
         "order_id": "order_d317df19e693"
+      },
+      {
+        "intent_id": "intent_e0cdde2d5311",
+        "broker_order_id": "119301060",
+        "status": "placed",
+        "avg_fill_price": null,
+        "remaining_qty": null,
+        "submitted_at": "2026-03-31T04:59:05.013746+00:00",
+        "filled_at": null,
+        "order_id": "order_291ffd5534a8"
       }
     ],
     "positions": [
@@ -1037,6 +1156,20 @@
         "opened_at": "2026-03-31T04:53:26.018184+00:00",
         "closed_at": null,
         "position_id": "position_8a51e9329000"
+      },
+      {
+        "mode": "cash_day",
+        "symbol": "SPY",
+        "contract": "SPY 395 PUT 2026-03-31",
+        "qty": 1,
+        "entry_price": "0.01",
+        "current_status": "open",
+        "invalidation": "",
+        "targets": "",
+        "notes": "",
+        "opened_at": "2026-03-31T04:59:05.013780+00:00",
+        "closed_at": null,
+        "position_id": "position_5fe86edf93b5"
       }
     ],
     "riskDecisions": [
@@ -1215,11 +1348,33 @@
           }
         },
         "timestamp": "2026-03-31T04:53:25.493580+00:00"
+      },
+      {
+        "intent_id": "intent_e0cdde2d5311",
+        "mode": "cash_day",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "open_positions_count": 1,
+          "estimated_notional": 1.0,
+          "buying_power_reference": 198.91,
+          "manual_limit_drift": {
+            "mark_price": null,
+            "limit_price": "0.01",
+            "max_drift_pct": 0.05
+          }
+        },
+        "timestamp": "2026-03-31T04:59:04.311174+00:00"
       }
     ]
   },
   "tradierAudit": {
-    "updatedAt": "2026-03-31T04:53:26.020936+00:00",
+    "updatedAt": "2026-03-31T04:59:05.016882+00:00",
     "events": [
       {
         "timestamp": "2026-03-31T04:29:18.652840+00:00",
@@ -1504,6 +1659,87 @@
         "actor": "alfred",
         "action": "intent_reconciled",
         "target_id": "intent_b3410c4975a5",
+        "summary": "Order placed via dashboard"
+      },
+      {
+        "timestamp": "2026-03-31T04:59:03.800467+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Created cash_day intent from SPY-2026-03-31-PUT-395",
+        "extra": {
+          "candidate_id": "SPY-2026-03-31-PUT-395"
+        }
+      },
+      {
+        "timestamp": "2026-03-31T04:59:04.312422+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Risk evaluation completed",
+        "extra": {
+          "allowed": true
+        }
+      },
+      {
+        "timestamp": "2026-03-31T04:59:04.722331+00:00",
+        "actor": "alfred",
+        "action": "preview_created",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Broker preview created",
+        "extra": {
+          "payload": {
+            "class": "option",
+            "symbol": "SPY",
+            "option_symbol": "SPY260331P00395000",
+            "side": "buy_to_open",
+            "quantity": 1,
+            "type": "limit",
+            "duration": "day",
+            "tag": "alfred-cash-day-intent-e0cdde2d5311",
+            "price": 0.01
+          }
+        }
+      },
+      {
+        "timestamp": "2026-03-31T04:59:04.724333+00:00",
+        "actor": "dashboard",
+        "action": "intent_approved",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Approved via dashboard"
+      },
+      {
+        "timestamp": "2026-03-31T04:59:04.725952+00:00",
+        "actor": "alfred",
+        "action": "intent_ready",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Dashboard approval received"
+      },
+      {
+        "timestamp": "2026-03-31T04:59:04.727527+00:00",
+        "actor": "alfred",
+        "action": "execution_attempt_started",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Dashboard execution started",
+        "extra": {
+          "attempt_id": "attempt_aa9265e320a1"
+        }
+      },
+      {
+        "timestamp": "2026-03-31T04:59:05.015150+00:00",
+        "actor": "alfred",
+        "action": "order_recorded",
+        "target_id": "intent_e0cdde2d5311",
+        "summary": "Order commit recorded",
+        "extra": {
+          "order_id": "order_291ffd5534a8"
+        }
+      },
+      {
+        "timestamp": "2026-03-31T04:59:05.016878+00:00",
+        "actor": "alfred",
+        "action": "intent_reconciled",
+        "target_id": "intent_e0cdde2d5311",
         "summary": "Order placed via dashboard"
       }
     ]

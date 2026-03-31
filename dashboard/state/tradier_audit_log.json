@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-31T04:53:26.020936+00:00",
+  "updatedAt": "2026-03-31T04:59:05.016882+00:00",
   "events": [
     {
       "timestamp": "2026-03-31T04:29:18.652840+00:00",
@@ -284,6 +284,87 @@
       "actor": "alfred",
       "action": "intent_reconciled",
       "target_id": "intent_b3410c4975a5",
+      "summary": "Order placed via dashboard"
+    },
+    {
+      "timestamp": "2026-03-31T04:59:03.800467+00:00",
+      "actor": "alfred",
+      "action": "intent_created",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Created cash_day intent from SPY-2026-03-31-PUT-395",
+      "extra": {
+        "candidate_id": "SPY-2026-03-31-PUT-395"
+      }
+    },
+    {
+      "timestamp": "2026-03-31T04:59:04.312422+00:00",
+      "actor": "alfred",
+      "action": "risk_evaluated",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Risk evaluation completed",
+      "extra": {
+        "allowed": true
+      }
+    },
+    {
+      "timestamp": "2026-03-31T04:59:04.722331+00:00",
+      "actor": "alfred",
+      "action": "preview_created",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Broker preview created",
+      "extra": {
+        "payload": {
+          "class": "option",
+          "symbol": "SPY",
+          "option_symbol": "SPY260331P00395000",
+          "side": "buy_to_open",
+          "quantity": 1,
+          "type": "limit",
+          "duration": "day",
+          "tag": "alfred-cash-day-intent-e0cdde2d5311",
+          "price": 0.01
+        }
+      }
+    },
+    {
+      "timestamp": "2026-03-31T04:59:04.724333+00:00",
+      "actor": "dashboard",
+      "action": "intent_approved",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Approved via dashboard"
+    },
+    {
+      "timestamp": "2026-03-31T04:59:04.725952+00:00",
+      "actor": "alfred",
+      "action": "intent_ready",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Dashboard approval received"
+    },
+    {
+      "timestamp": "2026-03-31T04:59:04.727527+00:00",
+      "actor": "alfred",
+      "action": "execution_attempt_started",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Dashboard execution started",
+      "extra": {
+        "attempt_id": "attempt_aa9265e320a1"
+      }
+    },
+    {
+      "timestamp": "2026-03-31T04:59:05.015150+00:00",
+      "actor": "alfred",
+      "action": "order_recorded",
+      "target_id": "intent_e0cdde2d5311",
+      "summary": "Order commit recorded",
+      "extra": {
+        "order_id": "order_291ffd5534a8"
+      }
+    },
+    {
+      "timestamp": "2026-03-31T04:59:05.016878+00:00",
+      "actor": "alfred",
+      "action": "intent_reconciled",
+      "target_id": "intent_e0cdde2d5311",
       "summary": "Order placed via dashboard"
     }
   ]
