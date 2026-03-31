@@ -1275,6 +1275,122 @@ updateAlertControls();
 // Trade Journal globals
 let journalData = null;
 let analyticsData = null;
+let premarketData = null;
+
+// Pre-market scanner
+async function runPremarketScan() {
+  const resultsDiv = document.getElementById('premarketResults');
+  const timeDiv = document.getElementById('premarketTime');
+  
+  resultsDiv.innerHTML = '<div class="premarket-loading">Scanning for gaps...</div>';
+  
+  try {
+    const res = await fetch('/api/premarket');
+    const data = await res.json();
+    
+    if (data.ok) {
+      premarketData = data.data;
+      timeDiv.textContent = 'Last scan: ' + new Date().toLocaleTimeString();
+      renderPremarketResults(data.data);
+    } else {
+      resultsDiv.innerHTML = `<div class="premarket-error">Scan failed: ${data.error}</div>`;
+    }
+  } catch (err) {
+    resultsDiv.innerHTML = `<div class="premarket-error">Error: ${err.message}</div>`;
+  }
+}
+
+function renderPremarketResults(data) {
+  const container = document.getElementById('premarketResults');
+  
+  if (data.gaps_found === 0) {
+    container.innerHTML = '<div class="premarket-empty">No significant gaps found (>3%)</div>';
+    return;
+  }
+  
+  const highPriority = data.high_priority || [];
+  const mediumPriority = data.medium_priority || [];
+  
+  container.innerHTML = `
+    <div class="premarket-summary">
+      <span class="premarket-count">${data.gaps_found} gaps found</span>
+      <span class="premarket-high">${highPriority.length} high priority</span>
+    </div>
+    
+    ${highPriority.length > 0 ? `
+      <div class="premarket-section">
+        <div class="premarket-section-title">🔥 High Priority (>5%)</div>
+        ${highPriority.map(gap => renderGapCard(gap)).join('')}
+      </div>
+    ` : ''}
+    
+    ${mediumPriority.length > 0 ? `
+      <div class="premarket-section">
+        <div class="premarket-section-title">📊 Medium Priority (3-5%)</div>
+        ${mediumPriority.map(gap => renderGapCard(gap)).join('')}
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderGapCard(gap) {
+  const isUp = gap.direction === 'gap_up';
+  const directionEmoji = isUp ? '🚀' : '🔻';
+  const directionClass = isUp ? 'gap-up' : 'gap-down';
+  const volumeClass = gap.relative_volume > 2 ? 'high-volume' : '';
+  
+  return `
+    <div class="gap-card ${directionClass}">
+      <div class="gap-header">
+        <span class="gap-symbol">${escapeHtml(gap.symbol)} ${directionEmoji}</span>
+        <span class="gap-percent ${directionClass}">${isUp ? '+' : ''}${gap.gap_percent}%</span>
+      </div>
+      <div class="gap-details">
+        <span>Last: $${gap.last_price.toFixed(2)}</span>
+        <span>Prev: $${gap.prev_close.toFixed(2)}</span>
+        <span class="gap-volume ${volumeClass}">Vol: ${gap.relative_volume.toFixed(1)}x avg</span>
+      </div>
+      ${gap.option_plays ? `
+        <div class="gap-plays">
+          ${gap.option_plays.map(play => `
+            <div class="gap-play ${play.direction}">
+              <span class="play-strategy">${escapeHtml(play.strategy)}</span>
+              <span class="play-risk">${escapeHtml(play.risk)} risk</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      <button class="queue-gap-btn" onclick="queueGap('${escapeHtml(gap.symbol)}', '${gap.direction}')">
+        + Add to Watchlist
+      </button>
+    </div>
+  `;
+}
+
+async function queueGap(symbol, direction) {
+  // Add to execution queue for market open
+  try {
+    const leader = {
+      symbol: symbol,
+      option_type: direction === 'gap_up' ? 'PUT' : 'CALL',
+      headline: `Pre-market ${direction} play`,
+      entry: 'Gap fade',
+      thesis: `Fade the ${direction.replace('_', ' ')} at market open`
+    };
+    
+    const res = await fetch('/api/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leader)
+    });
+    
+    if (res.ok) {
+      alert(`${symbol} added to execution queue for market open`);
+    }
+  } catch (err) {
+    alert('Failed to queue: ' + err.message);
+  }
+}
 
 // Fetch journal entries
 async function fetchJournal() {

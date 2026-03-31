@@ -277,6 +277,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_journal()
         elif self.path == '/api/analytics':
             return self._handle_analytics()
+        elif self.path == '/api/premarket':
+            return self._handle_premarket()
         return super().do_GET()
     
     def _handle_live_positions(self):
@@ -386,6 +388,27 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, {'ok': True, 'analytics': result})
         except Exception:
             return self.json_response(500, {'ok': False, 'error': 'Failed to calculate analytics'})
+    
+    def _handle_premarket(self):
+        """Get pre-market gap scan"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'premarket_scanner.py'), '--scan'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+            if result.get('ok'):
+                return self.json_response(200, result)
+            else:
+                return self.json_response(500, result)
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
     
     def do_POST(self):
         length = int(self.headers.get('Content-Length', '0'))
