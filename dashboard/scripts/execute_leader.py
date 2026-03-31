@@ -131,12 +131,12 @@ def approve_and_execute(intent_id: str) -> dict:
         attempt_id = f"attempt_{uuid.uuid4().hex[:12]}"
         in_progress = service.begin_execution_attempt(ready, attempt_id=attempt_id, note='Dashboard execution started')
         
-        # Place order
-        expiry = approved.get('contract', '').split()[2] if len(approved.get('contract', '').split()) > 2 else ''
+        # Place order - parse contract: "SPY 400 PUT 2026-03-31"
+        contract_parts = approved.get('contract', '').split()
+        expiry = contract_parts[3] if len(contract_parts) > 3 else ''
         option_type = 'call' if approved.get('strategy_type') == 'long_call' else 'put'
         try:
-            strike_str = approved.get('contract', '').split()[1] if len(approved.get('contract', '').split()) > 1 else '0'
-            strike = float(strike_str)
+            strike = float(contract_parts[1]) if len(contract_parts) > 1 else 0.0
         except (ValueError, IndexError):
             return {'ok': False, 'error': 'Could not parse strike from contract'}
         

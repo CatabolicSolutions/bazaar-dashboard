@@ -34,6 +34,9 @@ class TradierBrokerInterface:
         strike: float,
         broker_side: str,
     ) -> dict[str, Any]:
+        # Sanitize tag - Tradier only allows alphanumeric, hyphens
+        safe_intent_id = str(intent.intent_id).replace('_', '-')
+        safe_mode = str(intent.mode).replace('_', '-')
         payload = {
             'class': 'option',
             'symbol': symbol.upper(),
@@ -42,7 +45,7 @@ class TradierBrokerInterface:
             'quantity': intent.qty,
             'type': 'limit' if intent.limit_price is not None else 'market',
             'duration': intent.time_in_force,
-            'tag': f'alfred-{intent.mode}-{intent.intent_id}',
+            'tag': f'alfred-{safe_mode}-{safe_intent_id}',
         }
         if intent.limit_price is not None:
             payload['price'] = round(float(intent.limit_price), 2)
