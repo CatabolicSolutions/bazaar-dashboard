@@ -269,6 +269,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.path = '/index.html'
         elif self.path == '/api/live-positions':
             return self._handle_live_positions()
+        elif self.path == '/api/live-scanner':
+            return self._handle_live_scanner()
         return super().do_GET()
     
     def _handle_live_positions(self):
@@ -287,6 +289,28 @@ class Handler(SimpleHTTPRequestHandler):
             result = json_mod.loads(proc.stdout)
         except Exception:
             result = {'ok': False, 'error': proc.stderr or 'Failed to fetch positions'}
+        
+        if proc.returncode == 0 and result.get('ok'):
+            return self.json_response(200, result)
+        else:
+            return self.json_response(500, result)
+    
+    def _handle_live_scanner(self):
+        """Get live scanner data with market data"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'market_data_feed.py'), '--scanner'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+        except Exception:
+            result = {'ok': False, 'error': proc.stderr or 'Failed to fetch scanner data'}
         
         if proc.returncode == 0 and result.get('ok'):
             return self.json_response(200, result)

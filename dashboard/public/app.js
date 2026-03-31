@@ -224,6 +224,40 @@ function renderOverview(snapshot) {
   `;
 }
 
+// Global for live scanner data
+let liveScannerData = null;
+
+async function fetchLiveScanner() {
+  try {
+    const res = await fetch('/api/live-scanner');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        liveScannerData = data.data;
+        return data.data;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch live scanner:', err);
+  }
+  return null;
+}
+
+function getLeaderLiveData(leader) {
+  """Get live data for a leader if available"""
+  if (!liveScannerData?.leaders) return null;
+  
+  // Match by symbol, strike, and expiration
+  const leaderKey = `${leader.symbol}-${leader.strike}-${leader.exp}`;
+  for (const live of liveScannerData.leaders) {
+    const liveKey = `${live.symbol}-${live.strike}-${live.expiration}`;
+    if (leaderKey === liveKey) {
+      return live;
+    }
+  }
+  return null;
+}
+
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
   if (currentUiMode === 'loading') {
@@ -256,28 +290,67 @@ function renderLeaders(leaders) {
   wrap.innerHTML = selectionBanner + leaders.map((leader, index) => {
     const state = getLeaderState(leader);
     const feedback = getSelectedLeaderFeedback(leader);
+    
+    // Get live data for this leader
+    const liveData = getLeaderLiveData(leader);
+    const opportunity = liveData?.opportunity;
+    const quote = liveData?.quote;
+    
+    // Build badges
     const stateBadges = [
       leader.fallback ? '<span class="pill warn-pill">Fallback Expiry</span>' : `<span class="pill neutral-pill">${escapeHtml(leader.label || 'Primary')}</span>`,
       state.queued ? statusBadge('Queued', 'queued') : '',
       state.watched ? statusBadge('Watching', 'watch') : '',
       feedback ? statusBadge('Recent action', 'recent') : '',
     ].filter(Boolean).join('');
+    
+    // Opportunity badge
+    let opportunityBadge = '';
+    if (opportunity) {
+      const tempColors = {
+        'hot': 'hot-pill',
+        'warm': 'warm-pill', 
+        'cool': 'cool-pill',
+        'cold': 'cold-pill'
+      };
+      const tempClass = tempColors[opportunity.temperature] || 'neutral-pill';
+      opportunityBadge = `<span class="pill ${tempClass}">${opportunity.temperature.toUpperCase()} ${opportunity.score}/${opportunity.max_score}</span>`;
+    }
+    
+    // Live price indicator
+    let livePriceInfo = '';
+    if (quote?.last) {
+      const changeClass = quote.change >= 0 ? 'good' : 'bad';
+      const changeSign = quote.change >= 0 ? '+' : '';
+      livePriceInfo = `<span class="live-quote ${changeClass}">$${quote.last.toFixed(2)} (${changeSign}${quote.change_percent.toFixed(1)}%)</span>`;
+    }
+    
+    // IV badge
+    let ivBadge = '';
+    if (quote?.iv) {
+      ivBadge = `<span class="pill iv-pill">IV ${quote.iv.toFixed(1)}%</span>`;
+    }
 
     return `
-      <button class="leader-row ${leaderKey(leader) === leaderKey(selectedLeader) ? 'selected' : ''}" data-index="${index}">
+      <button class="leader-row ${leaderKey(leader) === leaderKey(selectedLeader) ? 'selected' : ''} ${opportunity?.temperature === 'hot' ? 'leader-hot' : ''}" data-index="${index}">
         <div class="leader-row-top">
           <div>
-            <div class="section">${escapeHtml(formatSection(leader.section))}</div>
-            <div class="headline">${escapeHtml(leaderDisplayName(leader))}</div>
+            <div class="section">${escapeHtml(formatSection(leader.section))} ${opportunityBadge}</div>
+            <div class="headline">${escapeHtml(leaderDisplayName(leader))} ${livePriceInfo}</div>
           </div>
-          <div class="badge-stack">${stateBadges}</div>
+          <div class="badge-stack">${stateBadges} ${ivBadge}</div>
         </div>
         <div class="leader-row-grid">
           <div><span class="label">Underlying</span><span class="value">${escapeHtml(leader.underlying)}</span></div>
-          <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)}</span></div>
-          <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)}</span></div>
+          <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)} ${quote?.delta ? `<span class="live-metric">(${quote.delta.toFixed(2)})</span>` : ''}</span></div>
+          <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)} ${quote?.bid ? `<span class="live-metric">[$${quote.bid.toFixed(2)}/$${quote.ask.toFixed(2)}]</span>` : ''}</span></div>
           <div><span class="label">Confidence</span><span class="value">${escapeHtml(leader.confidence)}</span></div>
         </div>
+        ${opportunity?.factors?.length ? `
+          <div class="opportunity-factors">
+            ${opportunity.factors.map(f => `<span class="factor-badge">${escapeHtml(f)}</span>`).join('')}
+          </div>
+        ` : ''}
       </button>
     `;
   }).join('');
@@ -934,3 +1007,12 @@ setInterval(() => {
     }
   }).catch(() => {});
 }, 5000);
+
+// Auto-refresh scanner every 10 seconds for live market data
+setInterval(() => {
+  fetchLiveScanner().then(() => {
+    if (currentSnapshot) {
+      renderLeaders(currentSnapshot?.tradier?.leaders || []);
+    }
+  }).catch(() => {});
+}, 10000);
