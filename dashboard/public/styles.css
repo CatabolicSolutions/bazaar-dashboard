@@ -98,7 +98,62 @@ h1, h2 { margin: 0 0 8px; }
 .action-detail { color: var(--text); font-size: 14px; line-height: 1.45; margin-bottom: 10px; }
 .action-btn { width: 100%; }
 .action-status { min-height: 18px; }
+.action-status.loading { color: #9fc0ff; }
 .placeholder { color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; padding: 14px; background: rgba(255,255,255,0.02); }
+
+/* Execution Preview Styles */
+.execution-preview-box {
+  background: linear-gradient(180deg, rgba(245,197,66,0.08), rgba(245,197,66,0.03));
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.preview-title {
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.preview-details {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.preview-details hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0;
+}
+.preview-warnings {
+  color: var(--warn);
+  font-weight: 700;
+  background: rgba(255,180,84,0.1);
+  padding: 8px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+.preview-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.execute-confirm {
+  background: var(--good) !important;
+  color: #111 !important;
+}
+.execute-cancel {
+  background: var(--panel-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+.status-chip.execute {
+  background: rgba(245,197,66,0.15);
+  color: var(--accent);
+  border-color: rgba(245,197,66,0.5);
+  font-weight: 800;
+}
 
 @media (max-width: 1200px) {
   .card-board, .card-summary-strip, .card-detail, .card-actions { grid-column: span 12; }

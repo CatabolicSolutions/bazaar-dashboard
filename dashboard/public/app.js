@@ -381,12 +381,25 @@ function renderDetail(leader, stateMeta = null) {
   `;
 }
 
+// Global state for execution preview
+let executionPreview = null;
+
 function inferActions(leader) {
   if (!leader) return [];
 
   const state = getLeaderState(leader);
 
   return [
+    {
+      key: 'execute_preview',
+      title: 'Execute Now',
+      detail: 'Preview and execute this trade immediately via Tradier.',
+      disabled: false,
+      cta: 'Execute Now',
+      stateLabel: 'Live execution',
+      stateKind: 'execute',
+      primary: true,
+    },
     {
       key: 'queue_selected_leader',
       title: 'Add to execution queue',
@@ -417,6 +430,16 @@ async function runSelectedAction(actionKey) {
   const status = document.getElementById('actionStatus');
   if (!leader || !status) return;
 
+  // Handle execution preview specially
+  if (actionKey === 'execute_preview') {
+    return runExecutePreview(leader);
+  }
+  
+  // Handle execution confirmation
+  if (actionKey === 'execute_confirm') {
+    return runExecuteConfirm();
+  }
+
   status.textContent = 'Submitting local action…';
   status.className = 'action-status muted small';
 
@@ -442,6 +465,145 @@ async function runSelectedAction(actionKey) {
   status.textContent = lastActionStatus.message;
   status.className = 'action-status good small';
   await refresh();
+}
+
+async function runExecutePreview(leader) {
+  const status = document.getElementById('actionStatus');
+  if (!status) return;
+
+  status.textContent = 'Creating order preview via Tradier…';
+  status.className = 'action-status loading small';
+
+  try {
+    const res = await fetch('/api/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'execute_preview', leader }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      status.textContent = `Preview failed: ${data.error || 'unknown error'}`;
+      status.className = 'action-status bad small';
+      executionPreview = null;
+      return;
+    }
+
+    executionPreview = data;
+    
+    // Show preview in actions panel
+    renderExecutionPreview(data);
+    
+    status.textContent = 'Preview ready - review and confirm below';
+    status.className = 'action-status good small';
+    
+  } catch (err) {
+    status.textContent = `Preview error: ${err.message}`;
+    status.className = 'action-status bad small';
+    executionPreview = null;
+  }
+}
+
+function renderExecutionPreview(data) {
+  const wrap = document.getElementById('actionsWrap');
+  const preview = data.preview || {};
+  const broker = data.broker_response || {};
+  const risk = data.risk_decision || {};
+  
+  const previewHtml = `
+    <div class="execution-preview-box">
+      <div class="preview-title">⚠️ Order Preview - Review Before Confirming</div>
+      <div class="preview-details">
+        <div><strong>Intent ID:</strong> ${escapeHtml(data.intent_id || 'N/A')}</div>
+        <div><strong>Risk Check:</strong> ${risk.allowed ? '✅ Allowed' : '❌ Blocked'}</div>
+        ${risk.reasons?.length ? `<div><strong>Risk Notes:</strong> ${escapeHtml(risk.reasons.join(', '))}</div>` : ''}
+        <hr/>
+        <div><strong>Estimated Cost:</strong> $${escapeHtml(String(preview.estimated_cost || 'N/A'))}</div>
+        <div><strong>Fees:</strong> $${escapeHtml(String(preview.fees || 'N/A'))}</div>
+        <div><strong>Buying Power Effect:</strong> $${escapeHtml(String(preview.buying_power_effect || 'N/A'))}</div>
+        ${preview.warnings?.length ? `<div class="preview-warnings">⚠️ ${escapeHtml(preview.warnings.join(', '))}</div>` : ''}
+        ${broker.order?.status ? `<div><strong>Broker Status:</strong> ${escapeHtml(broker.order.status)}</div>` : ''}
+      </div>
+      <div class="preview-actions">
+        <button class="action-btn execute-confirm" data-action-key="execute_confirm">✅ Confirm & Execute</button>
+        <button class="action-btn execute-cancel" onclick="cancelExecutionPreview()">❌ Cancel</button>
+      </div>
+    </div>
+  `;
+  
+  // Insert preview after action list
+  const actionList = wrap.querySelector('.action-list');
+  if (actionList) {
+    // Remove any existing preview
+    const existing = wrap.querySelector('.execution-preview-box');
+    if (existing) existing.remove();
+    
+    actionList.insertAdjacentHTML('afterend', previewHtml);
+    bindActionButtons();
+  }
+}
+
+function cancelExecutionPreview() {
+  executionPreview = null;
+  const preview = document.querySelector('.execution-preview-box');
+  if (preview) preview.remove();
+  
+  const status = document.getElementById('actionStatus');
+  if (status) {
+    status.textContent = 'Execution cancelled';
+    status.className = 'action-status muted small';
+  }
+  
+  // Re-render to clear preview
+  renderActions(getSelectedLeader());
+}
+
+async function runExecuteConfirm() {
+  const status = document.getElementById('actionStatus');
+  if (!status || !executionPreview) return;
+  
+  const intentId = executionPreview.intent_id;
+  if (!intentId) {
+    status.textContent = 'Error: No intent ID for confirmation';
+    status.className = 'action-status bad small';
+    return;
+  }
+
+  status.textContent = 'Placing order via Tradier…';
+  status.className = 'action-status loading small';
+
+  try {
+    const res = await fetch('/api/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'execute_confirm', intent_id: intentId }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      status.textContent = `Execution failed: ${data.error || 'unknown error'}`;
+      status.className = 'action-status bad small';
+      return;
+    }
+
+    executionPreview = null;
+    
+    lastActionStatus = {
+      leaderKey: leaderKey(getSelectedLeader()),
+      message: `Order placed: ${data.order?.broker_order_id || 'N/A'}`,
+      updatedAt: new Date().toISOString(),
+    };
+
+    status.textContent = `✅ Order executed: ${data.order?.broker_order_id || 'N/A'}`;
+    status.className = 'action-status good small';
+    
+    // Clear preview and refresh
+    await refresh();
+    
+  } catch (err) {
+    status.textContent = `Execution error: ${err.message}`;
+    status.className = 'action-status bad small';
+  }
 }
 
 function bindActionButtons() {

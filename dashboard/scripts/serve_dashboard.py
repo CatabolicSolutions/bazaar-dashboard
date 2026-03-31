@@ -6,11 +6,15 @@ import json
 import argparse
 from datetime import datetime, timezone
 
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
 PUBLIC = ROOT / 'dashboard' / 'public'
 BUILDER = ROOT / 'dashboard' / 'scripts' / 'build_snapshot.py'
 SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
 SAVE_QUEUE = ROOT / 'dashboard' / 'scripts' / 'save_queue.py'
+EXECUTE_LEADER = ROOT / 'dashboard' / 'scripts' / 'execute_leader.py'
 POSITIONS_STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE_STATE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
 ACTION_FEEDBACK_STATE = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
@@ -168,8 +172,97 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, self._queue_selected_leader(leader))
         if action == 'watch_selected_leader':
             return self.json_response(200, self._watch_selected_leader(leader))
+        if action == 'execute_preview':
+            return self._handle_execute_preview(leader)
+        if action == 'execute_confirm':
+            intent_id = payload.get('intent_id')
+            if not intent_id:
+                return self.json_response(400, {'ok': False, 'error': 'intent_id required for execute_confirm'})
+            return self._handle_execute_confirm(intent_id)
         return self.json_response(404, {'ok': False, 'error': 'unknown action'})
 
+    def _handle_execute_preview(self, leader):
+        """Preview order execution"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(EXECUTE_LEADER), '--leader', json_mod.dumps(leader), '--preview'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+        except Exception:
+            result = {'ok': False, 'error': proc.stderr or 'execution bridge failed', 'stdout': proc.stdout}
+        
+        if proc.returncode == 0 and result.get('ok'):
+            # Record feedback
+            feedback = self._record_action_feedback(
+                leader=leader,
+                action='execute_preview',
+                result='Preview ready',
+                state_change=f"Order preview created for {leader.get('symbol')} {leader.get('option_type')}"
+            )
+            result['feedback'] = feedback.get('feedback')
+            return self.json_response(200, result)
+        else:
+            return self.json_response(500, result)
+    
+    def _handle_execute_confirm(self, intent_id):
+        """Confirm and execute order"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(EXECUTE_LEADER), '--execute', intent_id],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+        except Exception:
+            result = {'ok': False, 'error': proc.stderr or 'execution bridge failed', 'stdout': proc.stdout}
+        
+        if proc.returncode == 0 and result.get('ok'):
+            # Add to active positions
+            position = result.get('position', {})
+            if position:
+                self._add_position_from_execution(position)
+            return self.json_response(200, result)
+        else:
+            return self.json_response(500, result)
+    
+    def _add_position_from_execution(self, position):
+        """Add executed position to active_positions.json"""
+        state = self.read_json(POSITIONS_STATE, {'updatedAt': None, 'positions': []})
+        positions = state.get('positions', [])
+        
+        # Convert execution position format to dashboard format
+        position_entry = {
+            'symbol': position.get('symbol', ''),
+            'instrument': position.get('contract', '').split(' ', 1)[1] if ' ' in position.get('contract', '') else position.get('contract', ''),
+            'entry': str(position.get('entry_price', '')),
+            'current': str(position.get('entry_price', '')),
+            'size': str(position.get('qty', 1)),
+            'invalidation': '',
+            'targets': '',
+            'notes': f"Executed via dashboard | {position.get('contract', '')}",
+            'status': 'open',
+            'execution_time': now_iso(),
+        }
+        
+        positions.insert(0, position_entry)
+        out = {
+            'updatedAt': now_iso(),
+            'positions': positions,
+        }
+        self.write_json(POSITIONS_STATE, out)
+    
     def do_POST(self):
         length = int(self.headers.get('Content-Length', '0'))
         body = self.rfile.read(length)

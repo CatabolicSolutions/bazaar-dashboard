@@ -41,8 +41,9 @@ Current Kalshi pipeline:
 Kalshi durable truths:
 - `/coinflip` is the intended plain-text trigger for Kalshi review / leaders / recommendation flow
 - current Kalshi engine supports `No Trade` and rejection audits
-- major remaining blocker is discovery quality, not auth/runtime
-- sampled live open feed has often been dominated by combinatoric sports/cross-category noise and many contracts lack usable price references
+- major remaining blockers are discovery quality and contract interpretation, not auth/runtime
+- sampled live open feed has often been dominated by combinatoric cross-category noise and many contracts only expose shallow metadata in the current pull
+- approved next direction is a probability-first refactor: implied probability -> fair probability estimate -> edge score -> execution validation
 
 ### Kalshi preference model
 Highest-priority Kalshi markets:

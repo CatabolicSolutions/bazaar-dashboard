@@ -15,16 +15,25 @@ MAX_LEADERS_TOTAL = 5
 AUDIT_SAMPLE_SIZE = 8
 MAX_HOURS_TO_CLOSE = 72
 MAX_COMPLEXITY_SCORE = 4
-STRICT_KEYWORDS = [
-    's&p', 'spx', 'nasdaq', 'ndx', 'qqq', 'russell', 'iwm', 'dow', 'vix',
-    'fed', 'fomc', 'rate', 'rates', 'cpi', 'inflation', 'jobs', 'payrolls',
-    'unemployment', 'gdp', 'treasury', 'oil', 'gold', 'earnings', 'nvda',
-    'aapl', 'tsla', 'nvidia', 'apple', 'tesla'
-]
-SOFT_ALLOW_KEYWORDS = [
-    'bitcoin', 'btc', 'eth', 'crypto', 'election', 'policy', 'tariff', 'recession',
-    'close between', 'close above', 'close below', 'price of', 'index', 'stocks',
-    'market', 'economy', 'yield', 'volatility', 'claims', 'beat estimates', 'raise rates'
+CATEGORY_KEYWORDS = {
+    'economics': [
+        'fed', 'fomc', 'rate', 'rates', 'cpi', 'inflation', 'jobs', 'payrolls',
+        'unemployment', 'gdp', 'treasury', 'oil', 'gold', 'claims', 'recession',
+        'economy', 'yield', 'volatility', 'close between', 'close above', 'close below',
+        's&p', 'spx', 'nasdaq', 'ndx', 'qqq', 'russell', 'iwm', 'dow', 'vix'
+    ],
+    'companies': [
+        'earnings', 'beat estimates', 'nvda', 'aapl', 'tsla', 'nvidia', 'apple', 'tesla',
+        'microsoft', 'msft', 'meta', 'amazon', 'amzn', 'google', 'alphabet'
+    ],
+    'science_technology': [
+        'bitcoin', 'btc', 'eth', 'crypto', 'ai', 'artificial intelligence', 'chip', 'semiconductor',
+        'space', 'spacex', 'openai', 'robot', 'technology', 'tech'
+    ],
+}
+STRICT_KEYWORDS = CATEGORY_KEYWORDS['economics'] + CATEGORY_KEYWORDS['companies']
+SOFT_ALLOW_KEYWORDS = CATEGORY_KEYWORDS['science_technology'] + [
+    'policy', 'tariff', 'price of', 'index', 'stocks', 'market'
 ]
 HARD_REJECT_KEYWORDS = [
     'rebounds', 'assists', 'touchdowns', 'goals scored', 'points scored', 'wins by over',
@@ -84,13 +93,22 @@ def market_hours_to_close(market):
     return max((close_ts - now).total_seconds() / 3600.0, 0.0)
 
 
+def classify_preferred_category(market):
+    text = normalize_text(market.get('ticker'), market.get('title'), market.get('subtitle'), market.get('event_ticker'), market.get('series_ticker'))
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        if any(keyword in text for keyword in keywords):
+            return category
+    return None
+
+
 def text_relevance_classification(market):
     text = normalize_text(market.get('ticker'), market.get('title'), market.get('subtitle'), market.get('event_ticker'), market.get('series_ticker'))
     if any(keyword in text for keyword in HARD_REJECT_KEYWORDS):
         return 'reject_hard'
-    if any(keyword in text for keyword in STRICT_KEYWORDS):
+    preferred_category = classify_preferred_category(market)
+    if preferred_category in ('economics', 'companies'):
         return 'strict'
-    if any(keyword in text for keyword in SOFT_ALLOW_KEYWORDS):
+    if preferred_category == 'science_technology':
         return 'soft'
     if any(keyword in text for keyword in SPORTS_CONTEXT_KEYWORDS):
         return 'sports_context'
@@ -116,6 +134,7 @@ def complexity_score(market):
 
 
 def evaluate_market(market):
+    category = classify_preferred_category(market)
     relevance = text_relevance_classification(market)
     probability = market_probability(market)
     hours_to_close = market_hours_to_close(market)
@@ -125,6 +144,8 @@ def evaluate_market(market):
 
     if relevance == 'reject_hard':
         return {'accepted': False, 'reason': 'reject_hard', 'probability': probability, 'hours_to_close': hours_to_close}
+    if category is None:
+        return {'accepted': False, 'reason': 'outside_target_categories', 'probability': probability, 'hours_to_close': hours_to_close}
     if probability is None:
         return {'accepted': False, 'reason': 'no_probability_reference', 'probability': None, 'hours_to_close': hours_to_close}
     if hours_to_close > MAX_HOURS_TO_CLOSE:
@@ -143,6 +164,7 @@ def evaluate_market(market):
     return {
         'accepted': True,
         'reason': 'accepted',
+        'category': category,
         'relevance': relevance,
         'zone_key': zone_key,
         'tier': tier,
@@ -182,6 +204,7 @@ def format_kalshi_market_as_ticket_message(market, evaluation):
     ticket += f" - Event Ticker: {market.get('event_ticker')}\n"
     ticket += f" - Close Time: {market.get('close_time')}\n"
     ticket += f" - Status: {market.get('status')}\n"
+    ticket += f" - Category: {evaluation.get('category', 'unknown')}\n"
     ticket += f" - Tier: {evaluation['tier']}\n"
     ticket += f" - Implied Probability: {evaluation['probability']:.2%}\n"
     ticket += f" - Yes Bid / Ask ($): {market.get('yes_bid_dollars', 'N/A')} / {market.get('yes_ask_dollars', 'N/A')}\n"
