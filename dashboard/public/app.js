@@ -685,33 +685,142 @@ function renderActions(leader, stateMeta = null) {
   bindActionButtons();
 }
 
+// Global variable for live position data
+let livePositionData = null;
+
+async function fetchLivePositions() {
+  try {
+    const res = await fetch('/api/live-positions');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        livePositionData = data.data;
+        return data.data;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch live positions:', err);
+  }
+  return null;
+}
+
+function calculatePnL(entry, current, size) {
+  const entryVal = parseFloat(entry) || 0;
+  const currentVal = parseFloat(current) || 0;
+  const qty = parseInt(size) || 0;
+  const pnl = (currentVal - entryVal) * qty * 100; // Options are 100 shares
+  const pnlPct = entryVal > 0 ? ((currentVal - entryVal) / entryVal) * 100 : 0;
+  return { pnl, pnlPct };
+}
+
+function formatPnL(pnl, pnlPct) {
+  const sign = pnl >= 0 ? '+' : '';
+  const colorClass = pnl >= 0 ? 'good' : 'bad';
+  return `<span class="${colorClass}">${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(1)}%)</span>`;
+}
+
+async function closePosition(symbol, instrument, size) {
+  if (!confirm(`Close position: ${symbol} ${instrument}?\n\nThis will place a market order to sell ${size} contract(s).`)) {
+    return;
+  }
+  
+  // Parse instrument to get option details
+  // Format: "395 PUT 2026-03-31" or "400 CALL 2026-04-17"
+  const parts = instrument.split(' ');
+  if (parts.length < 3) {
+    alert('Could not parse position details');
+    return;
+  }
+  
+  const strike = parts[0];
+  const optionType = parts[1].toLowerCase();
+  const expiration = parts[2];
+  
+  try {
+    const res = await fetch('/api/close-position', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        symbol,
+        quantity: parseInt(size),
+        option_type: optionType,
+        strike: parseFloat(strike),
+        expiration
+      })
+    });
+    
+    const data = await res.json();
+    if (data.ok) {
+      alert(`Position close order placed!\nOrder ID: ${data.order?.order?.id || 'N/A'}`);
+      await refresh();
+    } else {
+      alert(`Failed to close position: ${data.error}`);
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
 function renderPositions(positions) {
   const wrap = document.getElementById('positionsWrap');
   if (!wrap) return;
   
-  // Combine positions from both activePositions and tradierExecution state
-  const activePositions = positions || [];
+  // Use live data if available, fall back to snapshot data
+  const livePositions = livePositionData?.positions || [];
+  const snapshotPositions = positions || [];
   const executionPositions = currentSnapshot?.tradierExecution?.positions || [];
   
-  // Merge and dedupe by position_id
-  const allPositions = [...activePositions];
+  // Build position map with live data taking precedence
+  const positionMap = new Map();
+  
+  // Add snapshot positions first
+  snapshotPositions.forEach(pos => {
+    if (pos.status === 'open') {
+      positionMap.set(pos.position_id, pos);
+    }
+  });
+  
+  // Add execution positions
   executionPositions.forEach(ep => {
-    const exists = allPositions.some(ap => ap.position_id === ep.position_id);
-    if (!exists) {
-      allPositions.push({
+    if (ep.current_status === 'open') {
+      const instrument = ep.contract?.split(' ', 1)[1] || ep.contract;
+      positionMap.set(ep.position_id, {
         symbol: ep.symbol,
-        instrument: ep.contract?.split(' ', 1)[1] || ep.contract,
+        instrument: instrument,
         entry: String(ep.entry_price),
         current: String(ep.entry_price),
         size: String(ep.qty),
-        status: ep.current_status || 'open',
+        status: 'open',
         position_id: ep.position_id,
         notes: ep.notes || '',
       });
     }
   });
   
-  const openPositions = allPositions.filter(p => p.status === 'open');
+  // Merge live data (has real-time prices)
+  livePositions.forEach(lp => {
+    const key = lp.description; // Use description as key since IDs may differ
+    // Find matching position by symbol and instrument
+    for (const [pid, pos] of positionMap) {
+      if (pos.symbol === lp.symbol && pos.instrument.includes(String(lp.strike))) {
+        positionMap.set(pid, {
+          ...pos,
+          current: String(lp.current_price),
+          live_price: lp.current_price,
+          market_value: lp.market_value,
+          pnl_dollar: lp.pnl_dollar,
+          pnl_percent: lp.pnl_percent,
+          days_to_expiry: lp.days_to_expiry,
+          option_type: lp.option_type,
+          strike: lp.strike,
+          expiration: lp.expiration,
+        });
+        break;
+      }
+    }
+  });
+  
+  const openPositions = Array.from(positionMap.values());
   
   if (openPositions.length === 0) {
     wrap.className = 'positions-wrap placeholder';
@@ -719,18 +828,36 @@ function renderPositions(positions) {
     return;
   }
   
+  // Calculate total P&L
+  let totalPnL = 0;
+  openPositions.forEach(pos => {
+    if (pos.pnl_dollar !== undefined) {
+      totalPnL += pos.pnl_dollar;
+    } else {
+      const { pnl } = calculatePnL(pos.entry, pos.current, pos.size);
+      totalPnL += pnl;
+    }
+  });
+  
   wrap.className = 'positions-wrap';
   wrap.innerHTML = `
     <div class="positions-header">
       <span class="positions-count">${openPositions.length} open position${openPositions.length !== 1 ? 's' : ''}</span>
+      <span class="positions-pnl">Total P&L: ${formatPnL(totalPnL, 0)}</span>
     </div>
     <div class="positions-list">
-      ${openPositions.map(pos => `
-        <div class="position-row">
+      ${openPositions.map(pos => {
+        const pnl = pos.pnl_dollar !== undefined ? pos.pnl_dollar : calculatePnL(pos.entry, pos.current, pos.size).pnl;
+        const pnlPct = pos.pnl_percent !== undefined ? pos.pnl_percent : calculatePnL(pos.entry, pos.current, pos.size).pnlPct;
+        const hasLiveData = pos.live_price !== undefined;
+        const dte = pos.days_to_expiry !== undefined ? `${pos.days_to_expiry}DTE` : '';
+        
+        return `
+        <div class="position-row ${pnl >= 0 ? 'position-winning' : 'position-losing'}">
           <div class="position-main">
             <div class="position-symbol">${escapeHtml(pos.symbol)}</div>
-            <div class="position-instrument">${escapeHtml(pos.instrument)}</div>
-            ${statusBadge(pos.status, pos.status === 'open' ? 'good' : 'neutral')}
+            <div class="position-instrument">${escapeHtml(pos.instrument)} ${dte ? `<span class="dte-badge">${dte}</span>` : ''}</div>
+            <div class="position-pnl">${formatPnL(pnl, pnlPct)}</div>
           </div>
           <div class="position-details">
             <div class="position-field">
@@ -738,17 +865,22 @@ function renderPositions(positions) {
               <span class="value">$${escapeHtml(pos.entry)}</span>
             </div>
             <div class="position-field">
+              <span class="label">Current</span>
+              <span class="value ${hasLiveData ? 'live-price' : ''}">$${escapeHtml(pos.current)}</span>
+            </div>
+            <div class="position-field">
               <span class="label">Size</span>
               <span class="value">${escapeHtml(pos.size)}</span>
             </div>
-            <div class="position-field">
-              <span class="label">Position ID</span>
-              <span class="value muted">${escapeHtml(pos.position_id?.slice(-8) || 'N/A')}</span>
-            </div>
+          </div>
+          <div class="position-actions">
+            <button class="close-position-btn" onclick="closePosition('${escapeHtml(pos.symbol)}', '${escapeHtml(pos.instrument)}', '${escapeHtml(pos.size)}')">
+              Close Position
+            </button>
           </div>
           ${pos.notes ? `<div class="position-notes">${escapeHtml(pos.notes)}</div>` : ''}
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
 }
@@ -788,6 +920,17 @@ refresh().catch(err => {
   document.getElementById('detailWrap').className = 'detail-wrap placeholder';
   document.getElementById('detailWrap').textContent = err.message;
 });
+
+// Auto-refresh every 30 seconds for general snapshot
 setInterval(() => {
   refresh().catch(() => {});
 }, 30000);
+
+// Auto-refresh positions every 5 seconds for real-time P&L
+setInterval(() => {
+  fetchLivePositions().then(() => {
+    if (currentSnapshot) {
+      renderPositions(currentSnapshot?.activePositions?.positions || []);
+    }
+  }).catch(() => {});
+}, 5000);

@@ -263,6 +263,36 @@ class Handler(SimpleHTTPRequestHandler):
         }
         self.write_json(POSITIONS_STATE, out)
     
+    def do_GET(self):
+        self.refresh_snapshot()
+        if self.path in ('/app', '/app/'):
+            self.path = '/index.html'
+        elif self.path == '/api/live-positions':
+            return self._handle_live_positions()
+        return super().do_GET()
+    
+    def _handle_live_positions(self):
+        """Get live position data from Tradier"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'position_manager.py'), '--get-positions'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+        except Exception:
+            result = {'ok': False, 'error': proc.stderr or 'Failed to fetch positions'}
+        
+        if proc.returncode == 0 and result.get('ok'):
+            return self.json_response(200, result)
+        else:
+            return self.json_response(500, result)
+    
     def do_POST(self):
         length = int(self.headers.get('Content-Length', '0'))
         body = self.rfile.read(length)
@@ -272,8 +302,50 @@ class Handler(SimpleHTTPRequestHandler):
             return self._run_save(SAVE_QUEUE, body)
         if self.path == '/api/actions':
             return self._handle_action(body)
+        if self.path == '/api/close-position':
+            return self._handle_close_position(body)
         self.send_response(404)
         self.end_headers()
+    
+    def _handle_close_position(self, body):
+        """Close a position"""
+        import subprocess
+        import json as json_mod
+        
+        try:
+            payload = json_mod.loads(body.decode() or '{}')
+        except Exception:
+            return self.json_response(400, {'ok': False, 'error': 'Invalid JSON'})
+        
+        required = ['symbol', 'quantity', 'option_type', 'strike', 'expiration']
+        for field in required:
+            if field not in payload:
+                return self.json_response(400, {'ok': False, 'error': f'Missing field: {field}'})
+        
+        proc = subprocess.run(
+            [
+                'python3', str(ROOT / 'dashboard' / 'scripts' / 'position_manager.py'),
+                '--close',
+                '--symbol', str(payload['symbol']),
+                '--quantity', str(payload['quantity']),
+                '--option-type', str(payload['option_type']),
+                '--strike', str(payload['strike']),
+                '--expiration', str(payload['expiration'])
+            ],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+        except Exception:
+            result = {'ok': False, 'error': proc.stderr or 'Failed to close position'}
+        
+        if proc.returncode == 0 and result.get('ok'):
+            return self.json_response(200, result)
+        else:
+            return self.json_response(500, result)
 
 
 def parse_args():

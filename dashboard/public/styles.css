@@ -174,6 +174,53 @@ h1, h2 { margin: 0 0 8px; }
   padding-top: 8px;
   border-top: 1px solid var(--border);
 }
+
+/* Real-time P&L Styles */
+.positions-pnl {
+  font-weight: 800;
+  font-size: 16px;
+}
+.position-winning {
+  border-left: 3px solid var(--good);
+}
+.position-losing {
+  border-left: 3px solid var(--bad);
+}
+.position-pnl {
+  font-weight: 800;
+  font-size: 18px;
+}
+.live-price {
+  color: var(--accent);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.dte-badge {
+  background: rgba(107, 160, 255, 0.15);
+  color: #8db4ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+.position-actions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.close-position-btn {
+  background: var(--bad) !important;
+  color: white !important;
+  font-size: 12px;
+  padding: 8px 12px;
+  width: auto;
+}
+.close-position-btn:hover {
+  background: #ff5252 !important;
+}
 .preview-title {
   font-weight: 800;
   font-size: 16px;
