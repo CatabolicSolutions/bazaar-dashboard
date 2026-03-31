@@ -814,6 +814,38 @@ function renderActions(leader, stateMeta = null) {
 
 // Global variable for live position data
 let livePositionData = null;
+let exitPredictorData = null;
+
+// Fetch exit predictor analysis
+async function fetchExitPredictor() {
+  try {
+    const res = await fetch('/api/exit-predictor');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        exitPredictorData = data.data;
+        return data.data;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch exit predictor:', err);
+  }
+  return null;
+}
+
+// Get exit analysis for a position
+function getPositionExitAnalysis(symbol, instrument) {
+  if (!exitPredictorData?.results) return null;
+  
+  for (const result of exitPredictorData.results) {
+    const pos = result.position;
+    const posInstrument = pos.contract?.split(' ', 1)[1] || pos.contract;
+    if (pos.symbol === symbol && posInstrument === instrument) {
+      return result.analysis;
+    }
+  }
+  return null;
+}
 
 async function fetchLivePositions() {
   try {
@@ -979,13 +1011,34 @@ function renderPositions(positions) {
         const hasLiveData = pos.live_price !== undefined;
         const dte = pos.days_to_expiry !== undefined ? `${pos.days_to_expiry}DTE` : '';
         
+        // Get exit analysis
+        const exitAnalysis = getPositionExitAnalysis(pos.symbol, pos.instrument);
+        const exitSignal = exitAnalysis?.signal || 'HOLD';
+        const exitScore = exitAnalysis?.score || 0;
+        const exitColor = exitAnalysis?.color || 'green';
+        const exitReasons = exitAnalysis?.reasons || [];
+        
+        // Signal badge
+        const signalBadges = {
+          'EXIT': '🔴 EXIT',
+          'WATCH': '🟡 WATCH', 
+          'HOLD': '🟢 HOLD'
+        };
+        const signalBadge = signalBadges[exitSignal] || '🟢 HOLD';
+        
         return `
-        <div class="position-row ${pnl >= 0 ? 'position-winning' : 'position-losing'}">
+        <div class="position-row ${pnl >= 0 ? 'position-winning' : 'position-losing'} position-exit-${exitColor}">
           <div class="position-main">
             <div class="position-symbol">${escapeHtml(pos.symbol)}</div>
             <div class="position-instrument">${escapeHtml(pos.instrument)} ${dte ? `<span class="dte-badge">${dte}</span>` : ''}</div>
-            <div class="position-pnl">${formatPnL(pnl, pnlPct)}</div>
+            <div class="position-exit-badge">${signalBadge} <span class="exit-score">(${exitScore}/100)</span></div>
           </div>
+          <div class="position-pnl">${formatPnL(pnl, pnlPct)}</div>
+          ${exitReasons.length > 0 ? `
+            <div class="exit-reasons">
+              ${exitReasons.map(r => `<span class="exit-reason">${escapeHtml(r)}</span>`).join('')}
+            </div>
+          ` : ''}
           <div class="position-details">
             <div class="position-field">
               <span class="label">Entry</span>
@@ -1070,3 +1123,12 @@ setInterval(() => {
     }
   }).catch(() => {});
 }, 10000);
+
+// Auto-refresh exit predictor every 30 seconds
+setInterval(() => {
+  fetchExitPredictor().then(() => {
+    if (currentSnapshot) {
+      renderPositions(currentSnapshot?.activePositions?.positions || []);
+    }
+  }).catch(() => {});
+}, 30000);

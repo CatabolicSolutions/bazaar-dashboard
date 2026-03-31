@@ -271,6 +271,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_live_positions()
         elif self.path == '/api/live-scanner':
             return self._handle_live_scanner()
+        elif self.path == '/api/exit-predictor':
+            return self._handle_exit_predictor()
         return super().do_GET()
     
     def _handle_live_positions(self):
@@ -311,6 +313,28 @@ class Handler(SimpleHTTPRequestHandler):
             result = json_mod.loads(proc.stdout)
         except Exception:
             result = {'ok': False, 'error': proc.stderr or 'Failed to fetch scanner data'}
+        
+        if proc.returncode == 0 and result.get('ok'):
+            return self.json_response(200, result)
+        else:
+            return self.json_response(500, result)
+    
+    def _handle_exit_predictor(self):
+        """Get exit predictor analysis"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'exit_predictor.py'), '--analyze'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+        except Exception:
+            result = {'ok': False, 'error': proc.stderr or 'Failed to analyze positions'}
         
         if proc.returncode == 0 and result.get('ok'):
             return self.json_response(200, result)
