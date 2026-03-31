@@ -1598,3 +1598,164 @@ setInterval(() => {
 fetchJournal().then(() => {
   updateAnalytics();
 });
+
+// Portfolio Heatmap globals
+let heatmapData = null;
+
+// Fetch portfolio heatmap
+async function fetchHeatmap() {
+  try {
+    const res = await fetch('/api/heatmap');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        heatmapData = data.data;
+        renderHeatmap(data.data);
+        renderRiskMetrics(data.data);
+        return data.data;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch heatmap:', err);
+  }
+  return null;
+}
+
+function renderHeatmap(data) {
+  const container = document.getElementById('heatmapContainer');
+  if (!container) return;
+  
+  if (!data.positions || data.positions.length === 0) {
+    container.innerHTML = '<div class="heatmap-empty">No positions to display</div>';
+    return;
+  }
+  
+  // Calculate cell sizes based on position value relative to total
+  const totalValue = data.total_value;
+  
+  container.innerHTML = `
+    <div class="heatmap-grid">
+      ${data.positions.map(pos => {
+        // Size based on market value
+        const sizePercent = totalValue > 0 ? (pos.market_value / totalValue) * 100 : 0;
+        const minSize = 15; // Minimum size percentage
+        const cellSize = Math.max(minSize, sizePercent);
+        
+        // Color based on P&L
+        const pnlPercent = pos.pnl_percent || 0;
+        let colorClass = 'heatmap-neutral';
+        let intensity = 0;
+        
+        if (pnlPercent > 0) {
+          // Green for winners, intensity based on % gain
+          colorClass = 'heatmap-green';
+          intensity = Math.min(100, Math.abs(pnlPercent) * 5); // Scale up for visibility
+        } else if (pnlPercent < 0) {
+          // Red for losers
+          colorClass = 'heatmap-red';
+          intensity = Math.min(100, Math.abs(pnlPercent) * 5);
+        }
+        
+        // Format display
+        const pnlSign = pnlPercent >= 0 ? '+' : '';
+        
+        return `
+          <div class="heatmap-cell ${colorClass}" 
+               style="flex: 0 0 ${cellSize}%; --intensity: ${intensity}%"
+               title="${pos.symbol} ${pos.option_type} $${pos.strike} - P&L: ${pnlSign}${pnlPercent.toFixed(1)}%">
+            <div class="heatmap-cell-content">
+              <div class="heatmap-symbol">${escapeHtml(pos.symbol)}</div>
+              <div class="heatmap-details">
+                <span class="heatmap-strike">$${escapeHtml(pos.strike)}</span>
+                <span class="heatmap-dte">${pos.dte}DTE</span>
+              </div>
+              <div class="heatmap-pnl ${pnlPercent >= 0 ? 'good' : 'bad'}">${pnlSign}${pnlPercent.toFixed(1)}%</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderRiskMetrics(data) {
+  const container = document.getElementById('riskMetrics');
+  if (!container) return;
+  
+  const metrics = data.risk_metrics || {};
+  const alerts = data.alerts || [];
+  
+  // Determine delta bias
+  const delta = metrics.total_delta || 0;
+  let deltaBias = 'Neutral';
+  let deltaClass = 'neutral';
+  if (delta > 10) {
+    deltaBias = 'Bullish 📈';
+    deltaClass = 'bullish';
+  } else if (delta < -10) {
+    deltaBias = 'Bearish 📉';
+    deltaClass = 'bearish';
+  }
+  
+  // Theta interpretation
+  const theta = metrics.total_theta || 0;
+  const thetaClass = theta < -50 ? 'bad' : theta < 0 ? 'warning' : 'good';
+  
+  container.innerHTML = `
+    <div class="risk-metrics-grid">
+      <div class="risk-metric">
+        <span class="risk-label">Total Delta</span>
+        <span class="risk-value ${deltaClass}">${delta.toFixed(1)} (${deltaBias})</span>
+      </div>
+      <div class="risk-metric">
+        <span class="risk-label">Daily Theta</span>
+        <span class="risk-value ${thetaClass}">$${theta.toFixed(2)}/day</span>
+      </div>
+      <div class="risk-metric">
+        <span class="risk-label">Total Vega</span>
+        <span class="risk-value">${metrics.total_vega?.toFixed(1) || 0}</span>
+      </div>
+      <div class="risk-metric">
+        <span class="risk-label">Max Loss</span>
+        <span class="risk-value bad">-$${metrics.max_loss_scenario?.toFixed(2) || 0}</span>
+      </div>
+    </div>
+    
+    ${alerts.length > 0 ? `
+      <div class="risk-alerts">
+        <div class="risk-alerts-title">⚠️ Risk Alerts</div>
+        ${alerts.map(alert => `
+          <div class="risk-alert ${alert.severity}">
+            <span class="alert-icon">${alert.severity === 'warning' ? '⚠️' : 'ℹ️'}</span>
+            <span class="alert-message">${escapeHtml(alert.message)}</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+    
+    ${Object.keys(data.concentration || {}).length > 0 ? `
+      <div class="concentration-section">
+        <div class="concentration-title">Portfolio Concentration</div>
+        <div class="concentration-bars">
+          ${Object.entries(data.concentration).map(([symbol, data]) => `
+            <div class="concentration-item">
+              <span class="concentration-symbol">${escapeHtml(symbol)}</span>
+              <div class="concentration-bar">
+                <div class="concentration-fill ${data.percent > 20 ? 'high' : ''}" style="width: ${Math.min(100, data.percent)}%"></div>
+              </div>
+              <span class="concentration-percent ${data.percent > 20 ? 'high' : ''}">${data.percent}%</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
+}
+
+// Load heatmap on init
+fetchHeatmap();
+
+// Auto-refresh heatmap every 30 seconds
+setInterval(() => {
+  fetchHeatmap().catch(() => {});
+}, 30000);

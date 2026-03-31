@@ -279,6 +279,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_analytics()
         elif self.path == '/api/premarket':
             return self._handle_premarket()
+        elif self.path == '/api/heatmap':
+            return self._handle_heatmap()
         return super().do_GET()
     
     def _handle_live_positions(self):
@@ -396,6 +398,27 @@ class Handler(SimpleHTTPRequestHandler):
         
         proc = subprocess.run(
             ['python3', str(ROOT / 'dashboard' / 'scripts' / 'premarket_scanner.py'), '--scan'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+            if result.get('ok'):
+                return self.json_response(200, result)
+            else:
+                return self.json_response(500, result)
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+    
+    def _handle_heatmap(self):
+        """Get portfolio heatmap"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'portfolio_heatmap.py'), '--heatmap'],
             cwd=str(ROOT),
             capture_output=True,
             text=True

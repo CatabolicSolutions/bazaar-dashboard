@@ -625,6 +625,203 @@ h1, h2 { margin: 0 0 8px; }
 .queue-gap-btn:hover {
   background: var(--border) !important;
 }
+
+/* Portfolio Heatmap Styles */
+.card-heatmap { grid-column: span 12; }
+.heatmap-container {
+  margin-bottom: 20px;
+}
+.heatmap-empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 40px;
+  font-style: italic;
+}
+.heatmap-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.heatmap-cell {
+  min-width: 120px;
+  min-height: 100px;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.heatmap-cell:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.heatmap-cell.heatmap-green {
+  background: linear-gradient(135deg, 
+    rgba(81, 216, 138, calc(0.2 + var(--intensity) * 0.005)), 
+    rgba(81, 216, 138, calc(0.1 + var(--intensity) * 0.003)));
+  border-color: rgba(81, 216, 138, 0.4);
+}
+.heatmap-cell.heatmap-red {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, calc(0.2 + var(--intensity) * 0.005)), 
+    rgba(255, 107, 107, calc(0.1 + var(--intensity) * 0.003)));
+  border-color: rgba(255, 107, 107, 0.4);
+}
+.heatmap-cell.heatmap-neutral {
+  background: rgba(255, 255, 255, 0.05);
+}
+.heatmap-cell-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.heatmap-symbol {
+  font-weight: 800;
+  font-size: 16px;
+}
+.heatmap-details {
+  font-size: 11px;
+  color: var(--muted);
+}
+.heatmap-strike {
+  margin-right: 8px;
+}
+.heatmap-pnl {
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+/* Risk Metrics */
+.risk-metrics {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 16px;
+}
+.risk-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.risk-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.risk-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.risk-value {
+  font-weight: 700;
+  font-size: 16px;
+}
+.risk-value.bullish {
+  color: var(--good);
+}
+.risk-value.bearish {
+  color: var(--bad);
+}
+.risk-value.neutral {
+  color: var(--muted);
+}
+.risk-value.warning {
+  color: var(--accent);
+}
+
+/* Risk Alerts */
+.risk-alerts {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.risk-alerts-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+.risk-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.risk-alert.warning {
+  background: rgba(245, 197, 66, 0.1);
+  border-left: 3px solid var(--accent);
+}
+.risk-alert.info {
+  background: rgba(107, 160, 255, 0.1);
+  border-left: 3px solid #6ba0ff;
+}
+.alert-icon {
+  font-size: 14px;
+}
+.alert-message {
+  font-size: 13px;
+}
+
+/* Concentration Bars */
+.concentration-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.concentration-title {
+  font-weight: 700;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.concentration-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.concentration-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.concentration-symbol {
+  width: 60px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.concentration-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.concentration-fill {
+  height: 100%;
+  background: var(--good);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.concentration-fill.high {
+  background: var(--bad);
+}
+.concentration-percent {
+  width: 50px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+}
+.concentration-percent.high {
+  color: var(--bad);
+}
 .alert-content {
   flex: 1;
 }
