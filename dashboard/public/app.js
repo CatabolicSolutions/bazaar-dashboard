@@ -1272,6 +1272,170 @@ async function refresh() {
 loadAlertConfig();
 updateAlertControls();
 
+// Trade Journal globals
+let journalData = null;
+let analyticsData = null;
+
+// Fetch journal entries
+async function fetchJournal() {
+  try {
+    const res = await fetch('/api/journal');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        journalData = data.trades;
+        return data.trades;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch journal:', err);
+  }
+  return null;
+}
+
+// Fetch analytics
+async function fetchAnalytics(period = 'all') {
+  try {
+    const res = await fetch(`/api/analytics?period=${period}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        analyticsData = data.analytics;
+        return data.analytics;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch analytics:', err);
+  }
+  return null;
+}
+
+// Update analytics display
+async function updateAnalytics() {
+  const period = document.getElementById('analyticsPeriod')?.value || 'all';
+  const analytics = await fetchAnalytics(period);
+  
+  const container = document.getElementById('analyticsSummary');
+  if (!container || !analytics) return;
+  
+  if (analytics.total_trades === 0) {
+    container.innerHTML = '<div class="analytics-empty">No trades yet. Execute a trade to see analytics.</div>';
+    return;
+  }
+  
+  const winRateClass = analytics.win_rate >= 50 ? 'good' : 'bad';
+  const pnlClass = analytics.total_pnl >= 0 ? 'good' : 'bad';
+  
+  container.innerHTML = `
+    <div class="analytics-grid">
+      <div class="analytics-item">
+        <div class="analytics-value">${analytics.total_trades}</div>
+        <div class="analytics-label">Total Trades</div>
+      </div>
+      <div class="analytics-item">
+        <div class="analytics-value ${winRateClass}">${analytics.win_rate}%</div>
+        <div class="analytics-label">Win Rate</div>
+      </div>
+      <div class="analytics-item">
+        <div class="analytics-value ${pnlClass}">$${analytics.total_pnl.toFixed(2)}</div>
+        <div class="analytics-label">Total P&L</div>
+      </div>
+      <div class="analytics-item">
+        <div class="analytics-value">$${analytics.avg_pnl.toFixed(2)}</div>
+        <div class="analytics-label">Avg P&L</div>
+      </div>
+      <div class="analytics-item">
+        <div class="analytics-value">${analytics.max_drawdown_streak}</div>
+        <div class="analytics-label">Max Loss Streak</div>
+      </div>
+      <div class="analytics-item">
+        <div class="analytics-value">${analytics.avg_duration_minutes.toFixed(0)}m</div>
+        <div class="analytics-label">Avg Duration</div>
+      </div>
+    </div>
+    ${analytics.best_trade ? `
+      <div class="trade-extremes">
+        <div class="extreme best">
+          <span class="extreme-label">Best Trade</span>
+          <span class="extreme-value good">+$${analytics.best_trade.pnl.toFixed(2)}</span>
+          <span class="extreme-symbol">${analytics.best_trade.symbol}</span>
+        </div>
+        <div class="extreme worst">
+          <span class="extreme-label">Worst Trade</span>
+          <span class="extreme-value bad">$${analytics.worst_trade.pnl.toFixed(2)}</span>
+          <span class="extreme-symbol">${analytics.worst_trade.symbol}</span>
+        </div>
+      </div>
+    ` : ''}
+  `;
+  
+  // Also update journal entries
+  renderJournalEntries();
+}
+
+// Render journal entries
+function renderJournalEntries() {
+  const container = document.getElementById('journalEntries');
+  if (!container || !journalData) return;
+  
+  if (journalData.length === 0) {
+    container.innerHTML = '<div class="journal-empty">No trades recorded yet.</div>';
+    return;
+  }
+  
+  // Show last 10 trades
+  const recentTrades = journalData.slice(0, 10);
+  
+  container.innerHTML = `
+    <div class="journal-list">
+      ${recentTrades.map(trade => {
+        const entry = trade.entry;
+        const exit = trade.exit;
+        const isWin = trade.pnl && trade.pnl.dollar > 0;
+        const pnlClass = isWin ? 'good' : trade.pnl ? 'bad' : 'muted';
+        const pnlText = trade.pnl ? `${isWin ? '+' : ''}$${trade.pnl.dollar.toFixed(2)}` : 'Open';
+        
+        return `
+          <div class="journal-item ${trade.status}">
+            <div class="journal-main">
+              <span class="journal-symbol">${escapeHtml(entry.symbol)}</span>
+              <span class="journal-contract">${escapeHtml(entry.option_type)} ${entry.strike} ${entry.expiration}</span>
+              <span class="journal-pnl ${pnlClass}">${pnlText}</span>
+            </div>
+            <div class="journal-details">
+              <span>Entry: $${entry.price} × ${entry.quantity}</span>
+              ${exit ? `<span>Exit: $${exit.price} (${exit.reason})</span>` : '<span>Open position</span>'}
+              ${trade.duration_minutes ? `<span>Duration: ${trade.duration_minutes.toFixed(0)}m</span>` : ''}
+            </div>
+            ${trade.tags.length > 0 ? `
+              <div class="journal-tags">
+                ${trade.tags.map(tag => `<span class="journal-tag">${escapeHtml(tag)}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// Export journal to CSV
+async function exportJournal() {
+  try {
+    const res = await fetch('/api/journal/export', { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok) {
+        alert(`Journal exported to: ${data.path}`);
+      } else {
+        alert('Export failed: ' + data.error);
+      }
+    }
+  } catch (err) {
+    alert('Export error: ' + err.message);
+  }
+}
+
 document.getElementById('refreshBtn').addEventListener('click', refresh);
 refresh().catch(err => {
   document.getElementById('serverState').textContent = 'ERROR';
@@ -1313,3 +1477,8 @@ setInterval(() => {
     }
   }).catch(() => {});
 }, 30000);
+
+// Load journal on init
+fetchJournal().then(() => {
+  updateAnalytics();
+});

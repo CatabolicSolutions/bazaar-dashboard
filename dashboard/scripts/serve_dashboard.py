@@ -273,6 +273,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_live_scanner()
         elif self.path == '/api/exit-predictor':
             return self._handle_exit_predictor()
+        elif self.path == '/api/journal':
+            return self._handle_journal()
+        elif self.path == '/api/analytics':
+            return self._handle_analytics()
         return super().do_GET()
     
     def _handle_live_positions(self):
@@ -341,6 +345,48 @@ class Handler(SimpleHTTPRequestHandler):
         else:
             return self.json_response(500, result)
     
+    def _handle_journal(self):
+        """Get trade journal entries"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'trade_journal.py'), '--list'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            trades = json_mod.loads(proc.stdout)
+            return self.json_response(200, {'ok': True, 'trades': trades})
+        except Exception:
+            return self.json_response(500, {'ok': False, 'error': 'Failed to load journal'})
+    
+    def _handle_analytics(self):
+        """Get trading analytics"""
+        import subprocess
+        import json as json_mod
+        from urllib.parse import parse_qs, urlparse
+        
+        # Get period from query string
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        period = params.get('period', ['all'])[0]
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'trade_journal.py'), '--analytics', period],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            result = json_mod.loads(proc.stdout)
+            return self.json_response(200, {'ok': True, 'analytics': result})
+        except Exception:
+            return self.json_response(500, {'ok': False, 'error': 'Failed to calculate analytics'})
+    
     def do_POST(self):
         length = int(self.headers.get('Content-Length', '0'))
         body = self.rfile.read(length)
@@ -352,6 +398,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_action(body)
         if self.path == '/api/close-position':
             return self._handle_close_position(body)
+        if self.path == '/api/journal/export':
+            return self._handle_journal_export()
         self.send_response(404)
         self.end_headers()
     
@@ -394,6 +442,29 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, result)
         else:
             return self.json_response(500, result)
+    
+    def _handle_journal_export(self):
+        """Export journal to CSV"""
+        import subprocess
+        import json as json_mod
+        
+        proc = subprocess.run(
+            ['python3', str(ROOT / 'dashboard' / 'scripts' / 'trade_journal.py'), '--export-csv'],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True
+        )
+        
+        try:
+            # Parse the output to get the file path
+            output = proc.stdout.strip()
+            if 'Exported to:' in output:
+                path = output.split('Exported to:')[1].strip()
+                return self.json_response(200, {'ok': True, 'path': path})
+            else:
+                return self.json_response(500, {'ok': False, 'error': 'Export failed'})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
 
 
 def parse_args():
