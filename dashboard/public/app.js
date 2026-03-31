@@ -227,6 +227,52 @@ function renderOverview(snapshot) {
 // Global for live scanner data
 let liveScannerData = null;
 
+// Quick execute from scanner row
+async function quickExecuteFromScanner(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) {
+    alert('Leader not found');
+    return;
+  }
+  
+  if (!confirm(`Quick execute: ${leaderDisplayName(leader)}?\n\nThis will create a preview for immediate execution.`)) {
+    return;
+  }
+  
+  // Set as selected leader
+  setSelectedLeader(index, currentSnapshot.tradier.leaders);
+  
+  // Trigger execute preview
+  await runExecutePreview(leader);
+}
+
+// Quick queue from scanner row
+async function quickQueueFromScanner(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) {
+    alert('Leader not found');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'queue_selected_leader', leader }),
+    });
+    
+    const data = await res.json();
+    if (data.ok) {
+      alert(`Added to queue: ${leaderDisplayName(leader)}`);
+      await refresh();
+    } else {
+      alert(`Failed: ${data.error}`);
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
 async function fetchLiveScanner() {
   try {
     const res = await fetch('/api/live-scanner');
@@ -351,6 +397,14 @@ function renderLeaders(leaders) {
             ${opportunity.factors.map(f => `<span class="factor-badge">${escapeHtml(f)}</span>`).join('')}
           </div>
         ` : ''}
+        <div class="leader-actions">
+          <button class="quick-execute-btn" onclick="event.stopPropagation(); quickExecuteFromScanner(${index})">
+            ⚡ Quick Execute
+          </button>
+          <button class="queue-btn" onclick="event.stopPropagation(); quickQueueFromScanner(${index})">
+            + Queue
+          </button>
+        </div>
       </button>
     `;
   }).join('');

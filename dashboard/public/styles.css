@@ -282,6 +282,36 @@ h1, h2 { margin: 0 0 8px; }
   font-size: 10px;
   color: var(--muted);
 }
+
+/* Quick Action Buttons */
+.leader-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.quick-execute-btn {
+  background: linear-gradient(180deg, var(--good), #3cb371) !important;
+  color: white !important;
+  font-size: 12px;
+  padding: 8px 12px;
+  flex: 1;
+}
+.quick-execute-btn:hover {
+  background: linear-gradient(180deg, #5ee696, #4cd686) !important;
+}
+.queue-btn {
+  background: var(--panel-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  font-size: 12px;
+  padding: 8px 12px;
+  width: auto;
+}
+.queue-btn:hover {
+  background: var(--border) !important;
+}
 .preview-title {
   font-weight: 800;
   font-size: 16px;
