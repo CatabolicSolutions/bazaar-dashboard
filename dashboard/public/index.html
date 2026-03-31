@@ -70,6 +70,20 @@
         </div>
         <div id="positionsWrap" class="positions-wrap placeholder">Loading positions...</div>
       </section>
+      
+      <section class="card card-alerts">
+        <div class="card-header">
+          <h2>Alert Center</h2>
+          <div class="muted small">Exit signal notifications</div>
+        </div>
+        <div class="alert-controls">
+          <button id="toggleSound" class="alert-control" onclick="toggleAlertSound()">🔊 Sound On</button>
+          <button id="toggleNotifications" class="alert-control" onclick="toggleBrowserNotifications()">🔔 Notifications</button>
+        </div>
+        <div id="alertLog" class="alert-log">
+          <div class="alert-log-empty">No alerts yet</div>
+        </div>
+      </section>
     </main>
   </div>
   <script src="./app.js"></script>

@@ -815,6 +815,179 @@ function renderActions(leader, stateMeta = null) {
 // Global variable for live position data
 let livePositionData = null;
 let exitPredictorData = null;
+let alertConfig = {
+  soundEnabled: true,
+  browserNotifications: true,
+  alertedPositions: new Set() // Track which positions we've already alerted on
+};
+
+// Request browser notification permission
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Play alert sound
+function playAlertSound() {
+  if (!alertConfig.soundEnabled) return;
+  
+  // Create oscillator for beep sound
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (e) {
+    console.error('Failed to play alert sound:', e);
+  }
+}
+
+// Send browser notification
+function sendBrowserNotification(title, body) {
+  if (!alertConfig.browserNotifications) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  
+  try {
+    new Notification(title, {
+      body: body,
+      icon: '🚨',
+      tag: 'exit-alert',
+      requireInteraction: true
+    });
+  } catch (e) {
+    console.error('Failed to send notification:', e);
+  }
+}
+
+// Check for new EXIT signals and alert
+function checkExitAlerts(positions) {
+  if (!exitPredictorData?.results) return;
+  
+  exitPredictorData.results.forEach(result => {
+    const pos = result.position;
+    const analysis = result.analysis;
+    const positionKey = `${pos.symbol}_${pos.contract}`;
+    
+    // Only alert on EXIT signals we haven't alerted on yet
+    if (analysis.signal === 'EXIT' && !alertConfig.alertedPositions.has(positionKey)) {
+      alertConfig.alertedPositions.add(positionKey);
+      
+      // Play sound
+      playAlertSound();
+      
+      // Send browser notification
+      const reason = analysis.reasons?.[0] || 'Exit signal triggered';
+      sendBrowserNotification(
+        '🚨 EXIT ALERT: ' + pos.symbol,
+        `${pos.contract} - Score: ${analysis.score}/100 - ${reason}`
+      );
+      
+      // Add to alert log
+      addAlertToLog({
+        timestamp: new Date().toISOString(),
+        symbol: pos.symbol,
+        contract: pos.contract,
+        score: analysis.score,
+        reason: reason,
+        type: 'EXIT'
+      });
+    }
+  });
+}
+
+// Alert log
+let alertLog = [];
+
+function addAlertToLog(alert) {
+  alertLog.unshift(alert);
+  // Keep only last 20 alerts
+  alertLog = alertLog.slice(0, 20);
+  renderAlertLog();
+}
+
+function renderAlertLog() {
+  const logContainer = document.getElementById('alertLog');
+  if (!logContainer) return;
+  
+  if (alertLog.length === 0) {
+    logContainer.innerHTML = '<div class="alert-log-empty">No alerts yet</div>';
+    return;
+  }
+  
+  logContainer.innerHTML = alertLog.map(alert => `
+    <div class="alert-log-item alert-${alert.type.toLowerCase()}">
+      <div class="alert-time">${new Date(alert.timestamp).toLocaleTimeString()}</div>
+      <div class="alert-content">
+        <strong>${alert.type}</strong>: ${escapeHtml(alert.symbol)} ${escapeHtml(alert.contract)}
+        <div class="alert-reason">${escapeHtml(alert.reason)} (Score: ${alert.score})</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Toggle sound
+function toggleAlertSound() {
+  alertConfig.soundEnabled = !alertConfig.soundEnabled;
+  localStorage.setItem('alertSoundEnabled', alertConfig.soundEnabled);
+  updateAlertControls();
+}
+
+// Toggle browser notifications
+function toggleBrowserNotifications() {
+  alertConfig.browserNotifications = !alertConfig.browserNotifications;
+  localStorage.setItem('browserNotificationsEnabled', alertConfig.browserNotifications);
+  
+  if (alertConfig.browserNotifications && 'Notification' in window && Notification.permission === 'default') {
+    requestNotificationPermission();
+  }
+  
+  updateAlertControls();
+}
+
+// Update alert control UI
+function updateAlertControls() {
+  const soundBtn = document.getElementById('toggleSound');
+  const notifBtn = document.getElementById('toggleNotifications');
+  
+  if (soundBtn) {
+    soundBtn.textContent = alertConfig.soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
+    soundBtn.className = alertConfig.soundEnabled ? 'alert-control active' : 'alert-control';
+  }
+  
+  if (notifBtn) {
+    notifBtn.textContent = alertConfig.browserNotifications ? '🔔 Notifications On' : '🔕 Notifications Off';
+    notifBtn.className = alertConfig.browserNotifications ? 'alert-control active' : 'alert-control';
+  }
+}
+
+// Load alert config from localStorage
+function loadAlertConfig() {
+  const soundEnabled = localStorage.getItem('alertSoundEnabled');
+  const notifEnabled = localStorage.getItem('browserNotificationsEnabled');
+  
+  if (soundEnabled !== null) {
+    alertConfig.soundEnabled = soundEnabled === 'true';
+  }
+  if (notifEnabled !== null) {
+    alertConfig.browserNotifications = notifEnabled === 'true';
+  }
+  
+  // Request notification permission on load
+  requestNotificationPermission();
+}
 
 // Fetch exit predictor analysis
 async function fetchExitPredictor() {
@@ -1026,12 +1199,14 @@ function renderPositions(positions) {
         };
         const signalBadge = signalBadges[exitSignal] || '🟢 HOLD';
         
+        const isExit = exitSignal === 'EXIT';
+        
         return `
-        <div class="position-row ${pnl >= 0 ? 'position-winning' : 'position-losing'} position-exit-${exitColor}">
+        <div class="position-row ${pnl >= 0 ? 'position-winning' : 'position-losing'} position-exit-${exitColor} ${isExit ? 'position-exit-pulse' : ''}">
           <div class="position-main">
-            <div class="position-symbol">${escapeHtml(pos.symbol)}</div>
+            <div class="position-symbol">${escapeHtml(pos.symbol)} ${isExit ? '🚨' : ''}</div>
             <div class="position-instrument">${escapeHtml(pos.instrument)} ${dte ? `<span class="dte-badge">${dte}</span>` : ''}</div>
-            <div class="position-exit-badge">${signalBadge} <span class="exit-score">(${exitScore}/100)</span></div>
+            <div class="position-exit-badge ${isExit ? 'exit-badge-pulse' : ''}">${signalBadge} <span class="exit-score">(${exitScore}/100)</span></div>
           </div>
           <div class="position-pnl">${formatPnL(pnl, pnlPct)}</div>
           ${exitReasons.length > 0 ? `
@@ -1093,6 +1268,10 @@ async function refresh() {
   }
 }
 
+// Load alert configuration
+loadAlertConfig();
+updateAlertControls();
+
 document.getElementById('refreshBtn').addEventListener('click', refresh);
 refresh().catch(err => {
   document.getElementById('serverState').textContent = 'ERROR';
@@ -1129,6 +1308,8 @@ setInterval(() => {
   fetchExitPredictor().then(() => {
     if (currentSnapshot) {
       renderPositions(currentSnapshot?.activePositions?.positions || []);
+      // Check for new EXIT alerts
+      checkExitAlerts(currentSnapshot?.activePositions?.positions || []);
     }
   }).catch(() => {});
 }, 30000);
