@@ -1,3 +1,14 @@
+// Polyfill for crypto.randomUUID for non-secure contexts (HTTP)
+if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+  crypto.randomUUID = function() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+}
+
 let currentSnapshot = null;
 let selectedLeaderIndex = 0;
 let selectedLeaderKey = null;
@@ -290,7 +301,7 @@ async function fetchLiveScanner() {
 }
 
 function getLeaderLiveData(leader) {
-  """Get live data for a leader if available"""
+  // Get live data for a leader if available
   if (!liveScannerData?.leaders) return null;
   
   // Match by symbol, strike, and expiration
