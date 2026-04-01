@@ -281,6 +281,14 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_premarket()
         elif self.path == '/api/heatmap':
             return self._handle_heatmap()
+        elif self.path == '/api/crypto/init':
+            return self._handle_crypto_init()
+        elif self.path == '/api/crypto/wallet':
+            return self._handle_crypto_wallet()
+        elif self.path == '/api/crypto/pairs':
+            return self._handle_crypto_pairs()
+        elif self.path == '/api/crypto/emergency':
+            return self._handle_crypto_emergency()
         return super().do_GET()
     
     def _handle_live_positions(self):
@@ -430,6 +438,61 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json_response(200, result)
             else:
                 return self.json_response(500, result)
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+    
+    def _handle_crypto_init(self):
+        """Initialize crypto wallet"""
+        import json as json_mod
+        
+        try:
+            # For demo, return mock data
+            # In production, this would call crypto_trader.py
+            return self.json_response(200, {
+                'ok': True,
+                'address': '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                'eth_balance': 1.5,
+                'tokens': {'USDC': 2500.0, 'DAI': 1000.0},
+                'network': 'goerli',
+                'emergency_stop': False
+            })
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+    
+    def _handle_crypto_wallet(self):
+        """Get crypto wallet info"""
+        try:
+            return self.json_response(200, {
+                'ok': True,
+                'address': '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                'eth_balance': 1.5,
+                'tokens': {'USDC': 2500.0, 'DAI': 1000.0},
+                'emergency_stop': False
+            })
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+    
+    def _handle_crypto_pairs(self):
+        """Get monitored crypto pairs"""
+        try:
+            return self.json_response(200, {
+                'ok': True,
+                'pairs': [
+                    {'pair': 'WETH/USDC', 'quote': 1850.5},
+                    {'pair': 'WETH/DAI', 'quote': 1849.8},
+                    {'pair': 'WBTC/WETH', 'quote': 18.2},
+                ]
+            })
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+    
+    def _handle_crypto_emergency(self):
+        """Toggle emergency stop"""
+        try:
+            return self.json_response(200, {
+                'ok': True,
+                'stopped': True
+            })
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
     

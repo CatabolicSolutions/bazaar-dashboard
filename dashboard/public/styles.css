@@ -822,6 +822,91 @@ h1, h2 { margin: 0 0 8px; }
 .concentration-percent.high {
   color: var(--bad);
 }
+
+/* Crypto Trading Styles */
+.card-crypto { grid-column: span 12; }
+.crypto-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.emergency-btn {
+  background: var(--bad) !important;
+  color: white !important;
+}
+.emergency-btn:hover {
+  background: #ff4444 !important;
+}
+.crypto-wallet-info {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.crypto-empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 20px;
+}
+.crypto-section-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.crypto-pairs, .crypto-trades {
+  margin-bottom: 20px;
+}
+.crypto-pair-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.crypto-pair-name {
+  font-weight: 700;
+}
+.crypto-pair-price {
+  color: var(--accent);
+}
+.crypto-trade-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.crypto-wallet-address {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+.crypto-balance {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+.crypto-balance-item {
+  text-align: center;
+}
+.crypto-balance-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+.crypto-balance-label {
+  font-size: 11px;
+  color: var(--muted);
+}
 .alert-content {
   flex: 1;
 }

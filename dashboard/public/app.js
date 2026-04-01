@@ -1770,3 +1770,111 @@ fetchHeatmap();
 setInterval(() => {
   fetchHeatmap().catch(() => {});
 }, 30000);
+
+// Crypto Trading Module
+let cryptoInitialized = false;
+let cryptoWalletAddress = null;
+
+async function initCryptoWallet() {
+  const btn = document.getElementById('cryptoInitBtn');
+  btn.textContent = 'Initializing...';
+  btn.disabled = true;
+  
+  try {
+    const res = await fetch('/api/crypto/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'init' })
+    });
+    
+    const data = await res.json();
+    if (data.ok) {
+      cryptoInitialized = true;
+      cryptoWalletAddress = data.address;
+      renderCryptoWallet(data);
+      document.getElementById('cryptoEmergencyBtn').style.display = 'inline-block';
+      btn.style.display = 'none';
+      fetchCryptoPairs();
+    } else {
+      alert('Failed to initialize: ' + data.error);
+      btn.textContent = '🔐 Initialize Wallet';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+    btn.textContent = '🔐 Initialize Wallet';
+    btn.disabled = false;
+  }
+}
+
+function renderCryptoWallet(data) {
+  const container = document.getElementById('cryptoWalletInfo');
+  
+  container.innerHTML = `
+    <div class="crypto-wallet-header">
+      <div class="crypto-section-title">💳 Wallet</div>
+      <div class="crypto-wallet-address">${escapeHtml(data.address)}</div>
+    </div>
+    <div class="crypto-balance">
+      <div class="crypto-balance-item">
+        <div class="crypto-balance-value">${data.eth_balance?.toFixed(4) || 0}</div>
+        <div class="crypto-balance-label">ETH</div>
+      </div>
+      ${Object.entries(data.tokens || {}).map(([token, balance]) => `
+        <div class="crypto-balance-item">
+          <div class="crypto-balance-value">${balance?.toFixed(2) || 0}</div>
+          <div class="crypto-balance-label">${escapeHtml(token)}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="crypto-status ${data.emergency_stop ? 'bad' : 'good'}">
+      ${data.emergency_stop ? '🛑 Emergency Stop Active' : '✅ Trading Active'}
+    </div>
+  `;
+}
+
+async function fetchCryptoPairs() {
+  try {
+    const res = await fetch('/api/crypto/pairs');
+    const data = await res.json();
+    
+    if (data.ok) {
+      const container = document.getElementById('cryptoPairsList');
+      container.innerHTML = data.pairs.map(pair => `
+        <div class="crypto-pair-row">
+          <span class="crypto-pair-name">${escapeHtml(pair.pair)}</span>
+          <span class="crypto-pair-price">${pair.quote?.toFixed(6) || 'N/A'}</span>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Failed to fetch crypto pairs:', err);
+  }
+}
+
+async function toggleCryptoEmergencyStop() {
+  try {
+    const res = await fetch('/api/crypto/emergency', { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.ok) {
+      alert(data.stopped ? '🛑 Emergency Stop Activated' : '✅ Trading Resumed');
+      // Refresh wallet info
+      const walletRes = await fetch('/api/crypto/wallet');
+      const walletData = await walletRes.json();
+      if (walletData.ok) renderCryptoWallet(walletData);
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Auto-refresh crypto data every 30 seconds if initialized
+setInterval(() => {
+  if (cryptoInitialized) {
+    fetch('/api/crypto/wallet')
+      .then(r => r.json())
+      .then(data => { if (data.ok) renderCryptoWallet(data); })
+      .catch(() => {});
+  }
+}, 30000);

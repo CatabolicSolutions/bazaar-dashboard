@@ -130,6 +130,28 @@
         <div id="analyticsSummary" class="analytics-summary">Loading analytics...</div>
         <div id="journalEntries" class="journal-entries">Loading trades...</div>
       </section>
+      
+      <section class="card card-crypto">
+        <div class="card-header">
+          <h2>🔷 Crypto Trading</h2>
+          <div class="muted small">Web3 DEX integration</div>
+        </div>
+        <div class="crypto-controls">
+          <button onclick="initCryptoWallet()" id="cryptoInitBtn">🔐 Initialize Wallet</button>
+          <button onclick="toggleCryptoEmergencyStop()" id="cryptoEmergencyBtn" class="emergency-btn" style="display:none;">🛑 Emergency Stop</button>
+        </div>
+        <div id="cryptoWalletInfo" class="crypto-wallet-info">
+          <div class="crypto-empty">Wallet not initialized. Click "Initialize Wallet" to start.</div>
+        </div>
+        <div class="crypto-pairs" id="cryptoPairs">
+          <div class="crypto-section-title">📊 Monitored Pairs</div>
+          <div id="cryptoPairsList">Loading...</div>
+        </div>
+        <div class="crypto-trades" id="cryptoTrades">
+          <div class="crypto-section-title">🔄 Recent Trades</div>
+          <div id="cryptoTradesList">No trades yet</div>
+        </div>
+      </section>
     </main>
   </div>
   <script>
