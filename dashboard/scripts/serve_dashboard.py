@@ -509,6 +509,14 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_close_position(body)
         if self.path == '/api/journal/export':
             return self._handle_journal_export()
+        if self.path == '/api/crypto/wallet':
+            return self._handle_crypto_wallet(body)
+        if self.path == '/api/crypto/balance':
+            return self._handle_crypto_balance()
+        if self.path == '/api/crypto/quote':
+            return self._handle_crypto_quote(body)
+        if self.path == '/api/crypto/swap':
+            return self._handle_crypto_swap(body)
         self.send_response(404)
         self.end_headers()
     
