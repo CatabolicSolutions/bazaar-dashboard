@@ -70,14 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set initial zone
   document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
   switchZone('market');
+  
+  // Start data refresh
+  refreshData();
+  setInterval(refreshData, 30000);
 });
-
-let currentSnapshot = null;
-let selectedLeaderIndex = 0;
-let selectedLeaderKey = null;
-let lastActionStatus = null;
-let currentUiMode = 'loading';
-let currentLoadError = null;
 
 async function loadSnapshot() {
   const res = await fetch('./snapshot.json?ts=' + Date.now());
