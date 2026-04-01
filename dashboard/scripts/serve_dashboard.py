@@ -510,13 +510,13 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == '/api/journal/export':
             return self._handle_journal_export()
         if self.path == '/api/crypto/wallet':
-            return self._handle_crypto_wallet(body)
+            return self._handle_crypto_wallet()
         if self.path == '/api/crypto/balance':
             return self._handle_crypto_balance()
         if self.path == '/api/crypto/quote':
-            return self._handle_crypto_quote(body)
+            return self._handle_crypto_quote()
         if self.path == '/api/crypto/swap':
-            return self._handle_crypto_swap(body)
+            return self._handle_crypto_swap()
         self.send_response(404)
         self.end_headers()
     
