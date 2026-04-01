@@ -21,7 +21,11 @@ from web3 import Web3
 from eth_account import Account
 
 # Configuration
-WALLET_DIR = Path('/var/www/bazaar/wallets')
+import os
+if os.path.exists('/var/www/bazaar'):
+    WALLET_DIR = Path('/var/www/bazaar/wallets')
+else:
+    WALLET_DIR = Path.home() / '.bazaar' / 'wallets'
 SALT_FILE = WALLET_DIR / '.salt'
 
 class SecureWallet:
