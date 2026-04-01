@@ -67,41 +67,37 @@
       <div class="dashboard-grid">
         <!-- Market Overview Strip -->
         <section class="panel panel-overview">
-          <div class="panel-header compact">
-            <span class="panel-title">Overview</span>
-            <span class="panel-meta" id="updatedAt">--</span>
-          </div>
-          <div id="overviewGrid" class="metric-row"></div>
+          <div id="overviewGrid" class="metric-bar"></div>
         </section>
         
         <!-- Pre-Market Scanner -->
         <section class="panel panel-scanner">
           <div class="panel-header">
-            <span class="panel-title">🌅 Pre-Market Gap Scan</span>
-            <button class="btn-compact" onclick="runPremarketScan()">Scan Now</button>
+            <span class="panel-label">GAP SCANNER</span>
+            <button class="btn-action" onclick="runPremarketScan()">SCAN</button>
           </div>
-          <div id="premarketResults" class="scanner-results">
-            <div class="empty-state">Click scan to find overnight movers >3%</div>
+          <div id="premarketResults" class="panel-body compact">
+            <div class="void">Initialize scan to detect overnight movers</div>
           </div>
         </section>
         
         <!-- Leaders Board -->
         <section class="panel panel-leaders">
           <div class="panel-header">
-            <span class="panel-title">🏆 Tradier Leaders</span>
-            <span class="panel-meta">Top opportunities</span>
+            <span class="panel-label">TRADIER LEADERS</span>
+            <span class="panel-count" id="leadersMeta">--</span>
           </div>
-          <div id="leadersWrap" class="leaders-list"></div>
+          <div id="leadersWrap" class="panel-body"></div>
         </section>
         
         <!-- Selected Leader Detail -->
         <section class="panel panel-detail">
           <div class="panel-header">
-            <span class="panel-title">🎯 Selected Opportunity</span>
-            <span class="panel-meta" id="selectedMeta">No selection</span>
+            <span class="panel-label">OPPORTUNITY</span>
+            <span class="panel-status" id="selectedMeta">None</span>
           </div>
-          <div id="detailWrap" class="detail-content">
-            <div class="empty-state">Select a leader to view detailed analysis</div>
+          <div id="detailWrap" class="panel-body">
+            <div class="void">Select a leader to inspect</div>
           </div>
         </section>
       </div>
@@ -117,19 +113,19 @@
       <div class="dashboard-grid">
         <section class="panel panel-actions">
           <div class="panel-header">
-            <span class="panel-title">⚡ Quick Actions</span>
+            <span class="panel-label">QUICK ACTIONS</span>
           </div>
-          <div id="actionsWrap" class="actions-grid">
-            <div class="empty-state">Select a leader from Market zone to enable actions</div>
+          <div id="actionsWrap" class="panel-body action-grid">
+            <div class="void">Select a leader from Market zone</div>
           </div>
         </section>
         
         <section class="panel panel-summary">
           <div class="panel-header">
-            <span class="panel-title">📋 Operator Summary</span>
+            <span class="panel-label">EXECUTION SUMMARY</span>
           </div>
-          <div id="summaryStripWrap" class="summary-content">
-            <div class="empty-state">Select a leader to view execution summary</div>
+          <div id="summaryStripWrap" class="panel-body">
+            <div class="void">No active execution</div>
           </div>
         </section>
       </div>
@@ -145,35 +141,34 @@
       <div class="dashboard-grid">
         <section class="panel panel-positions">
           <div class="panel-header">
-            <span class="panel-title">📊 Active Positions</span>
-            <span class="panel-meta">Live from execution state</span>
+            <span class="panel-label">ACTIVE POSITIONS</span>
+            <div class="header-actions">
+              <button class="btn-icon" onclick="refreshPositions()" title="Refresh">↻</button>
+              <button class="btn-danger-compact" onclick="closeAllPositions()">CLOSE ALL</button>
+            </div>
           </div>
-          <div id="positionsWrap" class="positions-list">
-            <div class="empty-state">Loading positions...</div>
-          </div>
+          <div id="positionsWrap" class="panel-body"></div>
         </section>
         
         <section class="panel panel-heatmap">
           <div class="panel-header">
-            <span class="panel-title">🔥 Risk Heatmap</span>
+            <span class="panel-label">RISK MAP</span>
           </div>
-          <div id="heatmapContainer" class="heatmap-viz">
-            <div class="empty-state">Loading portfolio visualization...</div>
+          <div id="heatmapContainer" class="panel-body viz">
+            <div class="void">Portfolio visualization</div>
           </div>
-          <div id="riskMetrics" class="risk-bar"></div>
+          <div id="riskMetrics" class="risk-strip"></div>
         </section>
         
         <section class="panel panel-alerts">
           <div class="panel-header">
-            <span class="panel-title">🔔 Alert Center</span>
-            <div class="alert-toggles">
-              <button id="toggleSound" class="toggle-btn" onclick="toggleAlertSound()">🔊</button>
-              <button id="toggleNotifications" class="toggle-btn" onclick="toggleBrowserNotifications()">🔔</button>
+            <span class="panel-label">ALERTS</span>
+            <div class="toggles">
+              <button id="toggleSound" class="btn-toggle" onclick="toggleAlertSound()" title="Sound">🔊</button>
+              <button id="toggleNotifications" class="btn-toggle" onclick="toggleBrowserNotifications()" title="Notifications">🔔</button>
             </div>
           </div>
-          <div id="alertLog" class="alert-stream">
-            <div class="empty-state">No active alerts</div>
-          </div>
+          <div id="alertLog" class="panel-body compact"></div>
         </section>
       </div>
     </main>
@@ -188,20 +183,20 @@
       <div class="dashboard-grid">
         <section class="panel panel-crypto">
           <div class="panel-header">
-            <span class="panel-title">🔷 Crypto Trading</span>
-            <span class="panel-meta">Web3 DEX Integration</span>
+            <span class="panel-label">CRYPTO / DEX</span>
+            <span class="panel-status" id="cryptoStatus">Offline</span>
           </div>
-          <div class="crypto-zone">
-            <div class="crypto-controls">
-              <button onclick="initCryptoWallet()" id="cryptoInitBtn" class="btn-primary">Initialize Wallet</button>
-              <button onclick="toggleCryptoEmergencyStop()" id="cryptoEmergencyBtn" class="btn-danger" style="display:none;">Emergency Stop</button>
+          <div class="panel-body">
+            <div class="action-bar">
+              <button onclick="initCryptoWallet()" id="cryptoInitBtn" class="btn-primary">Initialize</button>
+              <button onclick="toggleCryptoEmergencyStop()" id="cryptoEmergencyBtn" class="btn-danger-compact" style="display:none;">EMERGENCY STOP</button>
             </div>
-            <div id="cryptoWalletInfo" class="crypto-status">
-              <div class="empty-state">Wallet not initialized. Click "Initialize Wallet" to start.</div>
+            <div id="cryptoWalletInfo" class="status-block">
+              <div class="void">Wallet not initialized</div>
             </div>
-            <div id="cryptoPairs" class="crypto-data">
-              <div class="data-header">Monitored Pairs</div>
-              <div id="cryptoPairsList" class="data-list">--</div>
+            <div id="cryptoPairs" class="data-section">
+              <div class="section-label">Monitored Pairs</div>
+              <div id="cryptoPairsList" class="data-rows">--</div>
             </div>
           </div>
         </section>
@@ -218,23 +213,23 @@
       <div class="dashboard-grid">
         <section class="panel panel-analytics">
           <div class="panel-header">
-            <span class="panel-title">📈 Performance Analytics</span>
-            <select id="analyticsPeriod" class="select-compact" onchange="updateAnalytics()">
+            <span class="panel-label">PERFORMANCE</span>
+            <select id="analyticsPeriod" class="select-inline" onchange="updateAnalytics()">
               <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="all" selected>All Time</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="all" selected>All</option>
             </select>
           </div>
-          <div id="analyticsSummary" class="analytics-grid">Loading...</div>
+          <div id="analyticsSummary" class="panel-body metric-grid">Loading...</div>
         </section>
         
         <section class="panel panel-history">
           <div class="panel-header">
-            <span class="panel-title">📓 Trade History</span>
-            <button class="btn-compact" onclick="exportJournal()">Export CSV</button>
+            <span class="panel-label">TRADE HISTORY</span>
+            <button class="btn-action" onclick="exportJournal()">EXPORT</button>
           </div>
-          <div id="journalEntries" class="history-list">Loading trades...</div>
+          <div id="journalEntries" class="panel-body"></div>
         </section>
       </div>
     </main>
