@@ -1,3 +1,8 @@
+// ═══════════════════════════════════════════════════════════════
+// THE BAZAAR - Trading Command Center
+// Zone-based navigation with operator-first layout
+// ═══════════════════════════════════════════════════════════════
+
 // Polyfill for crypto.randomUUID for non-secure contexts (HTTP)
 if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
   crypto.randomUUID = function() {
@@ -8,6 +13,64 @@ if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
     });
   };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+let currentSnapshot = null;
+let selectedLeaderIndex = 0;
+let selectedLeaderKey = null;
+let lastActionStatus = null;
+let currentUiMode = 'loading';
+let currentLoadError = null;
+let currentZone = 'market';
+
+// ═══════════════════════════════════════════════════════════════
+// ZONE NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+
+function switchZone(zoneName) {
+  // Update state
+  currentZone = zoneName;
+  
+  // Hide all zones
+  document.querySelectorAll('.zone').forEach(z => {
+    z.classList.remove('active');
+    z.style.display = 'none';
+  });
+  
+  // Show selected zone
+  const targetZone = document.getElementById('zone-' + zoneName);
+  if (targetZone) {
+    targetZone.style.display = 'block';
+    // Small delay for animation
+    setTimeout(() => targetZone.classList.add('active'), 10);
+  }
+  
+  // Update nav pills
+  document.querySelectorAll('.nav-pill').forEach(p => {
+    p.classList.remove('active');
+    if (p.dataset.zone === zoneName) {
+      p.classList.add('active');
+    }
+  });
+  
+  // Zone-specific refresh
+  if (zoneName === 'positions') {
+    fetchPositions();
+    fetchHeatmap();
+  } else if (zoneName === 'journal') {
+    updateAnalytics();
+  }
+}
+
+// Initialize zones on load
+document.addEventListener('DOMContentLoaded', () => {
+  // Set initial zone
+  document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
+  switchZone('market');
+});
 
 let currentSnapshot = null;
 let selectedLeaderIndex = 0;
@@ -213,26 +276,31 @@ function renderOverview(snapshot) {
   const tradier = snapshot.tradier || {};
   const overview = tradier.overview || {};
   const healthSummary = describeSnapshotHealth(snapshot);
+  
   const items = [
-    ['Board Status', health.tradierBoardPresent ? 'Present' : 'Missing', health.tradierBoardPresent ? 'good' : 'bad'],
-    ['Board Updated', health.tradierBoardUpdatedAt || 'N/A', 'muted'],
-    ['Leaders Parsed', overview.leaderCount ?? tradier.leaders?.length ?? 0, 'accent'],
-    ['Directional', overview.directionalCount ?? 0, 'muted'],
-    ['Premium', overview.premiumCount ?? 0, 'muted'],
-    ['Fallback Leaders', overview.fallbackCount ?? 0, overview.fallbackCount ? 'warn' : 'good'],
-    ['VIX', overview.vix ?? 'N/A', 'muted'],
-    ['Latest Commit', health.latestCommit || 'N/A', 'muted'],
+    { label: 'Board', value: health.tradierBoardPresent ? '✓ Live' : '✗ Missing', class: health.tradierBoardPresent ? 'positive' : 'negative' },
+    { label: 'Leaders', value: overview.leaderCount ?? tradier.leaders?.length ?? 0, class: 'accent' },
+    { label: 'Directional', value: overview.directionalCount ?? 0, class: '' },
+    { label: 'Premium', value: overview.premiumCount ?? 0, class: '' },
+    { label: 'VIX', value: overview.vix ?? '—', class: '' },
+    { label: 'Updated', value: health.tradierBoardUpdatedAt ? new Date(health.tradierBoardUpdatedAt).toLocaleTimeString() : '—', class: 'text-muted' },
   ];
 
-  document.getElementById('overviewGrid').innerHTML = `
-    ${stateBanner(healthSummary.text, healthSummary.tone)}
-    ${items.map(([label, value, klass]) => `
-      <div class="overview-item">
-        <div class="label">${escapeHtml(label)}</div>
-        <div class="value ${klass}">${escapeHtml(value)}</div>
-      </div>
-    `).join('')}
-  `;
+  const grid = document.getElementById('overviewGrid');
+  if (!grid) return;
+  
+  grid.innerHTML = items.map(item => `
+    <div class="metric-item">
+      <div class="metric-label">${escapeHtml(item.label)}</div>
+      <div class="metric-value ${item.class}">${escapeHtml(String(item.value))}</div>
+    </div>
+  `).join('');
+  
+  // Update timestamp
+  const updatedAt = document.getElementById('updatedAt');
+  if (updatedAt) {
+    updatedAt.textContent = new Date().toLocaleTimeString();
+  }
 }
 
 // Global for live scanner data
@@ -317,32 +385,22 @@ function getLeaderLiveData(leader) {
 
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
+  if (!wrap) return;
+  
   if (currentUiMode === 'loading') {
-    wrap.innerHTML = stateBanner('Loading local Tradier snapshot…', 'loading');
-    renderSummaryStrip(null, { kind: 'loading' });
-    renderDetail(null, { kind: 'loading' });
-    renderActions(null, { kind: 'loading' });
+    wrap.innerHTML = '<div class="empty-state">Loading Tradier snapshot...</div>';
     return;
   }
   if (currentUiMode === 'error') {
-    wrap.innerHTML = stateBanner(currentLoadError || 'Snapshot load failed.', 'bad');
-    renderSummaryStrip(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
-    renderDetail(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
-    renderActions(null, { kind: 'error', message: currentLoadError || 'Snapshot load failed.' });
+    wrap.innerHTML = `<div class="empty-state">Error: ${escapeHtml(currentLoadError || 'Snapshot load failed')}</div>`;
     return;
   }
   if (!leaders?.length) {
-    wrap.innerHTML = stateBanner('No Tradier leaders are currently available from local board data.', 'warn');
-    renderSummaryStrip(null, { kind: 'empty' });
-    renderDetail(null, { kind: 'empty' });
-    renderActions(null, { kind: 'empty' });
+    wrap.innerHTML = '<div class="empty-state">No Tradier leaders available</div>';
     return;
   }
 
   const { leader: selectedLeader, missingPreviousSelection } = syncSelectedLeader(leaders);
-  const selectionBanner = missingPreviousSelection
-    ? stateBanner('Previously selected leader disappeared after refresh. Dashboard re-anchored to the first available local leader.', 'warn')
-    : '';
 
   wrap.innerHTML = selectionBanner + leaders.map((leader, index) => {
     const state = getLeaderState(leader);

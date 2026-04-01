@@ -6,159 +6,266 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Bazaar Trading Desk — Tradier Slice</title>
+  <title>THE BAZAAR — Trading Command Center</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">BAZAAR OF FORTUNES</div>
-        <h1>Bazaar Swing Dashboard</h1>
-        <div class="muted small">Phase 2: 7–14 DTE Structural Swings · PDT Safe · Vertical Slice</div>
-</div>
+    <!-- Command Center Header -->
+    <header class="command-center">
+      <div class="brand-zone">
+        <div class="logo-mark">◈</div>
+        <div class="brand-text">
+          <div class="brand-name">THE BAZAAR</div>
+          <div class="brand-tag">Trading Command Center</div>
+        </div>
       </div>
-      <div class="topbar-actions">
-        <button id="refreshBtn">Refresh Snapshot</button>
-        <div class="status-pill" id="serverState">LOCAL</div>
-        <div id="updatedAt" class="muted small"></div>
+      
+      <nav class="command-nav">
+        <button class="nav-pill active" data-zone="market" onclick="switchZone('market')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Market</span>
+        </button>
+        <button class="nav-pill" data-zone="execute" onclick="switchZone('execute')">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">Execute</span>
+        </button>
+        <button class="nav-pill" data-zone="positions" onclick="switchZone('positions')">
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">Positions</span>
+        </button>
+        <button class="nav-pill" data-zone="intel" onclick="switchZone('intel')">
+          <span class="nav-icon">🔮</span>
+          <span class="nav-label">Intel</span>
+        </button>
+        <button class="nav-pill" data-zone="journal" onclick="switchZone('journal')">
+          <span class="nav-icon">📓</span>
+          <span class="nav-label">Journal</span>
+        </button>
+      </nav>
+      
+      <div class="status-zone">
+        <div class="status-cluster">
+          <div class="status-dot live"></div>
+          <span class="status-text">LIVE</span>
+        </div>
+        <div class="time-display" id="clock">--:--:--</div>
+        <button id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
       </div>
     </header>
 
-    <main class="grid">
-      <section class="card card-overview">
-        <div class="card-header">
-          <h2>Overview</h2>
-          <div class="muted small">Minimal Tradier state</div>
-        </div>
-        <div id="overviewGrid" class="overview-grid"></div>
-      </section>
+    <!-- Zone: Market (Scan + Leaders) -->
+    <main class="zone active" id="zone-market">
+      <div class="zone-header">
+        <h2 class="zone-title">Market Intelligence</h2>
+        <p class="zone-subtitle">Pre-market gaps · Tradier leaders · Real-time scanner</p>
+      </div>
       
-      <section class="card card-premarket">
-        <div class="card-header">
-          <h2>Pre-Market Gap Scanner</h2>
-          <div class="muted small">Overnight movers >3%</div>
-        </div>
-        <div class="premarket-controls">
-          <button onclick="runPremarketScan()">🌅 Scan for Gaps</button>
-          <span id="premarketTime" class="muted small"></span>
-        </div>
-        <div id="premarketResults" class="premarket-results">
-          <div class="premarket-empty">Click scan to find pre-market gap opportunities</div>
-        </div>
-      </section>
+      <div class="dashboard-grid">
+        <!-- Market Overview Strip -->
+        <section class="panel panel-overview">
+          <div class="panel-header compact">
+            <span class="panel-title">Overview</span>
+            <span class="panel-meta" id="updatedAt">--</span>
+          </div>
+          <div id="overviewGrid" class="metric-row"></div>
+        </section>
+        
+        <!-- Pre-Market Scanner -->
+        <section class="panel panel-scanner">
+          <div class="panel-header">
+            <span class="panel-title">🌅 Pre-Market Gap Scan</span>
+            <button class="btn-compact" onclick="runPremarketScan()">Scan Now</button>
+          </div>
+          <div id="premarketResults" class="scanner-results">
+            <div class="empty-state">Click scan to find overnight movers >3%</div>
+          </div>
+        </section>
+        
+        <!-- Leaders Board -->
+        <section class="panel panel-leaders">
+          <div class="panel-header">
+            <span class="panel-title">🏆 Tradier Leaders</span>
+            <span class="panel-meta">Top opportunities</span>
+          </div>
+          <div id="leadersWrap" class="leaders-list"></div>
+        </section>
+        
+        <!-- Selected Leader Detail -->
+        <section class="panel panel-detail">
+          <div class="panel-header">
+            <span class="panel-title">🎯 Selected Opportunity</span>
+            <span class="panel-meta" id="selectedMeta">No selection</span>
+          </div>
+          <div id="detailWrap" class="detail-content">
+            <div class="empty-state">Select a leader to view detailed analysis</div>
+          </div>
+        </section>
+      </div>
+    </main>
 
-      <section class="card card-board">
-        <div class="card-header">
-          <h2>Tradier Leaders Board</h2>
-          <div class="muted small">Rendered from current local board artifact</div>
-        </div>
-        <div id="leadersWrap" class="leaders-wrap"></div>
-      </section>
+    <!-- Zone: Execute (Actions + Tickets) -->
+    <main class="zone" id="zone-execute">
+      <div class="zone-header">
+        <h2 class="zone-title">Execution Center</h2>
+        <p class="zone-subtitle">Ticket workflow · Action items · Order management</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <section class="panel panel-actions">
+          <div class="panel-header">
+            <span class="panel-title">⚡ Quick Actions</span>
+          </div>
+          <div id="actionsWrap" class="actions-grid">
+            <div class="empty-state">Select a leader from Market zone to enable actions</div>
+          </div>
+        </section>
+        
+        <section class="panel panel-summary">
+          <div class="panel-header">
+            <span class="panel-title">📋 Operator Summary</span>
+          </div>
+          <div id="summaryStripWrap" class="summary-content">
+            <div class="empty-state">Select a leader to view execution summary</div>
+          </div>
+        </section>
+      </div>
+    </main>
 
-      <section class="card card-summary-strip">
-        <div class="card-header">
-          <h2>Operator Summary</h2>
-          <div class="muted small">Thin selected-item workflow strip</div>
-        </div>
-        <div id="summaryStripWrap" class="summary-strip-wrap placeholder">Select a Tradier leader to view operator summary.</div>
-      </section>
+    <!-- Zone: Positions (Portfolio + Risk) -->
+    <main class="zone" id="zone-positions">
+      <div class="zone-header">
+        <h2 class="zone-title">Position Command</h2>
+        <p class="zone-subtitle">Active positions · Risk heatmap · Portfolio health</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <section class="panel panel-positions">
+          <div class="panel-header">
+            <span class="panel-title">📊 Active Positions</span>
+            <span class="panel-meta">Live from execution state</span>
+          </div>
+          <div id="positionsWrap" class="positions-list">
+            <div class="empty-state">Loading positions...</div>
+          </div>
+        </section>
+        
+        <section class="panel panel-heatmap">
+          <div class="panel-header">
+            <span class="panel-title">🔥 Risk Heatmap</span>
+          </div>
+          <div id="heatmapContainer" class="heatmap-viz">
+            <div class="empty-state">Loading portfolio visualization...</div>
+          </div>
+          <div id="riskMetrics" class="risk-bar"></div>
+        </section>
+        
+        <section class="panel panel-alerts">
+          <div class="panel-header">
+            <span class="panel-title">🔔 Alert Center</span>
+            <div class="alert-toggles">
+              <button id="toggleSound" class="toggle-btn" onclick="toggleAlertSound()">🔊</button>
+              <button id="toggleNotifications" class="toggle-btn" onclick="toggleBrowserNotifications()">🔔</button>
+            </div>
+          </div>
+          <div id="alertLog" class="alert-stream">
+            <div class="empty-state">No active alerts</div>
+          </div>
+        </section>
+      </div>
+    </main>
 
-      <section class="card card-detail">
-        <div class="card-header">
-          <h2>Ticket Detail</h2>
-          <div id="selectedMeta" class="muted small">No leader selected</div>
-        </div>
-        <div id="detailWrap" class="detail-wrap placeholder">Select a Tradier leader to inspect ticket detail.</div>
-      </section>
+    <!-- Zone: Intel (Crypto + Advanced) -->
+    <main class="zone" id="zone-intel">
+      <div class="zone-header">
+        <h2 class="zone-title">Advanced Intel</h2>
+        <p class="zone-subtitle">Crypto DEX · Alternative markets · Extended data</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <section class="panel panel-crypto">
+          <div class="panel-header">
+            <span class="panel-title">🔷 Crypto Trading</span>
+            <span class="panel-meta">Web3 DEX Integration</span>
+          </div>
+          <div class="crypto-zone">
+            <div class="crypto-controls">
+              <button onclick="initCryptoWallet()" id="cryptoInitBtn" class="btn-primary">Initialize Wallet</button>
+              <button onclick="toggleCryptoEmergencyStop()" id="cryptoEmergencyBtn" class="btn-danger" style="display:none;">Emergency Stop</button>
+            </div>
+            <div id="cryptoWalletInfo" class="crypto-status">
+              <div class="empty-state">Wallet not initialized. Click "Initialize Wallet" to start.</div>
+            </div>
+            <div id="cryptoPairs" class="crypto-data">
+              <div class="data-header">Monitored Pairs</div>
+              <div id="cryptoPairsList" class="data-list">--</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
 
-      <section class="card card-actions">
-        <div class="card-header">
-          <h2>Actions</h2>
-          <div class="muted small">Minimal selected-item operator panel</div>
-        </div>
-        <div id="actionsWrap" class="actions-wrap placeholder">Select a Tradier leader to view local next actions.</div>
-      </section>
+    <!-- Zone: Journal (History + Analytics) -->
+    <main class="zone" id="zone-journal">
+      <div class="zone-header">
+        <h2 class="zone-title">Trade Journal</h2>
+        <p class="zone-subtitle">Complete history · Performance analytics · Export tools</p>
+      </div>
       
-      <section class="card card-positions">
-        <div class="card-header">
-          <h2>Active Positions</h2>
-          <div class="muted small">Live positions from execution state</div>
-        </div>
-        <div id="positionsWrap" class="positions-wrap placeholder">Loading positions...</div>
-      </section>
-      
-      <section class="card card-heatmap">
-        <div class="card-header">
-          <h2>Portfolio Heatmap</h2>
-          <div class="muted small">Risk visualization at a glance</div>
-        </div>
-        <div id="heatmapContainer" class="heatmap-container">
-          <div class="heatmap-empty">Loading portfolio heatmap...</div>
-        </div>
-        <div id="riskMetrics" class="risk-metrics">Loading risk metrics...</div>
-      </section>
-      
-      <section class="card card-alerts">
-        <div class="card-header">
-          <h2>Alert Center</h2>
-          <div class="muted small">Exit signal notifications</div>
-        </div>
-        <div class="alert-controls">
-          <button id="toggleSound" class="alert-control" onclick="toggleAlertSound()">🔊 Sound On</button>
-          <button id="toggleNotifications" class="alert-control" onclick="toggleBrowserNotifications()">🔔 Notifications</button>
-        </div>
-        <div id="alertLog" class="alert-log">
-          <div class="alert-log-empty">No alerts yet</div>
-        </div>
-      </section>
-      
-      <section class="card card-journal">
-        <div class="card-header">
-          <h2>Trade Journal</h2>
-          <div class="muted small">Complete trade history & analytics</div>
-        </div>
-        <div class="journal-controls">
-          <select id="analyticsPeriod" onchange="updateAnalytics()">
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="all" selected>All Time</option>
-          </select>
-          <button onclick="exportJournal()">📥 Export CSV</button>
-        </div>
-        <div id="analyticsSummary" class="analytics-summary">Loading analytics...</div>
-        <div id="journalEntries" class="journal-entries">Loading trades...</div>
-      </section>
-      
-      <section class="card card-crypto">
-        <div class="card-header">
-          <h2>🔷 Crypto Trading</h2>
-          <div class="muted small">Web3 DEX integration</div>
-        </div>
-        <div class="crypto-controls">
-          <button onclick="initCryptoWallet()" id="cryptoInitBtn">🔐 Initialize Wallet</button>
-          <button onclick="toggleCryptoEmergencyStop()" id="cryptoEmergencyBtn" class="emergency-btn" style="display:none;">🛑 Emergency Stop</button>
-        </div>
-        <div id="cryptoWalletInfo" class="crypto-wallet-info">
-          <div class="crypto-empty">Wallet not initialized. Click "Initialize Wallet" to start.</div>
-        </div>
-        <div class="crypto-pairs" id="cryptoPairs">
-          <div class="crypto-section-title">📊 Monitored Pairs</div>
-          <div id="cryptoPairsList">Loading...</div>
-        </div>
-        <div class="crypto-trades" id="cryptoTrades">
-          <div class="crypto-section-title">🔄 Recent Trades</div>
-          <div id="cryptoTradesList">No trades yet</div>
-        </div>
-      </section>
+      <div class="dashboard-grid">
+        <section class="panel panel-analytics">
+          <div class="panel-header">
+            <span class="panel-title">📈 Performance Analytics</span>
+            <select id="analyticsPeriod" class="select-compact" onchange="updateAnalytics()">
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="all" selected>All Time</option>
+            </select>
+          </div>
+          <div id="analyticsSummary" class="analytics-grid">Loading...</div>
+        </section>
+        
+        <section class="panel panel-history">
+          <div class="panel-header">
+            <span class="panel-title">📓 Trade History</span>
+            <button class="btn-compact" onclick="exportJournal()">Export CSV</button>
+          </div>
+          <div id="journalEntries" class="history-list">Loading trades...</div>
+        </section>
+      </div>
     </main>
   </div>
+  
   <script>
-  // Force cache-bust by appending timestamp
-  const script = document.createElement('script');
-  script.src = './app.js?v=3&ts=' + Date.now();
-  document.body.appendChild(script);
-</script>
+    // Clock updater
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', {hour12: false});
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+    
+    // Zone switcher
+    function switchZone(zoneName) {
+      // Hide all zones
+      document.querySelectorAll('.zone').forEach(z => z.classList.remove('active'));
+      // Show selected zone
+      document.getElementById('zone-' + zoneName).classList.add('active');
+      // Update nav
+      document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-zone="' + zoneName + '"]').classList.add('active');
+    }
+  </script>
+  
+  <script>
+    // Force cache-bust by appending timestamp
+    const script = document.createElement('script');
+    script.src = './app.js?v=4&ts=' + Date.now();
+    document.body.appendChild(script);
+  </script>
 </body>
 </html>
