@@ -199,7 +199,16 @@ function getSelectedLeaderFeedback(leader) {
 }
 
 function statusBadge(label, kind = 'neutral') {
-  return `<span class="status-chip ${kind}">${escapeHtml(label)}</span>`;
+  const kindMap = {
+    neutral: 'badge',
+    queued: 'badge accent',
+    watch: 'badge info',
+    recent: 'badge warn',
+    good: 'badge good',
+    bad: 'badge bad'
+  };
+  const badgeClass = kindMap[kind] || 'badge';
+  return `<span class="${badgeClass}">${escapeHtml(label)}</span>`;
 }
 
 function stateBanner(text, tone = 'neutral') {
@@ -385,15 +394,15 @@ function renderLeaders(leaders) {
   if (!wrap) return;
   
   if (currentUiMode === 'loading') {
-    wrap.innerHTML = '<div class="empty-state">Loading Tradier snapshot...</div>';
+    wrap.innerHTML = '<div class="void">Loading Tradier snapshot...</div>';
     return;
   }
   if (currentUiMode === 'error') {
-    wrap.innerHTML = `<div class="empty-state">Error: ${escapeHtml(currentLoadError || 'Snapshot load failed')}</div>`;
+    wrap.innerHTML = `<div class="void">Error: ${escapeHtml(currentLoadError || 'Snapshot load failed')}</div>`;
     return;
   }
   if (!leaders?.length) {
-    wrap.innerHTML = '<div class="empty-state">No Tradier leaders available</div>';
+    wrap.innerHTML = '<div class="void">No Tradier leaders available</div>';
     return;
   }
 
@@ -410,37 +419,37 @@ function renderLeaders(leaders) {
     
     // Build badges
     const stateBadges = [
-      leader.fallback ? '<span class="pill warn-pill">Fallback Expiry</span>' : `<span class="pill neutral-pill">${escapeHtml(leader.label || 'Primary')}</span>`,
+      leader.fallback ? '<span class="badge warn">Fallback</span>' : `<span class="badge">${escapeHtml(leader.label || 'Primary')}</span>`,
       state.queued ? statusBadge('Queued', 'queued') : '',
       state.watched ? statusBadge('Watching', 'watch') : '',
-      feedback ? statusBadge('Recent action', 'recent') : '',
+      feedback ? statusBadge('Recent', 'recent') : '',
     ].filter(Boolean).join('');
     
     // Opportunity badge
     let opportunityBadge = '';
     if (opportunity) {
       const tempColors = {
-        'hot': 'hot-pill',
-        'warm': 'warm-pill', 
-        'cool': 'cool-pill',
-        'cold': 'cold-pill'
+        'hot': 'badge bad',
+        'warm': 'badge warn', 
+        'cool': 'badge info',
+        'cold': 'badge'
       };
-      const tempClass = tempColors[opportunity.temperature] || 'neutral-pill';
-      opportunityBadge = `<span class="pill ${tempClass}">${opportunity.temperature.toUpperCase()} ${opportunity.score}/${opportunity.max_score}</span>`;
+      const tempClass = tempColors[opportunity.temperature] || 'badge';
+      opportunityBadge = `<span class="${tempClass}">${opportunity.temperature.toUpperCase()}</span>`;
     }
     
     // Live price indicator
     let livePriceInfo = '';
     if (quote?.last) {
-      const changeClass = quote.change >= 0 ? 'good' : 'bad';
+      const changeClass = quote.change >= 0 ? 'text-positive' : 'text-negative';
       const changeSign = quote.change >= 0 ? '+' : '';
-      livePriceInfo = `<span class="live-quote ${changeClass}">$${quote.last.toFixed(2)} (${changeSign}${quote.change_percent.toFixed(1)}%)</span>`;
+      livePriceInfo = `<span class="${changeClass}">$${quote.last.toFixed(2)} (${changeSign}${quote.change_percent.toFixed(1)}%)</span>`;
     }
     
     // IV badge
     let ivBadge = '';
     if (quote?.iv) {
-      ivBadge = `<span class="pill iv-pill">IV ${quote.iv.toFixed(1)}%</span>`;
+      ivBadge = `<span class="badge info">IV ${quote.iv.toFixed(1)}%</span>`;
     }
 
     return `
@@ -989,17 +998,15 @@ function renderAlertLog() {
   if (!logContainer) return;
   
   if (alertLog.length === 0) {
-    logContainer.innerHTML = '<div class="alert-log-empty">No alerts yet</div>';
+    logContainer.innerHTML = '<div class="void">No alerts</div>';
     return;
   }
   
   logContainer.innerHTML = alertLog.map(alert => `
-    <div class="alert-log-item alert-${alert.type.toLowerCase()}">
-      <div class="alert-time">${new Date(alert.timestamp).toLocaleTimeString()}</div>
-      <div class="alert-content">
-        <strong>${alert.type}</strong>: ${escapeHtml(alert.symbol)} ${escapeHtml(alert.contract)}
-        <div class="alert-reason">${escapeHtml(alert.reason)} (Score: ${alert.score})</div>
-      </div>
+    <div class="alert-item">
+      <span class="alert-time">${new Date(alert.timestamp).toLocaleTimeString()}</span>
+      <span class="alert-message">${escapeHtml(alert.symbol)} ${escapeHtml(alert.contract)}</span>
+      <span class="badge ${alert.type === 'EXIT' ? 'bad' : alert.type === 'WATCH' ? 'warn' : 'info'}">${alert.type}</span>
     </div>
   `).join('');
 }
@@ -1221,8 +1228,7 @@ function renderPositions(positions) {
   const openPositions = Array.from(positionMap.values());
   
   if (openPositions.length === 0) {
-    wrap.className = 'positions-wrap placeholder';
-    wrap.innerHTML = stateBanner('No open positions. Execute a trade to see positions here.', 'neutral');
+    wrap.innerHTML = '<div class="void">No open positions</div>';
     return;
   }
   
@@ -1237,73 +1243,17 @@ function renderPositions(positions) {
     }
   });
   
-  wrap.className = 'positions-wrap';
-  wrap.innerHTML = `
-    <div class="positions-header">
-      <span class="positions-count">${openPositions.length} open position${openPositions.length !== 1 ? 's' : ''}</span>
-      <span class="positions-pnl">Total P&L: ${formatPnL(totalPnL, 0)}</span>
-    </div>
-    <div class="positions-list">
-      ${openPositions.map(pos => {
-        const pnl = pos.pnl_dollar !== undefined ? pos.pnl_dollar : calculatePnL(pos.entry, pos.current, pos.size).pnl;
-        const pnlPct = pos.pnl_percent !== undefined ? pos.pnl_percent : calculatePnL(pos.entry, pos.current, pos.size).pnlPct;
-        const hasLiveData = pos.live_price !== undefined;
-        const dte = pos.days_to_expiry !== undefined ? `${pos.days_to_expiry}DTE` : '';
-        
-        // Get exit analysis
-        const exitAnalysis = getPositionExitAnalysis(pos.symbol, pos.instrument);
-        const exitSignal = exitAnalysis?.signal || 'HOLD';
-        const exitScore = exitAnalysis?.score || 0;
-        const exitColor = exitAnalysis?.color || 'green';
-        const exitReasons = exitAnalysis?.reasons || [];
-        
-        // Signal badge
-        const signalBadges = {
-          'EXIT': '🔴 EXIT',
-          'WATCH': '🟡 WATCH', 
-          'HOLD': '🟢 HOLD'
-        };
-        const signalBadge = signalBadges[exitSignal] || '🟢 HOLD';
-        
-        const isExit = exitSignal === 'EXIT';
-        
-        return `
-        <div class="position-row ${pnl >= 0 ? 'position-winning' : 'position-losing'} position-exit-${exitColor} ${isExit ? 'position-exit-pulse' : ''}">
-          <div class="position-main">
-            <div class="position-symbol">${escapeHtml(pos.symbol)} ${isExit ? '🚨' : ''}</div>
-            <div class="position-instrument">${escapeHtml(pos.instrument)} ${dte ? `<span class="dte-badge">${dte}</span>` : ''}</div>
-            <div class="position-exit-badge ${isExit ? 'exit-badge-pulse' : ''}">${signalBadge} <span class="exit-score">(${exitScore}/100)</span></div>
-          </div>
-          <div class="position-pnl">${formatPnL(pnl, pnlPct)}</div>
-          ${exitReasons.length > 0 ? `
-            <div class="exit-reasons">
-              ${exitReasons.map(r => `<span class="exit-reason">${escapeHtml(r)}</span>`).join('')}
-            </div>
-          ` : ''}
-          <div class="position-details">
-            <div class="position-field">
-              <span class="label">Entry</span>
-              <span class="value">$${escapeHtml(pos.entry)}</span>
-            </div>
-            <div class="position-field">
-              <span class="label">Current</span>
-              <span class="value ${hasLiveData ? 'live-price' : ''}">$${escapeHtml(pos.current)}</span>
-            </div>
-            <div class="position-field">
-              <span class="label">Size</span>
-              <span class="value">${escapeHtml(pos.size)}</span>
-            </div>
-          </div>
-          <div class="position-actions">
-            <button class="close-position-btn" onclick="closePosition('${escapeHtml(pos.symbol)}', '${escapeHtml(pos.instrument)}', '${escapeHtml(pos.size)}')">
-              Close Position
-            </button>
-          </div>
-          ${pos.notes ? `<div class="position-notes">${escapeHtml(pos.notes)}</div>` : ''}
-        </div>
-      `}).join('')}
-    </div>
-  `;
+  wrap.innerHTML = openPositions.map(pos => {
+    const pnl = pos.pnl_dollar !== undefined ? pos.pnl_dollar : calculatePnL(pos.entry, pos.current, pos.size).pnl;
+    const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+    return `
+      <div class="position-row">
+        <span class="pos-symbol">${escapeHtml(pos.symbol)}</span>
+        <span class="pos-details">${escapeHtml(pos.instrument)} × ${escapeHtml(pos.size)}</span>
+        <span class="pos-pnl ${pnlClass}">${formatPnL(pnl)}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderTradierSlice() {
