@@ -1273,12 +1273,14 @@ async function refresh() {
     currentSnapshot = await loadSnapshot();
     currentUiMode = 'ready';
     syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
-    document.getElementById('updatedAt').textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
+    const updatedAtEl = document.getElementById('updatedAt');
+    if (updatedAtEl) updatedAtEl.textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
     renderTradierSlice();
   } catch (err) {
     currentUiMode = 'error';
     currentLoadError = err.message;
-    document.getElementById('updatedAt').textContent = 'Snapshot unavailable';
+    const updatedAtEl = document.getElementById('updatedAt');
+    if (updatedAtEl) updatedAtEl.textContent = 'Snapshot unavailable';
     renderTradierSlice();
     throw err;
   }
@@ -1306,7 +1308,7 @@ async function runPremarketScan() {
     
     if (data.ok) {
       premarketData = data.data;
-      timeDiv.textContent = 'Last scan: ' + new Date().toLocaleTimeString();
+      if (timeDiv) timeDiv.textContent = 'Last scan: ' + new Date().toLocaleTimeString();
       renderPremarketResults(data.data);
     } else {
       resultsDiv.innerHTML = `<div class="premarket-error">Scan failed: ${data.error}</div>`;
@@ -1570,10 +1572,16 @@ async function exportJournal() {
 
 document.getElementById('refreshBtn').addEventListener('click', refresh);
 refresh().catch(err => {
-  document.getElementById('serverState').textContent = 'ERROR';
-  document.getElementById('serverState').className = 'status-pill bad';
-  document.getElementById('detailWrap').className = 'detail-wrap placeholder';
-  document.getElementById('detailWrap').textContent = err.message;
+  const serverState = document.getElementById('serverState');
+  if (serverState) {
+    serverState.textContent = 'ERROR';
+    serverState.className = 'status-pill bad';
+  }
+  const detailWrap = document.getElementById('detailWrap');
+  if (detailWrap) {
+    detailWrap.className = 'detail-wrap placeholder';
+    detailWrap.textContent = err.message;
+  }
 });
 
 // Auto-refresh every 30 seconds for general snapshot
