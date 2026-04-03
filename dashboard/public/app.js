@@ -408,6 +408,8 @@ function renderLeaders(leaders) {
 
   const { leader: selectedLeader, missingPreviousSelection } = syncSelectedLeader(leaders);
 
+  const selectionBanner = missingPreviousSelection ? '<div class="banner warn">Previous selection no longer available. Anchored to current leader.</div>' : '';
+
   wrap.innerHTML = selectionBanner + leaders.map((leader, index) => {
     const state = getLeaderState(leader);
     const feedback = getSelectedLeaderFeedback(leader);
