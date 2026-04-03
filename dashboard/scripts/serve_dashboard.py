@@ -9,7 +9,9 @@ from datetime import datetime, timezone
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+# Get the repository root based on this script's location
+SCRIPT_DIR = Path(__file__).parent.resolve()
+ROOT = SCRIPT_DIR.parent.parent
 PUBLIC = ROOT / 'dashboard' / 'public'
 BUILDER = ROOT / 'dashboard' / 'scripts' / 'build_snapshot.py'
 SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
