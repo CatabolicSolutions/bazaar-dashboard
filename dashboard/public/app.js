@@ -440,15 +440,17 @@ function renderLeaders(leaders) {
     
     // Live price indicator
     let livePriceInfo = '';
-    if (quote?.last) {
-      const changeClass = quote.change >= 0 ? 'text-positive' : 'text-negative';
-      const changeSign = quote.change >= 0 ? '+' : '';
-      livePriceInfo = `<span class="${changeClass}">$${quote.last.toFixed(2)} (${changeSign}${quote.change_percent.toFixed(1)}%)</span>`;
+    if (quote?.last && typeof quote.last === 'number') {
+      const change = quote.change || 0;
+      const changePercent = quote.change_percent || 0;
+      const changeClass = change >= 0 ? 'text-positive' : 'text-negative';
+      const changeSign = change >= 0 ? '+' : '';
+      livePriceInfo = `<span class="${changeClass}">$${quote.last.toFixed(2)} (${changeSign}${changePercent.toFixed(1)}%)</span>`;
     }
     
     // IV badge
     let ivBadge = '';
-    if (quote?.iv) {
+    if (quote?.iv && typeof quote.iv === 'number') {
       ivBadge = `<span class="badge info">IV ${quote.iv.toFixed(1)}%</span>`;
     }
 
@@ -463,8 +465,8 @@ function renderLeaders(leaders) {
         </div>
         <div class="leader-row-grid">
           <div><span class="label">Underlying</span><span class="value">${escapeHtml(leader.underlying)}</span></div>
-          <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)} ${quote?.delta ? `<span class="live-metric">(${quote.delta.toFixed(2)})</span>` : ''}</span></div>
-          <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)} ${quote?.bid ? `<span class="live-metric">[$${quote.bid.toFixed(2)}/$${quote.ask.toFixed(2)}]</span>` : ''}</span></div>
+          <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)} ${quote?.delta && typeof quote.delta === 'number' ? `<span class="live-metric">(${quote.delta.toFixed(2)})</span>` : ''}</span></div>
+          <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)} ${quote?.bid && typeof quote.bid === 'number' ? `<span class="live-metric">[$${quote.bid.toFixed(2)}/${quote?.ask && typeof quote.ask === 'number' ? '$' + quote.ask.toFixed(2) : '--'}]</span>` : ''}</span></div>
           <div><span class="label">Confidence</span><span class="value">${escapeHtml(leader.confidence)}</span></div>
         </div>
         ${opportunity?.factors?.length ? `
@@ -1119,9 +1121,11 @@ function calculatePnL(entry, current, size) {
 }
 
 function formatPnL(pnl, pnlPct) {
-  const sign = pnl >= 0 ? '+' : '';
-  const colorClass = pnl >= 0 ? 'good' : 'bad';
-  return `<span class="${colorClass}">${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(1)}%)</span>`;
+  const safePnl = typeof pnl === 'number' ? pnl : 0;
+  const safePnlPct = typeof pnlPct === 'number' ? pnlPct : 0;
+  const sign = safePnl >= 0 ? '+' : '';
+  const colorClass = safePnl >= 0 ? 'good' : 'bad';
+  return `<span class="${colorClass}">${sign}$${safePnl.toFixed(2)} (${sign}${safePnlPct.toFixed(1)}%)</span>`;
 }
 
 async function closePosition(symbol, instrument, size) {
@@ -1364,9 +1368,9 @@ function renderGapCard(gap) {
         <span class="gap-percent ${directionClass}">${isUp ? '+' : ''}${gap.gap_percent}%</span>
       </div>
       <div class="gap-details">
-        <span>Last: $${gap.last_price.toFixed(2)}</span>
-        <span>Prev: $${gap.prev_close.toFixed(2)}</span>
-        <span class="gap-volume ${volumeClass}">Vol: ${gap.relative_volume.toFixed(1)}x avg</span>
+        <span>Last: $${typeof gap.last_price === 'number' ? gap.last_price.toFixed(2) : '--'}</span>
+        <span>Prev: $${typeof gap.prev_close === 'number' ? gap.prev_close.toFixed(2) : '--'}</span>
+        <span class="gap-volume ${volumeClass}">Vol: ${typeof gap.relative_volume === 'number' ? gap.relative_volume.toFixed(1) : '--'}x avg</span>
       </div>
       ${gap.option_plays ? `
         <div class="gap-plays">
@@ -1471,11 +1475,11 @@ async function updateAnalytics() {
         <div class="analytics-label">Win Rate</div>
       </div>
       <div class="analytics-item">
-        <div class="analytics-value ${pnlClass}">$${analytics.total_pnl.toFixed(2)}</div>
+        <div class="analytics-value ${pnlClass}">$${typeof analytics.total_pnl === 'number' ? analytics.total_pnl.toFixed(2) : '0.00'}</div>
         <div class="analytics-label">Total P&L</div>
       </div>
       <div class="analytics-item">
-        <div class="analytics-value">$${analytics.avg_pnl.toFixed(2)}</div>
+        <div class="analytics-value">$${typeof analytics.avg_pnl === 'number' ? analytics.avg_pnl.toFixed(2) : '0.00'}</div>
         <div class="analytics-label">Avg P&L</div>
       </div>
       <div class="analytics-item">
@@ -1483,11 +1487,11 @@ async function updateAnalytics() {
         <div class="analytics-label">Max Loss Streak</div>
       </div>
       <div class="analytics-item">
-        <div class="analytics-value">${analytics.avg_duration_minutes.toFixed(0)}m</div>
+        <div class="analytics-value">${typeof analytics.avg_duration_minutes === 'number' ? analytics.avg_duration_minutes.toFixed(0) : '--'}m</div>
         <div class="analytics-label">Avg Duration</div>
       </div>
     </div>
-    ${analytics.best_trade ? `
+    ${analytics.best_trade && typeof analytics.best_trade.pnl === 'number' ? `
       <div class="trade-extremes">
         <div class="extreme best">
           <span class="extreme-label">Best Trade</span>
@@ -1496,8 +1500,8 @@ async function updateAnalytics() {
         </div>
         <div class="extreme worst">
           <span class="extreme-label">Worst Trade</span>
-          <span class="extreme-value bad">$${analytics.worst_trade.pnl.toFixed(2)}</span>
-          <span class="extreme-symbol">${analytics.worst_trade.symbol}</span>
+          <span class="extreme-value bad">$${analytics.worst_trade && typeof analytics.worst_trade.pnl === 'number' ? analytics.worst_trade.pnl.toFixed(2) : '0.00'}</span>
+          <span class="extreme-symbol">${analytics.worst_trade?.symbol || '--'}</span>
         </div>
       </div>
     ` : ''}
@@ -1527,7 +1531,7 @@ function renderJournalEntries() {
         const exit = trade.exit;
         const isWin = trade.pnl && trade.pnl.dollar > 0;
         const pnlClass = isWin ? 'good' : trade.pnl ? 'bad' : 'muted';
-        const pnlText = trade.pnl ? `${isWin ? '+' : ''}$${trade.pnl.dollar.toFixed(2)}` : 'Open';
+        const pnlText = trade.pnl && typeof trade.pnl.dollar === 'number' ? `${isWin ? '+' : ''}$${trade.pnl.dollar.toFixed(2)}` : 'Open';
         
         return `
           <div class="journal-item ${trade.status}">
@@ -1539,7 +1543,7 @@ function renderJournalEntries() {
             <div class="journal-details">
               <span>Entry: $${entry.price} × ${entry.quantity}</span>
               ${exit ? `<span>Exit: $${exit.price} (${exit.reason})</span>` : '<span>Open position</span>'}
-              ${trade.duration_minutes ? `<span>Duration: ${trade.duration_minutes.toFixed(0)}m</span>` : ''}
+              ${trade.duration_minutes && typeof trade.duration_minutes === 'number' ? `<span>Duration: ${trade.duration_minutes.toFixed(0)}m</span>` : ''}
             </div>
             ${trade.tags.length > 0 ? `
               <div class="journal-tags">
@@ -1686,14 +1690,14 @@ function renderHeatmap(data) {
         return `
           <div class="heatmap-cell ${colorClass}" 
                style="flex: 0 0 ${cellSize}%; --intensity: ${intensity}%"
-               title="${pos.symbol} ${pos.option_type} $${pos.strike} - P&L: ${pnlSign}${pnlPercent.toFixed(1)}%">
+               title="${pos.symbol} ${pos.option_type} $${pos.strike} - P&L: ${pnlSign}${typeof pnlPercent === 'number' ? pnlPercent.toFixed(1) : '--'}%">
             <div class="heatmap-cell-content">
               <div class="heatmap-symbol">${escapeHtml(pos.symbol)}</div>
               <div class="heatmap-details">
                 <span class="heatmap-strike">$${escapeHtml(pos.strike)}</span>
                 <span class="heatmap-dte">${pos.dte}DTE</span>
               </div>
-              <div class="heatmap-pnl ${pnlPercent >= 0 ? 'good' : 'bad'}">${pnlSign}${pnlPercent.toFixed(1)}%</div>
+              <div class="heatmap-pnl ${pnlPercent >= 0 ? 'good' : 'bad'}">${pnlSign}${typeof pnlPercent === 'number' ? pnlPercent.toFixed(1) : '--'}%</div>
             </div>
           </div>
         `;
@@ -1729,11 +1733,11 @@ function renderRiskMetrics(data) {
     <div class="risk-metrics-grid">
       <div class="risk-metric">
         <span class="risk-label">Total Delta</span>
-        <span class="risk-value ${deltaClass}">${delta.toFixed(1)} (${deltaBias})</span>
+        <span class="risk-value ${deltaClass}">${typeof delta === 'number' ? delta.toFixed(1) : '--'} (${deltaBias})</span>
       </div>
       <div class="risk-metric">
         <span class="risk-label">Daily Theta</span>
-        <span class="risk-value ${thetaClass}">$${theta.toFixed(2)}/day</span>
+        <span class="risk-value ${thetaClass}">$${typeof theta === 'number' ? theta.toFixed(2) : '--'}/day</span>
       </div>
       <div class="risk-metric">
         <span class="risk-label">Total Vega</span>
