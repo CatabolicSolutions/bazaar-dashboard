@@ -72,8 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
   switchZone('market');
   
   // Start data refresh
-  refreshData();
-  setInterval(refreshData, 30000);
+  refresh();
+  setInterval(refresh, 30000);
 });
 
 async function loadSnapshot() {
