@@ -328,6 +328,8 @@ function renderScanStatus(snapshot) {
   const calibrationReviewEl = document.getElementById('calibrationReviewCount');
   const setupQualityEl = document.getElementById('setupQualityCount');
   const actionBiasEl = document.getElementById('actionBiasState');
+  const operatorFeedbackEl = document.getElementById('operatorFeedbackCount');
+  const actionBiasFeedbackWrap = document.getElementById('actionBiasFeedbackWrap');
   
   if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
   
@@ -418,6 +420,29 @@ function renderScanStatus(snapshot) {
       actionBiasEl.className = 'status-value';
       actionBiasEl.title = note;
     }
+  }
+
+  if (operatorFeedbackEl) {
+    const of = snapshot?.operatorFeedback;
+    if (of && typeof of.count !== 'undefined') {
+      operatorFeedbackEl.textContent = `${of.count} captured`;
+      operatorFeedbackEl.className = 'status-value fresh';
+      operatorFeedbackEl.title = JSON.stringify(of.byFeedback || {});
+    }
+  }
+
+  if (actionBiasFeedbackWrap) {
+    actionBiasFeedbackWrap.innerHTML = feedbackButtonsHtml('action_bias', {
+      targetType: 'action_bias',
+      strategy: snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'unknown',
+      decisionRef: `action_bias|${snapshot?.updatedAt || ''}`,
+      snapshotUpdatedAt: snapshot?.updatedAt,
+      metadata: { favoredSetupClass: snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || null }
+    }, [
+      { label: 'Agree', value: 'agree' },
+      { label: 'Disagree', value: 'disagree' },
+      { label: 'Useful', value: 'useful' }
+    ]);
   }
 }
 
@@ -522,6 +547,18 @@ function renderNoTradeState() {
                 <div class="near-miss-meta">${escapeHtml(c.strategy)} · Exp ${escapeHtml(c.expiration || '--')} · Δ ${typeof c.delta === 'number' ? c.delta.toFixed(2) : '--'}</div>
                 <div class="near-miss-blockers"><strong>Blocked by:</strong> ${c.rejection_reasons.map(r => `<span class="badge warn">${escapeHtml(r)}</span>`).join(' ')}</div>
                 <div class="near-miss-closeness"><strong>Close because:</strong> ${c.closeness?.length ? c.closeness.map(r => `<span class="badge info">${escapeHtml(r)}</span>`).join(' ') : '<span class="text-muted">No promotion notes</span>'}</div>
+                ${feedbackButtonsHtml('near_miss', {
+                  targetType: 'near_miss',
+                  symbol: c.symbol,
+                  contract: { option_type: c.option_type, strike: c.strike, expiration: c.expiration },
+                  strategy: c.strategy,
+                  decisionRef: `near_miss|${c.symbol}|${c.option_type}|${c.strike}|${c.expiration}|${currentSnapshot?.updatedAt || ''}`,
+                  snapshotUpdatedAt: currentSnapshot?.updatedAt,
+                }, [
+                  { label: 'Watch', value: 'watch' },
+                  { label: 'Useful', value: 'useful' },
+                  { label: 'Misleading', value: 'misleading' },
+                ])}
               </div>
             `).join('')}
           </div>
@@ -531,6 +568,19 @@ function renderNoTradeState() {
       <div class="status-actions" style="justify-content: center; margin-top: var(--space-md);">
         <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>
         <button class="btn-action" onclick="showFilterCriteria()">⚙ View Filters</button>
+      </div>
+      <div style="margin-top: var(--space-sm); display:flex; justify-content:center;">
+        ${feedbackButtonsHtml('no_trade_environment', {
+          targetType: 'no_trade_environment',
+          strategy: 'no_trade_environment',
+          decisionRef: `no_trade|${currentSnapshot?.updatedAt || ''}`,
+          snapshotUpdatedAt: currentSnapshot?.updatedAt,
+          metadata: { refreshResult, refreshStage }
+        }, [
+          { label: 'Agree', value: 'agree' },
+          { label: 'Useful', value: 'useful' },
+          { label: 'Misleading', value: 'misleading' },
+        ])}
       </div>
     </div>
   `;
@@ -776,6 +826,13 @@ function detailField(label, value, wide = false) {
   `;
 }
 
+function feedbackButtonsHtml(targetType, payload, labels) {
+  return `<div class="feedback-row${targetType === 'near_miss' ? ' compact' : ''}">${labels.map(label => {
+    const p = {...payload, feedback: label.value};
+    return `<button class="btn-action" onclick='submitOperatorFeedback(${JSON.stringify(JSON.stringify(p))})'>${label.label}</button>`;
+  }).join('')}</div>`;
+}
+
 function renderQualificationCard(leader) {
   // Parse confidence score (e.g., "7/10" -> 7)
   const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
@@ -859,8 +916,37 @@ function renderQualificationCard(leader) {
         <div class="section-title">Setup Thesis</div>
         <div class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</div>
       </div>
+
+      ${feedbackButtonsHtml('qualified_trade', {
+        targetType: 'qualified_trade',
+        symbol: leader.symbol,
+        contract: { option_type: leader.option_type, strike: leader.strike, expiration: leader.exp },
+        strategy: leader.section,
+        decisionRef: `qualified|${leader.symbol}|${leader.option_type}|${leader.strike}|${leader.exp}|${currentSnapshot?.updatedAt || ''}`,
+        snapshotUpdatedAt: currentSnapshot?.updatedAt,
+      }, [
+        { label: 'Agree', value: 'agree' },
+        { label: 'Disagree', value: 'disagree' },
+        { label: 'Watch', value: 'watch' },
+        { label: 'Strong', value: 'strong' },
+        { label: 'Weak', value: 'weak' },
+      ])}
     </div>
   `;
+}
+
+async function submitOperatorFeedback(payloadJson) {
+  const payload = typeof payloadJson === 'string' ? JSON.parse(payloadJson) : payloadJson;
+  try {
+    const res = await fetch('/api/operator-feedback', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || 'feedback failed');
+    await refresh();
+    return true;
+  } catch (err) {
+    console.error('Operator feedback failed', err);
+    return false;
+  }
 }
 
 function renderDetail(leader, stateMeta = null) {

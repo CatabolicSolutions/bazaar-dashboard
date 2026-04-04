@@ -133,11 +133,16 @@
                 <span class="status-label">Current Action Bias</span>
                 <span class="status-value" id="actionBiasState">--</span>
               </div>
+              <div class="status-item">
+                <span class="status-label">Operator Feedback</span>
+                <span class="status-value" id="operatorFeedbackCount">--</span>
+              </div>
             </div>
             <div class="status-actions">
               <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>
               <button class="btn-action" onclick="showFilterCriteria()">⚙ Filters</button>
             </div>
+            <div id="actionBiasFeedbackWrap" style="margin-top: var(--space-sm);"></div>
           </div>
         </section>
         

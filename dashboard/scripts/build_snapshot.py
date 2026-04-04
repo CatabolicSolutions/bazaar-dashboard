@@ -18,6 +18,7 @@ OUTCOME_ATTACHMENT_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' /
 CONFIDENCE_CALIBRATION_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'confidence_calibration_summary.json'
 SETUP_QUALITY_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'setup_quality_summary.json'
 PREFERENCE_ACTION_BIAS_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'preference_action_bias_summary.json'
+OPERATOR_FEEDBACK_SUMMARY = ROOT / 'dashboard' / 'state' / 'operator_feedback' / 'feedback_summary.json'
 
 
 def read_text(path):
@@ -132,6 +133,7 @@ snapshot['decisionOutcomeAttachments'] = read_json(OUTCOME_ATTACHMENT_SUMMARY)
 snapshot['confidenceCalibration'] = read_json(CONFIDENCE_CALIBRATION_SUMMARY)
 snapshot['setupQuality'] = read_json(SETUP_QUALITY_SUMMARY)
 snapshot['preferenceActionBias'] = read_json(PREFERENCE_ACTION_BIAS_SUMMARY)
+snapshot['operatorFeedback'] = read_json(OPERATOR_FEEDBACK_SUMMARY)
 
 OUT.write_text(json.dumps(snapshot, indent=2))
 print(str(OUT))

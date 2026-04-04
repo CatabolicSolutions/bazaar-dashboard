@@ -5,6 +5,7 @@ import os
 import json
 import argparse
 from datetime import datetime, timezone
+from operator_feedback import append_feedback
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -533,9 +534,22 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_crypto_quote()
         if self.path == '/api/crypto/swap':
             return self._handle_crypto_swap()
+        if self.path == '/api/operator-feedback':
+            return self._handle_operator_feedback(body)
         self.send_response(404)
         self.end_headers()
     
+    def _handle_operator_feedback(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+        except Exception:
+            return self.json_response(400, {'ok': False, 'error': 'Invalid JSON'})
+        try:
+            result = append_feedback(payload)
+            return self.json_response(200, result)
+        except Exception as e:
+            return self.json_response(400, {'ok': False, 'error': str(e)})
+
     def _handle_close_position(self, body):
         """Close a position"""
         import subprocess
