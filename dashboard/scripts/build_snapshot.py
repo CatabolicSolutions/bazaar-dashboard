@@ -14,6 +14,7 @@ ACTION_FEEDBACK = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
 TRADIER_EXECUTION_STATE = ROOT / 'dashboard' / 'state' / 'tradier_execution_state.json'
 TRADIER_AUDIT_LOG = ROOT / 'dashboard' / 'state' / 'tradier_audit_log.json'
 NEAR_MISS = ROOT / 'dashboard' / 'state' / 'near_miss_candidates.json'
+OUTCOME_ATTACHMENT_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'outcome_attachment_summary.json'
 
 
 def read_text(path):
@@ -124,6 +125,7 @@ snapshot = {
 }
 
 snapshot['decisionContext'] = persist_decision_context(snapshot)
+snapshot['decisionOutcomeAttachments'] = read_json(OUTCOME_ATTACHMENT_SUMMARY)
 
 OUT.write_text(json.dumps(snapshot, indent=2))
 print(str(OUT))

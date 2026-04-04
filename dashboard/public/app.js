@@ -324,6 +324,7 @@ function renderScanStatus(snapshot) {
   const refreshStageEl = document.getElementById('refreshStage');
   const refreshMessageEl = document.getElementById('refreshMessage');
   const decisionContextEl = document.getElementById('decisionContextCount');
+  const outcomeAttachmentEl = document.getElementById('outcomeAttachmentCount');
   
   if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
   
@@ -371,6 +372,15 @@ function renderScanStatus(snapshot) {
       decisionContextEl.textContent = `${dc.totalLoggedThisRun} captured`;
       decisionContextEl.className = 'status-value fresh';
       decisionContextEl.title = `Qualified: ${dc.qualifiedTradeCount}, Near-miss: ${dc.nearMissCount}, No-trade env: ${dc.noTradeEnvironmentLogged}`;
+    }
+  }
+
+  if (outcomeAttachmentEl) {
+    const oa = snapshot?.decisionOutcomeAttachments;
+    if (oa && typeof oa.totalAttachments !== 'undefined') {
+      outcomeAttachmentEl.textContent = `${oa.totalAttachments} attached`;
+      outcomeAttachmentEl.className = 'status-value fresh';
+      outcomeAttachmentEl.title = `New this run: ${oa.newAttachments}; Horizons: ${(oa.horizons || []).join(', ')}`;
     }
   }
 }
