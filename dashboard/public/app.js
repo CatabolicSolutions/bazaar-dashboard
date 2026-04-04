@@ -407,16 +407,20 @@ function renderNoTradeState() {
     'VIX regime suggesting caution'
   ];
   
+  const refreshResult = refreshStatusData ? (refreshStatusData.ok ? 'Success' : 'Failure') : '--';
+  const refreshStage = refreshStatusData?.stage || '--';
+  const refreshMessage = refreshStatusData?.message || '--';
+
   return `
     <div class="no-trade-state">
       <div class="no-trade-icon">🛡️</div>
       <div class="no-trade-title">No Trade Signal</div>
       <div class="no-trade-subtitle">The system is actively screening. No candidates passed filters.</div>
       
-      <div class="status-grid" style="margin: var(--space-md) 0;">
+      <div class="status-grid telemetry-grid" style="margin: var(--space-md) 0;">
         <div class="status-item">
           <span class="status-label">System Status</span>
-          <span class="status-value fresh">${apiKeyLoaded ? 'Active' : 'Error'}</span>
+          <span class="status-value ${apiKeyLoaded ? 'fresh' : 'error'}">${apiKeyLoaded ? 'Active' : 'Error'}</span>
         </div>
         <div class="status-item">
           <span class="status-label">Data Freshness</span>
@@ -425,6 +429,18 @@ function renderNoTradeState() {
         <div class="status-item">
           <span class="status-label">Screening</span>
           <span class="status-value">Strict Filters</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Last Refresh Result</span>
+          <span class="status-value ${refreshStatusData ? (refreshStatusData.ok ? 'fresh' : 'error') : ''}">${refreshResult}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Refresh Stage</span>
+          <span class="status-value">${escapeHtml(refreshStage)}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Refresh Message</span>
+          <span class="status-value" title="${escapeHtml(refreshMessage)}">${escapeHtml(refreshMessage)}</span>
         </div>
       </div>
       
