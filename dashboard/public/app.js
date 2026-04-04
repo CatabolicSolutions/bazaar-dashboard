@@ -327,6 +327,7 @@ function renderScanStatus(snapshot) {
   const outcomeAttachmentEl = document.getElementById('outcomeAttachmentCount');
   const calibrationReviewEl = document.getElementById('calibrationReviewCount');
   const setupQualityEl = document.getElementById('setupQualityCount');
+  const actionBiasEl = document.getElementById('actionBiasState');
   
   if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
   
@@ -401,6 +402,21 @@ function renderScanStatus(snapshot) {
       setupQualityEl.textContent = `${sq.sampleSize.decisions} ranked`;
       setupQualityEl.className = 'status-value fresh';
       setupQualityEl.title = sq.sampleSize.note || 'Early setup quality review active';
+    }
+  }
+
+  if (actionBiasEl) {
+    const pb = snapshot?.preferenceActionBias;
+    const favored = pb?.operatorSummary?.favoredSetupClass;
+    const note = pb?.operatorSummary?.sampleNote;
+    if (favored) {
+      actionBiasEl.textContent = `Favored: ${favored}`;
+      actionBiasEl.className = 'status-value fresh';
+      actionBiasEl.title = note || '';
+    } else if (note) {
+      actionBiasEl.textContent = 'Neutral';
+      actionBiasEl.className = 'status-value';
+      actionBiasEl.title = note;
     }
   }
 }
