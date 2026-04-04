@@ -655,6 +655,93 @@ function detailField(label, value, wide = false) {
   `;
 }
 
+function renderQualificationCard(leader) {
+  // Parse confidence score (e.g., "7/10" -> 7)
+  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
+  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
+  const confidencePercent = confidenceScore * 10;
+  
+  // Determine confidence color
+  let confidenceColor = 'warn';
+  if (confidenceScore >= 8) confidenceColor = 'good';
+  else if (confidenceScore >= 6) confidenceColor = 'accent';
+  else if (confidenceScore < 5) confidenceColor = 'bad';
+  
+  // Build qualification reasons
+  const reasons = [];
+  
+  // Section-based qualification
+  if (leader.section === 'directional') {
+    reasons.push('Near-ATM delta (0.35-0.80) for directional exposure');
+    reasons.push('7-14 DTE for optimal gamma/theta balance');
+    reasons.push('Tight bid-ask spread for clean entry/exit');
+  } else {
+    reasons.push('OTM delta (~0.14) for defined-risk premium');
+    reasons.push('Spread structure limits max loss');
+    reasons.push('Time decay working in your favor');
+  }
+  
+  // Add liquidity reason if available
+  if (leader.bid && leader.ask) {
+    const bid = parseFloat(leader.bid);
+    const ask = parseFloat(leader.ask);
+    if (bid > 0 && ask > 0) {
+      const spreadPct = ((ask - bid) / ((ask + bid) / 2)) * 100;
+      if (spreadPct < 5) reasons.push('Tight bid-ask spread (' + spreadPct.toFixed(1) + '%)');
+    }
+  }
+  
+  // Add fallback note if applicable
+  if (leader.fallback) {
+    reasons.push('⚠ Fallback expiry - confidence adjusted');
+  }
+  
+  // Risk factors
+  const risks = [];
+  risks.push('Momentum confirmation required - do not blind enter');
+  risks.push('Hard stop discipline essential');
+  if (leader.section === 'directional') {
+    risks.push('Directional risk - wrong way move = loss');
+  } else {
+    risks.push('Assignment risk if ITM at expiry');
+  }
+  if (leader.fallback) {
+    risks.push('Non-optimal DTE may affect Greeks');
+  }
+  
+  return `
+    <div class="qualification-card">
+      <div class="qualification-header">
+        <div class="qualification-title">Trade Qualification</div>
+        <div class="confidence-badge ${confidenceColor}">${confidenceScore}/10</div>
+      </div>
+      
+      <div class="confidence-bar">
+        <div class="confidence-fill ${confidenceColor}" style="width: ${confidencePercent}%"></div>
+      </div>
+      
+      <div class="qualification-section">
+        <div class="section-title">✓ Why This Passed Filters</div>
+        <ul class="qualification-list">
+          ${reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+        </ul>
+      </div>
+      
+      <div class="qualification-section">
+        <div class="section-title">⚠ Key Risk Factors</div>
+        <ul class="risk-list">
+          ${risks.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+        </ul>
+      </div>
+      
+      <div class="setup-thesis">
+        <div class="section-title">Setup Thesis</div>
+        <div class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderDetail(leader, stateMeta = null) {
   const wrap = document.getElementById('detailWrap');
   const meta = document.getElementById('selectedMeta');
@@ -688,9 +775,14 @@ function renderDetail(leader, stateMeta = null) {
 
   meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
   wrap.className = 'detail-wrap';
+  
+  // Build qualification card
+  const qualificationCard = renderQualificationCard(leader);
+  
   wrap.innerHTML = `
     ${stateMeta?.kind === 'selection-reset' ? stateBanner('Selected detail was re-anchored because the previous leader disappeared after refresh.', 'warn') : ''}
     ${staleNote.tone !== 'good' ? stateBanner(staleNote.text, staleNote.tone) : ''}
+    ${qualificationCard}
     <div class="detail-state-row">
       <div>
         <div class="label">Local Action State</div>
