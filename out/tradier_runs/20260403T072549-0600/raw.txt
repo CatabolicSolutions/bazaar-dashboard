@@ -1,0 +1,752 @@
+bash: cannot set terminal process group (1385): Inappropriate ioctl for device
+bash: no job control in this shell
+DEBUG: Today's date: 2026-04-03
+DEBUG: Attempting to fetch VIX quote.
+
+--- Current VIX: 23.87 ---
+DEBUG: VIX fetched successfully. Starting symbol processing loop.
+
+--- Processing SPX ---
+  Underlying price for SPX: 6582.69
+Fetching option chain for SPX, requested DTE: 7 (Using Expiry: 2026-04-17, Label: 14DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-04-17.
+Skipping scalping output for SPX requested 7DTE because fallback actual DTE 14 is too distant.
+Skipping credit spread output for SPX requested 7DTE because fallback actual DTE 14 is too distant.
+No tickets generated for this symbol/requested DTE.
+Skipping duplicate expiry 2026-04-17 for SPX; already processed via a higher-priority DTE path.
+
+--- Processing SPY ---
+  Underlying price for SPY: 655.83
+Fetching option chain for SPY, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for SPY on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for SPY on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for SPY (7DTE)**
+  - Underlying Price: $655.83
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $664.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $11.7
+  - Bid: $11.24 / Ask: $11.64
+  - Delta: -0.6567
+  - Spread Ratio: 3.50%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for SPY (7DTE)**
+  - Underlying Price: $655.83
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $631.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.81
+  - Bid: $1.73 / Ask: $1.75
+  - Delta: -0.1408
+  - Spread Ratio: 1.15%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for SPY, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for SPY on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for SPY on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for SPY (14DTE)**
+  - Underlying Price: $655.83
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $647.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $16.45
+  - Bid: $16.60 / Ask: $17.33
+  - Delta: 0.6467
+  - Spread Ratio: 4.30%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for SPY (14DTE)**
+  - Underlying Price: $655.83
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $621.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $3.0
+  - Bid: $2.48 / Ask: $2.51
+  - Delta: -0.1412
+  - Spread Ratio: 1.20%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing NDX ---
+  Underlying price for NDX: 24521.46
+Fetching option chain for NDX, requested DTE: 7 (Using Expiry: 2026-04-17, Label: 14DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-04-17.
+Skipping scalping output for NDX requested 7DTE because fallback actual DTE 14 is too distant.
+Skipping credit spread output for NDX requested 7DTE because fallback actual DTE 14 is too distant.
+No tickets generated for this symbol/requested DTE.
+Skipping duplicate expiry 2026-04-17 for NDX; already processed via a higher-priority DTE path.
+
+--- Processing QQQ ---
+  Underlying price for QQQ: 584.98
+Fetching option chain for QQQ, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for QQQ on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for QQQ on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for QQQ (7DTE)**
+  - Underlying Price: $584.98
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $578.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $12.56
+  - Bid: $10.17 / Ask: $13.62
+  - Delta: 0.6481
+  - Spread Ratio: 29.00%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for QQQ (7DTE)**
+  - Underlying Price: $584.98
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $560.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.65
+  - Bid: $1.62 / Ask: $1.68
+  - Delta: -0.1429
+  - Spread Ratio: 3.64%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for QQQ, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for QQQ on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for QQQ on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for QQQ (14DTE)**
+  - Underlying Price: $584.98
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $575.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $17.92
+  - Bid: $17.05 / Ask: $18.35
+  - Delta: 0.6525
+  - Spread Ratio: 7.34%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for QQQ (14DTE)**
+  - Underlying Price: $584.98
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $550.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $2.65
+  - Bid: $2.60 / Ask: $2.65
+  - Delta: -0.1408
+  - Spread Ratio: 1.90%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing NVDA ---
+  Underlying price for NVDA: 177.39
+Fetching option chain for NVDA, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for NVDA on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for NVDA on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for NVDA (7DTE)**
+  - Underlying Price: $177.39
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $175.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $4.67
+  - Bid: $4.60 / Ask: $4.70
+  - Delta: 0.6335
+  - Spread Ratio: 2.15%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for NVDA (7DTE)**
+  - Underlying Price: $177.39
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $185.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $0.5
+  - Bid: $0.47 / Ask: $0.49
+  - Delta: 0.1467
+  - Spread Ratio: 4.17%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for NVDA, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for NVDA on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for NVDA on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for NVDA (14DTE)**
+  - Underlying Price: $177.39
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $182.50
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $7.45
+  - Bid: $7.10 / Ask: $7.20
+  - Delta: -0.6547
+  - Spread Ratio: 1.40%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for NVDA (14DTE)**
+  - Underlying Price: $177.39
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $190.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $0.6
+  - Bid: $0.58 / Ask: $0.60
+  - Delta: 0.1289
+  - Spread Ratio: 3.39%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing TSLA ---
+  Underlying price for TSLA: 360.59
+Fetching option chain for TSLA, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for TSLA on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for TSLA on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for TSLA (7DTE)**
+  - Underlying Price: $360.59
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $370.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $13.7
+  - Bid: $13.55 / Ask: $13.70
+  - Delta: -0.6580
+  - Spread Ratio: 1.10%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for TSLA (7DTE)**
+  - Underlying Price: $360.59
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $337.50
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.92
+  - Bid: $1.90 / Ask: $1.93
+  - Delta: -0.1482
+  - Spread Ratio: 1.57%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for TSLA, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for TSLA on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for TSLA on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for TSLA (14DTE)**
+  - Underlying Price: $360.59
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $372.50
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $18.18
+  - Bid: $18.00 / Ask: $18.15
+  - Delta: -0.6449
+  - Spread Ratio: 0.83%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for TSLA (14DTE)**
+  - Underlying Price: $360.59
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $325.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $2.4
+  - Bid: $2.38 / Ask: $2.41
+  - Delta: -0.1398
+  - Spread Ratio: 1.25%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing XSP ---
+  Underlying price for XSP: 658.27
+Fetching option chain for XSP, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for XSP on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for XSP on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for XSP (7DTE)**
+  - Underlying Price: $658.27
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $651.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $12.32
+  - Bid: $12.03 / Ask: $13.35
+  - Delta: 0.6562
+  - Spread Ratio: 10.40%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for XSP (7DTE)**
+  - Underlying Price: $658.27
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $634.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.91
+  - Bid: $1.71 / Ask: $1.91
+  - Delta: -0.1418
+  - Spread Ratio: 11.05%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for XSP, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for XSP on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for XSP on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for XSP (14DTE)**
+  - Underlying Price: $658.27
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $670.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $16.53
+  - Bid: $13.79 / Ask: $16.67
+  - Delta: -0.6521
+  - Spread Ratio: 18.91%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for XSP (14DTE)**
+  - Underlying Price: $658.27
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $623.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $3.06
+  - Bid: $2.39 / Ask: $2.61
+  - Delta: -0.1415
+  - Spread Ratio: 8.80%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing IWM ---
+  Underlying price for IWM: 251.29
+Fetching option chain for IWM, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for IWM on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for IWM on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for IWM (7DTE)**
+  - Underlying Price: $251.29
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $255.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $6.06
+  - Bid: $5.79 / Ask: $7.28
+  - Delta: -0.6349
+  - Spread Ratio: 22.80%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for IWM (7DTE)**
+  - Underlying Price: $251.29
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $261.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $0.54
+  - Bid: $0.52 / Ask: $0.56
+  - Delta: 0.1369
+  - Spread Ratio: 7.41%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for IWM, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for IWM on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for IWM on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for IWM (14DTE)**
+  - Underlying Price: $251.29
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $257.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $8.58
+  - Bid: $7.68 / Ask: $9.74
+  - Delta: -0.6532
+  - Spread Ratio: 23.65%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for IWM (14DTE)**
+  - Underlying Price: $251.29
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $233.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $1.2
+  - Bid: $1.17 / Ask: $1.22
+  - Delta: -0.1407
+  - Spread Ratio: 4.18%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing VIX ---
+  Underlying price for VIX: 23.87
+Fetching option chain for VIX, requested DTE: 7 (Using Expiry: 2026-04-15, Label: 12DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-04-15.
+Skipping scalping output for VIX requested 7DTE because fallback actual DTE 12 is too distant.
+Skipping credit spread output for VIX requested 7DTE because fallback actual DTE 12 is too distant.
+No tickets generated for this symbol/requested DTE.
+Fetching option chain for VIX, requested DTE: 14 (Using Expiry: 2026-05-19, Label: 46DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-19.
+Skipping scalping output for VIX requested 14DTE because fallback actual DTE 46 is too distant.
+Skipping credit spread output for VIX requested 14DTE because fallback actual DTE 46 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing AMD ---
+  Underlying price for AMD: 217.5
+Fetching option chain for AMD, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for AMD on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for AMD on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for AMD (7DTE)**
+  - Underlying Price: $217.50
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $212.50
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $9.05
+  - Bid: $9.05 / Ask: $9.35
+  - Delta: 0.6447
+  - Spread Ratio: 3.26%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for AMD (7DTE)**
+  - Underlying Price: $217.50
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $200.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.28
+  - Bid: $1.26 / Ask: $1.32
+  - Delta: -0.1385
+  - Spread Ratio: 4.65%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for AMD, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for AMD on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for AMD on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for AMD (14DTE)**
+  - Underlying Price: $217.50
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $227.50
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $16.03
+  - Bid: $14.05 / Ask: $14.65
+  - Delta: -0.6529
+  - Spread Ratio: 4.18%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for AMD (14DTE)**
+  - Underlying Price: $217.50
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $242.50
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $1.47
+  - Bid: $1.44 / Ask: $1.50
+  - Delta: 0.1450
+  - Spread Ratio: 4.08%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing AAPL ---
+  Underlying price for AAPL: 255.92
+Fetching option chain for AAPL, requested DTE: 7 (Using Expiry: 2026-04-10, Label: 7DTE)...
+Applying 'scalping_buy' strategy for AAPL on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for AAPL on 2026-04-10 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for AAPL (7DTE)**
+  - Underlying Price: $255.92
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $252.50
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $5.8
+  - Bid: $5.60 / Ask: $5.85
+  - Delta: 0.6642
+  - Spread Ratio: 4.37%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for AAPL (7DTE)**
+  - Underlying Price: $255.92
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $245.00
+  - Expiration: 2026-04-10
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $0.75
+  - Bid: $0.76 / Ask: $0.79
+  - Delta: -0.1392
+  - Spread Ratio: 3.87%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for AAPL, requested DTE: 14 (Using Expiry: 2026-04-17, Label: 14DTE)...
+Applying 'scalping_buy' strategy for AAPL on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for AAPL on 2026-04-17 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 23.87. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for AAPL (14DTE)**
+  - Underlying Price: $255.92
+  - Current VIX: 23.87
+  - Type: CALL
+  - Strike: $252.50
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $7.25
+  - Bid: $7.00 / Ask: $7.45
+  - Delta: 0.6276
+  - Spread Ratio: 6.23%
+
+*Thesis Hint: Tight near-ATM momentum candidate with cleaner liquidity than the broad dump set.*
+*Action Hint: Only engage if momentum confirms; hard risk controls still apply.*
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for AAPL (14DTE)**
+  - Underlying Price: $255.92
+  - Current VIX: 23.87
+  - Type: PUT
+  - Strike: $240.00
+  - Expiration: 2026-04-17
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $1.09
+  - Bid: $1.04 / Ask: $1.14
+  - Delta: -0.1378
+  - Spread Ratio: 9.17%
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+Tradier options processing complete.

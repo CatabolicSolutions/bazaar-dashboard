@@ -1,32 +1,31 @@
 **BAZAAR OF FORTUNES — DAILY MACRO MARKET ANALYSIS**
-**Generated:** 2026-03-31 06:30 MDT
+**Generated:** 2026-04-03 06:30 MDT
 
 **1. Overnight Drivers**
 - Asia-Pacific markets close mixed as oil gains and Iran war keeps investors on edge - CNBC
-- Asia markets mostly rise as investors assess Iran conflict impact on energy supplies - CNBC
-- European markets finish higher as traders track Middle East turmoil - CNBC
+- European stocks jump 2% as sliding oil prices buoy sentiment - CNBC
+- European markets close lower as oil price surges amid Middle East turmoil - CNBC
 
 **2. US Economic Calendar (Today / Tomorrow)**
-- Wed 12:15 PM ET — ADP Non-Farm Employment Change (High)
-- Wed 12:30 PM ET — Core Retail Sales m/m (High)
-- Wed 12:30 PM ET — Retail Sales m/m (High)
-- Wed 02:00 PM ET — ISM Manufacturing PMI (High)
+- Fri 12:30 PM ET — Non-Farm Employment Change (High)
+- Fri 12:30 PM ET — Unemployment Rate (High)
+- Fri 12:30 PM ET — Average Hourly Earnings m/m (High)
 
 **3. VIX Context**
-- VIX: 28.71 vs yesterday 30.61 (-6.21%)
-- 5-session average: 28.28 | recent range: 25.33–31.05
-- Read: trending down / fear compressing
+- VIX: 23.87 vs yesterday 24.54 (-2.73%)
+- 5-session average: 27.78 | recent range: 24.54–31.05
+- Read: roughly stable / mixed risk tone
 
 **4. Futures / Pre-Market Proxy**
-- SPX / S&P 500 proxy: down -3.24% vs previous close (regular)
-- NDX / Nasdaq 100 proxy: down -4.37% vs previous close (regular)
+- SPX / S&P 500 proxy: up +1.63% vs previous close (regular)
+- NDX / Nasdaq 100 proxy: up +1.94% vs previous close (regular)
 
 **5. Key Levels**
-- SPY: prev H/L/C 642.66/633.11/634.09 | pivot 636.62 | S1 630.58 | R1 640.13
-- QQQ: prev H/L/C 571.02/561.57/562.58 | pivot 565.06 | S1 559.09 | R1 568.54
+- SPY: prev H/L/C 658.52/653.00/655.24 | pivot 655.59 | S1 652.65 | R1 658.17
+- QQQ: prev H/L/C 587.74/580.42/584.31 | pivot 584.16 | S1 580.57 | R1 587.89
 
 **Desk Read / Synopsis**
 - event risk elevated; do not overtrust early directional moves before scheduled data/speakers
-- volatility is easing; cleaner continuation setups deserve more attention if opening structure confirms
-- premarket tone soft; treat long-side leaders more skeptically unless price reclaims key levels cleanly
+- volatility is not screaming regime change; trade the tape, but stay selective
+- premarket tone constructive; bullish leaders can earn more confidence if they hold after the open
 
