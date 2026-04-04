@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from datetime import datetime, timezone
 import subprocess
+from decision_context import persist_decision_context
 
 ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
 OUT = ROOT / 'dashboard' / 'public' / 'snapshot.json'
@@ -121,6 +122,8 @@ snapshot = {
     'tradierExecution': read_json(TRADIER_EXECUTION_STATE),
     'tradierAudit': read_json(TRADIER_AUDIT_LOG),
 }
+
+snapshot['decisionContext'] = persist_decision_context(snapshot)
 
 OUT.write_text(json.dumps(snapshot, indent=2))
 print(str(OUT))

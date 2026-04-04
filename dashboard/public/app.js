@@ -323,6 +323,7 @@ function renderScanStatus(snapshot) {
   const refreshResultEl = document.getElementById('refreshResult');
   const refreshStageEl = document.getElementById('refreshStage');
   const refreshMessageEl = document.getElementById('refreshMessage');
+  const decisionContextEl = document.getElementById('decisionContextCount');
   
   if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
   
@@ -362,6 +363,15 @@ function renderScanStatus(snapshot) {
     refreshStageEl.textContent = refreshStatusData?.stage || '--';
     refreshMessageEl.textContent = refreshStatusData?.message || '--';
     refreshMessageEl.title = refreshStatusData?.message || '';
+  }
+
+  if (decisionContextEl) {
+    const dc = snapshot?.decisionContext;
+    if (dc) {
+      decisionContextEl.textContent = `${dc.totalLoggedThisRun} captured`;
+      decisionContextEl.className = 'status-value fresh';
+      decisionContextEl.title = `Qualified: ${dc.qualifiedTradeCount}, Near-miss: ${dc.nearMissCount}, No-trade env: ${dc.noTradeEnvironmentLogged}`;
+    }
   }
 }
 
