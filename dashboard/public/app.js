@@ -163,6 +163,7 @@ function setSelectedLeader(index, leaders) {
   selectedLeaderIndex = index;
   selectedLeaderKey = leaderKey(leaders[index]);
   renderTradierSlice();
+  renderOperatorRail();
 }
 
 function getSelectedLeader() {
@@ -309,7 +310,7 @@ function renderCommandLayer(snapshot) {
   const freshMinutes = boardUpdated ? Math.round((Date.now() - new Date(boardUpdated).getTime()) / 60000) : null;
   const fresh = freshMinutes !== null && freshMinutes < 30;
 
-  let mode = 'WAIT';
+  let mode = 'STAND DOWN';
   let headline = 'Stand down — no valid trade';
   let subline = 'Bazaar is screening and does not currently recommend action.';
   let badges = [`<span class="badge ${fresh ? 'good' : 'warn'}">${fresh ? 'Fresh' : 'Stale'}</span>`];
@@ -318,7 +319,7 @@ function renderCommandLayer(snapshot) {
   let ctas = [];
 
   if (leaders.length) {
-    mode = 'ACT';
+    mode = 'ACT NOW';
     const top = leaders[0];
     headline = `${top.symbol} ${String(top.option_type || '').toUpperCase()} ${top.strike}`;
     subline = 'Valid setup present — review qualification card and execution path now.';
@@ -336,7 +337,7 @@ function renderCommandLayer(snapshot) {
       '<button class="btn-action" onclick="goToMonitorPositions()">Monitor Positions</button>'
     ];
   } else if (nearMisses.length) {
-    mode = 'WATCH';
+    mode = 'WATCH CLOSE';
     const nm = nearMisses[0];
     headline = `No Trade Yet — watch ${nm.symbol} ${nm.option_type} ${nm.strike}`;
     subline = 'Closest rejected setup surfaced for monitoring, not execution.';
