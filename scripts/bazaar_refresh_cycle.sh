@@ -41,6 +41,7 @@ python3 scripts/tradier_near_miss_report.py >/tmp/bazaar_near_miss_path.txt || t
 python3 dashboard/scripts/build_snapshot.py >/tmp/bazaar_snapshot_path.txt
 python3 dashboard/scripts/attach_decision_outcomes.py >/tmp/bazaar_outcome_attachments.txt || true
 python3 dashboard/scripts/confidence_calibration.py >/tmp/bazaar_confidence_calibration.txt || true
+python3 dashboard/scripts/setup_quality_expectancy.py >/tmp/bazaar_setup_quality.txt || true
 
 python3 - <<'PY'
 import json, datetime, pathlib
