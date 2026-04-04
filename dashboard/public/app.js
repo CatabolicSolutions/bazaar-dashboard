@@ -312,12 +312,17 @@ function renderOverview(snapshot) {
   renderScanStatus(snapshot);
 }
 
+let refreshStatusData = null;
+
 function renderScanStatus(snapshot) {
   const health = snapshot?.systemHealth || {};
   const scanStatusEl = document.getElementById('scanStatus');
   const lastScanEl = document.getElementById('lastScanTime');
   const freshnessEl = document.getElementById('dataFreshness');
   const apiStatusEl = document.getElementById('apiStatus');
+  const refreshResultEl = document.getElementById('refreshResult');
+  const refreshStageEl = document.getElementById('refreshStage');
+  const refreshMessageEl = document.getElementById('refreshMessage');
   
   if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
   
@@ -350,6 +355,29 @@ function renderScanStatus(snapshot) {
   freshnessEl.className = `status-value ${freshnessClass}`;
   apiStatusEl.textContent = apiKeyLoaded ? 'Connected' : 'Disconnected';
   apiStatusEl.className = `status-value ${apiKeyLoaded ? 'fresh' : 'error'}`;
+
+  if (refreshResultEl && refreshStageEl && refreshMessageEl) {
+    refreshResultEl.textContent = refreshStatusData ? (refreshStatusData.ok ? 'Success' : 'Failure') : '--';
+    refreshResultEl.className = `status-value ${refreshStatusData ? (refreshStatusData.ok ? 'fresh' : 'error') : ''}`;
+    refreshStageEl.textContent = refreshStatusData?.stage || '--';
+    refreshMessageEl.textContent = refreshStatusData?.message || '--';
+    refreshMessageEl.title = refreshStatusData?.message || '';
+  }
+}
+
+async function fetchRefreshStatus() {
+  try {
+    const res = await fetch('/api/refresh-status');
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.ok) {
+      refreshStatusData = data.data;
+      return data.data;
+    }
+  } catch (err) {
+    console.error('Failed to fetch refresh status:', err);
+  }
+  return null;
 }
 
 function renderNoTradeState() {
@@ -1515,6 +1543,7 @@ async function refresh() {
   renderTradierSlice();
   try {
     currentSnapshot = await loadSnapshot();
+    await fetchRefreshStatus();
     currentUiMode = 'ready';
     syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
     const updatedAtEl = document.getElementById('updatedAt');

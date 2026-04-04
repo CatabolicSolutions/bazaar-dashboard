@@ -1100,6 +1100,22 @@ body {
   margin-bottom: var(--space-md);
 }
 
+.telemetry-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 900px) {
+  .telemetry-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .telemetry-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .status-item {
   display: flex;
   flex-direction: column;

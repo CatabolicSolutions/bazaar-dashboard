@@ -20,6 +20,7 @@ EXECUTE_LEADER = ROOT / 'dashboard' / 'scripts' / 'execute_leader.py'
 POSITIONS_STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE_STATE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
 ACTION_FEEDBACK_STATE = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
+REFRESH_STATUS_STATE = ROOT / 'dashboard' / 'state' / 'refresh_status.json'
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -291,8 +292,21 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_crypto_pairs()
         elif self.path == '/api/crypto/emergency':
             return self._handle_crypto_emergency()
+        elif self.path == '/api/refresh-status':
+            return self._handle_refresh_status()
         return super().do_GET()
     
+    def _handle_refresh_status(self):
+        payload = self.read_json(REFRESH_STATUS_STATE, {
+            'ok': False,
+            'stage': 'unknown',
+            'message': 'No refresh status available',
+            'updatedAt': None,
+            'snapshotMtime': None,
+            'boardMtime': None,
+        })
+        return self.json_response(200, {'ok': True, 'data': payload})
+
     def _handle_live_positions(self):
         """Get live position data from Tradier"""
         import subprocess
