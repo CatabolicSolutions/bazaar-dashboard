@@ -365,6 +365,7 @@ body {
 /* Panel sizing */
 .panel-overview { grid-column: span 12; }
 .panel-scanner { grid-column: span 4; }
+.panel-status { grid-column: span 4; }
 .panel-leaders { grid-column: span 4; }
 .panel-detail { grid-column: span 4; }
 .panel-actions { grid-column: span 6; }
@@ -936,6 +937,99 @@ body {
   margin-left: auto;
   font-family: var(--font-mono);
   font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCAN STATUS PANEL
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.status-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.status-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.status-value.fresh {
+  color: var(--good);
+}
+
+.status-value.stale {
+  color: var(--warn);
+}
+
+.status-value.error {
+  color: var(--bad);
+}
+
+.status-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* No Trade State */
+.no-trade-state {
+  padding: var(--space-xl);
+  text-align: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.no-trade-state .no-trade-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-md);
+}
+
+.no-trade-state .no-trade-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.no-trade-state .no-trade-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.no-trade-state .no-trade-reasons {
+  text-align: left;
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  background: var(--panel);
+  border-radius: var(--radius-md);
+}
+
+.no-trade-state .no-trade-reasons li {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-xs);
 }
 
 /* ═══════════════════════════════════════════════════════════════

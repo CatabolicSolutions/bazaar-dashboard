@@ -81,6 +81,34 @@
           </div>
         </section>
         
+        <!-- Scan Status Panel -->
+        <section class="panel panel-status">
+          <div class="panel-header">
+            <span class="panel-label">SCAN STATUS</span>
+            <span class="panel-status" id="scanStatus">Checking...</span>
+          </div>
+          <div id="scanStatusWrap" class="panel-body compact">
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="status-label">Last Scan</span>
+                <span class="status-value" id="lastScanTime">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Data Freshness</span>
+                <span class="status-value" id="dataFreshness">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">API Status</span>
+                <span class="status-value" id="apiStatus">--</span>
+              </div>
+            </div>
+            <div class="status-actions">
+              <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>
+              <button class="btn-action" onclick="showFilterCriteria()">⚙ Filters</button>
+            </div>
+          </div>
+        </section>
+        
         <!-- Leaders Board -->
         <section class="panel panel-leaders">
           <div class="panel-header">

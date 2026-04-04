@@ -307,6 +307,152 @@ function renderOverview(snapshot) {
   if (updatedAt) {
     updatedAt.textContent = new Date().toLocaleTimeString();
   }
+  
+  // Update scan status
+  renderScanStatus(snapshot);
+}
+
+function renderScanStatus(snapshot) {
+  const health = snapshot?.systemHealth || {};
+  const scanStatusEl = document.getElementById('scanStatus');
+  const lastScanEl = document.getElementById('lastScanTime');
+  const freshnessEl = document.getElementById('dataFreshness');
+  const apiStatusEl = document.getElementById('apiStatus');
+  
+  if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
+  
+  const boardUpdated = health.tradierBoardUpdatedAt;
+  const apiKeyLoaded = health.tradierApiKeyLoaded;
+  
+  // Calculate freshness
+  let freshness = 'Unknown';
+  let freshnessClass = '';
+  if (boardUpdated) {
+    const minutesAgo = (Date.now() - new Date(boardUpdated).getTime()) / 60000;
+    if (minutesAgo < 30) {
+      freshness = 'Fresh';
+      freshnessClass = 'fresh';
+    } else if (minutesAgo < 120) {
+      freshness = `${Math.round(minutesAgo)}m old`;
+      freshnessClass = 'stale';
+    } else {
+      freshness = `${Math.round(minutesAgo / 60)}h old`;
+      freshnessClass = 'stale';
+    }
+  }
+  
+  // Update elements
+  scanStatusEl.textContent = apiKeyLoaded ? (boardUpdated ? 'Active' : 'No Data') : 'API Error';
+  scanStatusEl.className = `panel-status ${apiKeyLoaded ? (boardUpdated ? 'fresh' : 'stale') : 'error'}`;
+  
+  lastScanEl.textContent = boardUpdated ? new Date(boardUpdated).toLocaleTimeString() : 'Never';
+  freshnessEl.textContent = freshness;
+  freshnessEl.className = `status-value ${freshnessClass}`;
+  apiStatusEl.textContent = apiKeyLoaded ? 'Connected' : 'Disconnected';
+  apiStatusEl.className = `status-value ${apiKeyLoaded ? 'fresh' : 'error'}`;
+}
+
+function renderNoTradeState() {
+  const health = currentSnapshot?.systemHealth || {};
+  const boardUpdated = health.tradierBoardUpdatedAt;
+  const apiKeyLoaded = health.tradierApiKeyLoaded;
+  
+  let freshnessText = 'Unknown';
+  let freshnessIcon = '⏱️';
+  if (boardUpdated) {
+    const minutesAgo = (Date.now() - new Date(boardUpdated).getTime()) / 60000;
+    if (minutesAgo < 30) {
+      freshnessText = 'Data is fresh';
+      freshnessIcon = '✓';
+    } else {
+      freshnessText = `Last scan: ${Math.round(minutesAgo)} minutes ago`;
+      freshnessIcon = '⏱️';
+    }
+  }
+  
+  const reasons = [
+    'Confidence threshold not met (minimum 6/10 required)',
+    'Bid-ask spreads too wide for clean entry',
+    'Volume/OI below liquidity thresholds',
+    'Delta profile outside optimal range (0.10-0.80)',
+    'Risk/reward ratio not acceptable',
+    'VIX regime suggesting caution'
+  ];
+  
+  return `
+    <div class="no-trade-state">
+      <div class="no-trade-icon">🛡️</div>
+      <div class="no-trade-title">No Trade Signal</div>
+      <div class="no-trade-subtitle">The system is actively screening. No candidates passed filters.</div>
+      
+      <div class="status-grid" style="margin: var(--space-md) 0;">
+        <div class="status-item">
+          <span class="status-label">System Status</span>
+          <span class="status-value fresh">${apiKeyLoaded ? 'Active' : 'Error'}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Data Freshness</span>
+          <span class="status-value ${boardUpdated ? 'fresh' : 'error'}">${freshnessText}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Screening</span>
+          <span class="status-value">Strict Filters</span>
+        </div>
+      </div>
+      
+      <div class="no-trade-reasons">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: var(--space-sm);">Common Rejection Reasons</div>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          ${reasons.map(r => `<li>• ${r}</li>`).join('')}
+        </ul>
+      </div>
+      
+      <div class="status-actions" style="justify-content: center; margin-top: var(--space-md);">
+        <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>
+        <button class="btn-action" onclick="showFilterCriteria()">⚙ View Filters</button>
+      </div>
+    </div>
+  `;
+}
+
+function forceRefresh() {
+  const btn = document.querySelector('button[onclick="forceRefresh()"]');
+  if (btn) {
+    btn.textContent = '⟳ Refreshing...';
+    btn.disabled = true;
+  }
+  refresh().then(() => {
+    if (btn) {
+      btn.textContent = '↻ Force Refresh';
+      btn.disabled = false;
+    }
+  }).catch(() => {
+    if (btn) {
+      btn.textContent = '✗ Failed';
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = '↻ Force Refresh'; }, 2000);
+    }
+  });
+}
+
+function showFilterCriteria() {
+  alert(`Bazaar Filter Criteria:
+
+DIRECTIONAL/SCALPING:
+• Delta: 0.35 - 0.80
+• DTE: 7-14 days
+• Bid-ask spread: < 10%
+• Volume: > 1000 contracts
+• Confidence: ≥ 6/10
+
+PREMIUM/CREDIT:
+• Delta: 0.10 - 0.18
+• DTE: 7-14 days
+• OTM only
+• Spread width: acceptable risk
+• Confidence: ≥ 6/10
+
+Standing down when no setups meet criteria is valid discipline.`);
 }
 
 // Global for live scanner data
@@ -402,7 +548,7 @@ function renderLeaders(leaders) {
     return;
   }
   if (!leaders?.length) {
-    wrap.innerHTML = '<div class="void">No Tradier leaders available</div>';
+    wrap.innerHTML = renderNoTradeState();
     return;
   }
 
