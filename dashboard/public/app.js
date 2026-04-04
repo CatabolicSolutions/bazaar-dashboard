@@ -406,6 +406,7 @@ function renderNoTradeState() {
     'Risk/reward ratio not acceptable',
     'VIX regime suggesting caution'
   ];
+  const nearMisses = currentSnapshot?.tradier?.nearMisses?.candidates || [];
   
   const refreshResult = refreshStatusData ? (refreshStatusData.ok ? 'Success' : 'Failure') : '--';
   const refreshStage = refreshStatusData?.stage || '--';
@@ -450,6 +451,26 @@ function renderNoTradeState() {
           ${reasons.map(r => `<li>• ${r}</li>`).join('')}
         </ul>
       </div>
+      
+      ${nearMisses.length ? `
+        <div class="near-miss-panel">
+          <div class="near-miss-title">Near-Miss Watchlist</div>
+          <div class="near-miss-subtitle">Closest rejected candidates — useful for watch, not valid signals yet.</div>
+          <div class="near-miss-list">
+            ${nearMisses.map((c, i) => `
+              <div class="near-miss-card">
+                <div class="near-miss-header">
+                  <div class="near-miss-symbol">${escapeHtml(c.symbol)} ${escapeHtml(c.option_type)} ${escapeHtml(String(c.strike))}</div>
+                  <div class="near-miss-score">${escapeHtml(String(c.near_miss_score))}/100</div>
+                </div>
+                <div class="near-miss-meta">${escapeHtml(c.strategy)} · Exp ${escapeHtml(c.expiration || '--')} · Δ ${typeof c.delta === 'number' ? c.delta.toFixed(2) : '--'}</div>
+                <div class="near-miss-blockers"><strong>Blocked by:</strong> ${c.rejection_reasons.map(r => `<span class="badge warn">${escapeHtml(r)}</span>`).join(' ')}</div>
+                <div class="near-miss-closeness"><strong>Close because:</strong> ${c.closeness?.length ? c.closeness.map(r => `<span class="badge info">${escapeHtml(r)}</span>`).join(' ') : '<span class="text-muted">No promotion notes</span>'}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
       
       <div class="status-actions" style="justify-content: center; margin-top: var(--space-md);">
         <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>

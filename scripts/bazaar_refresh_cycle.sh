@@ -37,6 +37,7 @@ fi
 
 python3 scripts/tradier_strategy_processor_v2.py > /tmp/bazaar_tradier_raw.txt
 python3 scripts/tradier_ticket_formatter.py < /tmp/bazaar_tradier_raw.txt > out/tradier_leaders_board.txt
+python3 scripts/tradier_near_miss_report.py >/tmp/bazaar_near_miss_path.txt || true
 python3 dashboard/scripts/build_snapshot.py >/tmp/bazaar_snapshot_path.txt
 
 python3 - <<'PY'

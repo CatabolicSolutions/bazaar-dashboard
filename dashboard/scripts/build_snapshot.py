@@ -12,6 +12,7 @@ QUEUE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
 ACTION_FEEDBACK = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
 TRADIER_EXECUTION_STATE = ROOT / 'dashboard' / 'state' / 'tradier_execution_state.json'
 TRADIER_AUDIT_LOG = ROOT / 'dashboard' / 'state' / 'tradier_audit_log.json'
+NEAR_MISS = ROOT / 'dashboard' / 'state' / 'near_miss_candidates.json'
 
 
 def read_text(path):
@@ -112,6 +113,7 @@ snapshot = {
         'leaders': leaders,
         'overview': build_tradier_overview(leaders, board_meta),
         'runNotes': board_meta.get('runNotes', []),
+        'nearMisses': read_json(NEAR_MISS),
         'actionFeedback': read_json(ACTION_FEEDBACK),
     },
     'activePositions': read_json(ACTIVE),
