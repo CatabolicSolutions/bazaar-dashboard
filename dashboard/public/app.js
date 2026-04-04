@@ -277,6 +277,24 @@ function renderSummaryStrip(leader, stateMeta = null) {
   `;
 }
 
+function goToExecuteSelected() {
+  switchZone('execute');
+  const leader = getSelectedLeader();
+  if (leader) renderSummaryStrip(leader, getLeaderState(leader));
+}
+
+function goToMonitorPositions() {
+  switchZone('positions');
+  fetchPositions();
+  fetchHeatmap();
+}
+
+function focusNearMisses() {
+  switchZone('market');
+  const leadersWrap = document.getElementById('leadersWrap');
+  if (leadersWrap) leadersWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function renderCommandLayer(snapshot) {
   const wrap = document.getElementById('commandLayerWrap');
   const stateEl = document.getElementById('commandState');
@@ -297,6 +315,7 @@ function renderCommandLayer(snapshot) {
   let badges = [`<span class="badge ${fresh ? 'good' : 'warn'}">${fresh ? 'Fresh' : 'Stale'}</span>`];
   let attention = [];
   let action = [];
+  let ctas = [];
 
   if (leaders.length) {
     mode = 'ACT';
@@ -311,6 +330,11 @@ function renderCommandLayer(snapshot) {
       'Execution path is live from selected opportunity → execute',
     ];
     action = ['Review qualification card', 'Confirm risk / stop', 'Queue or execute if aligned'];
+    ctas = [
+      '<button class="btn-action" onclick="switchZone(\'market\')">Inspect Trade</button>',
+      '<button class="btn-action" onclick="goToExecuteSelected()">Go to Execute</button>',
+      '<button class="btn-action" onclick="goToMonitorPositions()">Monitor Positions</button>'
+    ];
   } else if (nearMisses.length) {
     mode = 'WATCH';
     const nm = nearMisses[0];
@@ -324,6 +348,11 @@ function renderCommandLayer(snapshot) {
       `Watch for improvement: ${(nm.closeness || []).slice(0,2).join(', ') || 'one rule away'}`,
     ];
     action = ['Monitor near-miss watchlist', 'Force refresh on structure change', 'Do not treat as approved signal'];
+    ctas = [
+      '<button class="btn-action" onclick="focusNearMisses()">Review Near-Misses</button>',
+      '<button class="btn-action" onclick="forceRefresh()">Refresh Now</button>',
+      '<button class="btn-action" onclick="goToMonitorPositions()">Check Positions</button>'
+    ];
   } else {
     badges.push('<span class="badge">No Trade</span>');
     badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
@@ -333,6 +362,11 @@ function renderCommandLayer(snapshot) {
       'Use near-miss and preference layers to frame watchlist attention',
     ];
     action = ['Wait', 'Refresh next cycle', 'Inspect filter criteria if needed'];
+    ctas = [
+      '<button class="btn-action" onclick="forceRefresh()">Refresh Now</button>',
+      '<button class="btn-action" onclick="showFilterCriteria()">Review Filters</button>',
+      '<button class="btn-action" onclick="goToMonitorPositions()">Check Positions</button>'
+    ];
   }
 
   stateEl.textContent = mode;
@@ -357,9 +391,7 @@ function renderCommandLayer(snapshot) {
           ${action.map(item => `<div class="command-list-item">• ${escapeHtml(item)}</div>`).join('')}
         </div>
         <div class="command-cta-row" style="margin-top: var(--space-md);">
-          <button class="btn-action" onclick="forceRefresh()">↻ Refresh</button>
-          <button class="btn-action" onclick="switchZone('market')">Market</button>
-          <button class="btn-action" onclick="switchZone('execute')">Execute</button>
+          ${ctas.join('')}
         </div>
       </div>
     </div>
