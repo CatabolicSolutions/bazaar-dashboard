@@ -325,6 +325,7 @@ function renderScanStatus(snapshot) {
   const refreshMessageEl = document.getElementById('refreshMessage');
   const decisionContextEl = document.getElementById('decisionContextCount');
   const outcomeAttachmentEl = document.getElementById('outcomeAttachmentCount');
+  const calibrationReviewEl = document.getElementById('calibrationReviewCount');
   
   if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
   
@@ -381,6 +382,15 @@ function renderScanStatus(snapshot) {
       outcomeAttachmentEl.textContent = `${oa.totalAttachments} attached`;
       outcomeAttachmentEl.className = 'status-value fresh';
       outcomeAttachmentEl.title = `New this run: ${oa.newAttachments}; Horizons: ${(oa.horizons || []).join(', ')}`;
+    }
+  }
+
+  if (calibrationReviewEl) {
+    const cc = snapshot?.confidenceCalibration;
+    if (cc && cc.sourceCounts) {
+      calibrationReviewEl.textContent = `${cc.sourceCounts.outcomeAttachments} reviewed`;
+      calibrationReviewEl.className = 'status-value fresh';
+      calibrationReviewEl.title = `Decisions: ${cc.sourceCounts.decisionRecords}; Attachments: ${cc.sourceCounts.outcomeAttachments}`;
     }
   }
 }
