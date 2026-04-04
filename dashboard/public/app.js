@@ -277,6 +277,95 @@ function renderSummaryStrip(leader, stateMeta = null) {
   `;
 }
 
+function renderCommandLayer(snapshot) {
+  const wrap = document.getElementById('commandLayerWrap');
+  const stateEl = document.getElementById('commandState');
+  if (!wrap || !stateEl) return;
+
+  const leaders = snapshot?.tradier?.leaders || [];
+  const nearMisses = snapshot?.tradier?.nearMisses?.candidates || [];
+  const pb = snapshot?.preferenceActionBias || {};
+  const favored = pb?.operatorSummary?.favoredSetupClass || 'none';
+  const health = snapshot?.systemHealth || {};
+  const boardUpdated = health.tradierBoardUpdatedAt;
+  const freshMinutes = boardUpdated ? Math.round((Date.now() - new Date(boardUpdated).getTime()) / 60000) : null;
+  const fresh = freshMinutes !== null && freshMinutes < 30;
+
+  let mode = 'WAIT';
+  let headline = 'Stand down — no valid trade';
+  let subline = 'Bazaar is screening and does not currently recommend action.';
+  let badges = [`<span class="badge ${fresh ? 'good' : 'warn'}">${fresh ? 'Fresh' : 'Stale'}</span>`];
+  let attention = [];
+  let action = [];
+
+  if (leaders.length) {
+    mode = 'ACT';
+    const top = leaders[0];
+    headline = `${top.symbol} ${String(top.option_type || '').toUpperCase()} ${top.strike}`;
+    subline = 'Valid setup present — review qualification card and execution path now.';
+    badges.push(`<span class="badge accent">Qualified Trade</span>`);
+    badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
+    attention = [
+      `Top actionable leader is ${top.symbol} ${String(top.option_type || '').toUpperCase()} ${top.strike}`,
+      `Confidence ${escapeHtml(top.confidence || '--')}`,
+      'Execution path is live from selected opportunity → execute',
+    ];
+    action = ['Review qualification card', 'Confirm risk / stop', 'Queue or execute if aligned'];
+  } else if (nearMisses.length) {
+    mode = 'WATCH';
+    const nm = nearMisses[0];
+    headline = `No Trade Yet — watch ${nm.symbol} ${nm.option_type} ${nm.strike}`;
+    subline = 'Closest rejected setup surfaced for monitoring, not execution.';
+    badges.push('<span class="badge warn">Near-Miss Active</span>');
+    badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
+    attention = [
+      `${nm.symbol} is closest to actionable with score ${nm.near_miss_score || '--'}`,
+      `Blocked by: ${(nm.rejection_reasons || []).slice(0,2).join(', ') || 'rule failure'}`,
+      `Watch for improvement: ${(nm.closeness || []).slice(0,2).join(', ') || 'one rule away'}`,
+    ];
+    action = ['Monitor near-miss watchlist', 'Force refresh on structure change', 'Do not treat as approved signal'];
+  } else {
+    badges.push('<span class="badge">No Trade</span>');
+    badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
+    attention = [
+      'No clean leaders passed current filters',
+      'Current setup bias remains visible in Scan Status',
+      'Use near-miss and preference layers to frame watchlist attention',
+    ];
+    action = ['Wait', 'Refresh next cycle', 'Inspect filter criteria if needed'];
+  }
+
+  stateEl.textContent = mode;
+  stateEl.className = `panel-status ${mode === 'ACT' ? 'fresh' : mode === 'WATCH' ? 'stale' : ''}`;
+  wrap.innerHTML = `
+    <div class="command-grid">
+      <div class="command-primary">
+        <div class="command-kicker">Readiness</div>
+        <div class="command-headline">${headline}</div>
+        <div class="command-subline">${subline}</div>
+        <div class="command-badges">${badges.join('')}</div>
+      </div>
+      <div class="command-secondary">
+        <div class="command-action-label">What deserves attention now</div>
+        <div class="command-list">
+          ${attention.map(item => `<div class="command-list-item">• ${escapeHtml(item)}</div>`).join('')}
+        </div>
+      </div>
+      <div class="command-actions">
+        <div class="command-action-label">Action / Wait / Watch</div>
+        <div class="command-list">
+          ${action.map(item => `<div class="command-list-item">• ${escapeHtml(item)}</div>`).join('')}
+        </div>
+        <div class="command-cta-row" style="margin-top: var(--space-md);">
+          <button class="btn-action" onclick="forceRefresh()">↻ Refresh</button>
+          <button class="btn-action" onclick="switchZone('market')">Market</button>
+          <button class="btn-action" onclick="switchZone('execute')">Execute</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderOverview(snapshot) {
   const health = snapshot.systemHealth || {};
   const tradier = snapshot.tradier || {};
@@ -310,6 +399,7 @@ function renderOverview(snapshot) {
   
   // Update scan status
   renderScanStatus(snapshot);
+  renderCommandLayer(snapshot);
 }
 
 let refreshStatusData = null;
