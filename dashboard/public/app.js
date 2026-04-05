@@ -445,6 +445,28 @@ function renderPreopenChecklist(snapshot) {
   `;
 }
 
+function buildPriorityStack(snapshot) {
+  const leaders = (snapshot?.tradier?.leaders || []).map((leader, idx) => ({
+    kind: 'valid_trade',
+    rankType: 'ACT NOW',
+    label: leaderDisplayName(leader),
+    priorityScore: ((parseInt(String(leader.confidence || '0').split('/')[0]) || 0) * 10) + (idx === 0 ? 5 : 0),
+    why: `Qualified trade · confidence ${leader.confidence || '--'}`,
+    payload: leader,
+  }));
+
+  const nearMisses = (snapshot?.tradier?.nearMisses?.candidates || []).map((nm, idx) => ({
+    kind: 'near_miss',
+    rankType: idx === 0 ? 'INSPECT NEXT' : 'WATCH ONLY',
+    label: `${nm.symbol} ${nm.option_type} ${nm.strike}`,
+    priorityScore: (nm.near_miss_score || 0) - (idx * 2),
+    why: `Near-miss · ${(nm.rejection_reasons || []).slice(0,1).join(', ') || 'rule failure'}`,
+    payload: nm,
+  }));
+
+  return [...leaders, ...nearMisses].sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 4);
+}
+
 function renderCommandLayer(snapshot) {
   const wrap = document.getElementById('commandLayerWrap');
   const stateEl = document.getElementById('commandState');
@@ -452,6 +474,7 @@ function renderCommandLayer(snapshot) {
 
   const leaders = snapshot?.tradier?.leaders || [];
   const nearMisses = snapshot?.tradier?.nearMisses?.candidates || [];
+  const priorityStack = buildPriorityStack(snapshot);
   const pb = snapshot?.preferenceActionBias || {};
   const favored = pb?.operatorSummary?.favoredSetupClass || 'none';
   const health = snapshot?.systemHealth || {};
@@ -528,6 +551,12 @@ function renderCommandLayer(snapshot) {
         <div class="command-headline">${headline}</div>
         <div class="command-subline">${subline}</div>
         <div class="command-badges">${badges.join('')}</div>
+        ${priorityStack.length ? `
+          <div class="command-action-label" style="margin-top: var(--space-md);">Priority stack</div>
+          <div class="command-list">
+            ${priorityStack.map((item, i) => `<div class="command-list-item">${i + 1}. <strong>${escapeHtml(item.rankType)}</strong> — ${escapeHtml(item.label)} <span class="text-muted">(${escapeHtml(item.why)})</span></div>`).join('')}
+          </div>
+        ` : ''}
       </div>
       <div class="command-secondary">
         <div class="command-action-label">What deserves attention now</div>
