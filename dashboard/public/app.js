@@ -383,6 +383,8 @@ function renderPreopenChecklist(snapshot) {
   const freshAt = health.tradierBoardUpdatedAt ? new Date(health.tradierBoardUpdatedAt) : null;
   const freshMinutes = freshAt ? Math.round((Date.now() - freshAt.getTime()) / 60000) : null;
   const fresh = freshMinutes !== null && freshMinutes < 30;
+  const degraded = freshMinutes !== null && freshMinutes >= 30 && freshMinutes < 120;
+  const stale = freshMinutes !== null && freshMinutes >= 120;
   const selected = getSelectedLeader();
 
   const checks = [
@@ -420,8 +422,9 @@ function renderPreopenChecklist(snapshot) {
 
   const readyCount = checks.filter(c => c.ok).length;
   const ready = readyCount >= 5 && health.tradierApiKeyLoaded && fresh;
-  stateEl.textContent = ready ? 'READY' : 'CHECK';
-  stateEl.className = `panel-status ${ready ? 'fresh' : 'stale'}`;
+  const sessionTrust = health.tradierApiKeyLoaded && !stale ? 'trustworthy' : stale ? 'degraded' : 'partial';
+  stateEl.textContent = ready ? 'READY' : degraded ? 'DEGRADED' : 'CHECK';
+  stateEl.className = `panel-status ${ready ? 'fresh' : stale ? 'stale' : ''}`;
 
   let watchFirst = 'Stand down and wait for next cycle.';
   if (leaders.length) watchFirst = `Watch first: ${leaderDisplayName(leaders[0])}`;
@@ -438,6 +441,9 @@ function renderPreopenChecklist(snapshot) {
           </div>
         </div>
       `).join('')}
+    </div>
+    <div class="preopen-note">
+      <strong>Monday certainty:</strong> ${escapeHtml(`Freshness ${fresh ? 'live' : degraded ? 'degraded' : 'stale'} · API ${health.tradierApiKeyLoaded ? 'connected' : 'offline'} · Session ${sessionTrust} · Signal ${leaders.length ? 'actionable' : nearMisses.length ? 'watch' : 'stand-down'} · Execute ${selected || leaders.length === 0 ? 'ready' : 'awaiting selection'}`)}
     </div>
     <div class="preopen-note">
       <strong>Orientation:</strong> ${escapeHtml(watchFirst)}
@@ -493,6 +499,18 @@ function buildPriorityStack(snapshot) {
   return stack.map(item => ({ ...item, urgency: urgencyStateForItem(item, snapshot) }));
 }
 
+function buildProceedGuidance(snapshot, priorityStack) {
+  const freshMinutes = getSnapshotAgeMinutes(snapshot);
+  const favored = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
+  const top = priorityStack?.[0] || null;
+  if (!top) return { state: 'STAND DOWN', note: 'No qualified urgency signal is present. Wait for change, not excitement.' };
+  if (freshMinutes !== null && freshMinutes >= 120) return { state: 'PAUSE / INSPECT MORE', note: 'Freshness is stale enough that live trust should be reduced before acting.' };
+  if (top.kind === 'valid_trade' && top.urgency === 'LOOK NOW' && favored !== 'none') return { state: 'PROCEED WITH CONFIDENCE', note: 'Qualified trade, live freshness, and current bias are aligned.' };
+  if (top.kind === 'valid_trade') return { state: 'PROCEED CAREFULLY', note: 'Trade is valid, but conviction is not thick enough to skip inspection discipline.' };
+  if (top.urgency === 'LOOK SOON' || top.urgency === 'PERIPHERAL') return { state: 'PAUSE / INSPECT MORE', note: 'Closest setup deserves attention, but not immediate execution.' };
+  return { state: 'STAND DOWN', note: 'Keep it in peripheral awareness unless conditions improve.' };
+}
+
 function renderCommandLayer(snapshot) {
   const wrap = document.getElementById('commandLayerWrap');
   const stateEl = document.getElementById('commandState');
@@ -520,6 +538,7 @@ function renderCommandLayer(snapshot) {
   }
 
   const topPriority = priorityStack[0] || null;
+  const proceedGuidance = buildProceedGuidance(snapshot, priorityStack);
 
   if (leaders.length) {
     mode = 'ACT NOW';
@@ -588,6 +607,9 @@ function renderCommandLayer(snapshot) {
             ${priorityStack.map((item, i) => `<div class="command-list-item">${i + 1}. <strong>${escapeHtml(item.rankType)}</strong> · <span class="badge ${item.urgency === 'LOOK NOW' ? 'bad' : item.urgency === 'LOOK SOON' ? 'warn' : item.urgency === 'PERIPHERAL' ? 'info' : ''}">${escapeHtml(item.urgency)}</span> — ${escapeHtml(item.label)} <span class="text-muted">(${escapeHtml(item.why)})</span></div>`).join('')}
           </div>
         ` : ''}
+        <div class="preopen-note" style="margin-top: var(--space-md);">
+          <strong>Live safety:</strong> ${escapeHtml(proceedGuidance.state)} · ${escapeHtml(proceedGuidance.note)}
+        </div>
       </div>
       <div class="command-secondary">
         <div class="command-action-label">What deserves attention now</div>
