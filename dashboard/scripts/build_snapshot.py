@@ -19,6 +19,7 @@ CONFIDENCE_CALIBRATION_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_contex
 SETUP_QUALITY_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'setup_quality_summary.json'
 PREFERENCE_ACTION_BIAS_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'preference_action_bias_summary.json'
 OPERATOR_FEEDBACK_SUMMARY = ROOT / 'dashboard' / 'state' / 'operator_feedback' / 'feedback_summary.json'
+FIELD_TEST_SUMMARY = ROOT / 'dashboard' / 'state' / 'field_test' / 'monday_session_summary.json'
 
 
 def read_text(path):
@@ -134,6 +135,7 @@ snapshot['confidenceCalibration'] = read_json(CONFIDENCE_CALIBRATION_SUMMARY)
 snapshot['setupQuality'] = read_json(SETUP_QUALITY_SUMMARY)
 snapshot['preferenceActionBias'] = read_json(PREFERENCE_ACTION_BIAS_SUMMARY)
 snapshot['operatorFeedback'] = read_json(OPERATOR_FEEDBACK_SUMMARY)
+snapshot['fieldTest'] = read_json(FIELD_TEST_SUMMARY)
 
 OUT.write_text(json.dumps(snapshot, indent=2))
 print(str(OUT))

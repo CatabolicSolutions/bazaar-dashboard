@@ -164,6 +164,14 @@ function setSelectedLeader(index, leaders) {
   selectedLeaderKey = leaderKey(leaders[index]);
   renderTradierSlice();
   renderOperatorRail();
+  const leader = leaders[index];
+  captureSessionEventOnce(`first_selection_${leaderKey(leader)}`, {
+    eventType: 'first_operator_selection',
+    zone: currentZone,
+    state: document.getElementById('commandState')?.textContent || null,
+    selected: leaderDisplayName(leader),
+    metadata: { symbol: leader.symbol, strategy: leader.section }
+  });
 }
 
 function getSelectedLeader() {
@@ -281,13 +289,28 @@ function renderSummaryStrip(leader, stateMeta = null) {
 function goToExecuteSelected() {
   switchZone('execute');
   const leader = getSelectedLeader();
-  if (leader) renderSummaryStrip(leader, getLeaderState(leader));
+  if (leader) {
+    renderSummaryStrip(leader, getLeaderState(leader));
+    captureSessionEventOnce(`first_execute_handoff_${leaderKey(leader)}`, {
+      eventType: 'first_execute_handoff',
+      zone: 'execute',
+      state: document.getElementById('commandState')?.textContent || null,
+      selected: leaderDisplayName(leader),
+      metadata: { symbol: leader.symbol, strategy: leader.section }
+    });
+  }
 }
 
 function goToMonitorPositions() {
   switchZone('positions');
   fetchPositions();
   fetchHeatmap();
+  captureSessionEventOnce('first_monitor_handoff', {
+    eventType: 'first_monitor_handoff',
+    zone: 'positions',
+    state: document.getElementById('commandState')?.textContent || null,
+    selected: getSelectedLeader() ? leaderDisplayName(getSelectedLeader()) : null
+  });
 }
 
 function focusNearMisses() {
@@ -1064,6 +1087,13 @@ async function submitOperatorFeedback(payloadJson) {
     const res = await fetch('/api/operator-feedback', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'feedback failed');
+    captureSessionEventOnce(`first_feedback_${payload.targetType}`, {
+      eventType: 'first_operator_feedback',
+      zone: currentZone,
+      state: document.getElementById('commandState')?.textContent || null,
+      selected: payload.symbol || null,
+      metadata: { targetType: payload.targetType, feedback: payload.feedback }
+    });
     await refresh();
     return true;
   } catch (err) {

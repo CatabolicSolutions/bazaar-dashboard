@@ -6,6 +6,7 @@ import json
 import argparse
 from datetime import datetime, timezone
 from operator_feedback import append_feedback
+from session_capture import append_event
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -536,6 +537,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_crypto_swap()
         if self.path == '/api/operator-feedback':
             return self._handle_operator_feedback(body)
+        if self.path == '/api/session-event':
+            return self._handle_session_event(body)
         self.send_response(404)
         self.end_headers()
     
@@ -546,6 +549,17 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(400, {'ok': False, 'error': 'Invalid JSON'})
         try:
             result = append_feedback(payload)
+            return self.json_response(200, result)
+        except Exception as e:
+            return self.json_response(400, {'ok': False, 'error': str(e)})
+
+    def _handle_session_event(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+        except Exception:
+            return self.json_response(400, {'ok': False, 'error': 'Invalid JSON'})
+        try:
+            result = append_event(payload)
             return self.json_response(200, result)
         except Exception as e:
             return self.json_response(400, {'ok': False, 'error': str(e)})
