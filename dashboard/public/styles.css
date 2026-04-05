@@ -403,6 +403,7 @@ body {
 /* Panel sizing */
 .panel-command-layer { grid-column: span 8; }
 .panel-preopen-checklist { grid-column: span 4; }
+.panel-regime-layer { grid-column: span 12; }
 .panel-overview { grid-column: span 12; }
 .panel-scanner { grid-column: span 4; }
 .panel-status { grid-column: span 4; }
@@ -978,6 +979,42 @@ body {
   margin-left: auto;
   font-family: var(--font-mono);
   font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REGIME LAYER
+   ═══════════════════════════════════════════════════════════════ */
+
+.regime-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.regime-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.regime-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.regime-copy {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .regime-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

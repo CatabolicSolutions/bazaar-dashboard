@@ -319,6 +319,59 @@ function focusNearMisses() {
   if (leadersWrap) leadersWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function renderRegimeLayer(snapshot) {
+  const wrap = document.getElementById('regimeLayerWrap');
+  const stateEl = document.getElementById('regimeState');
+  if (!wrap || !stateEl) return;
+
+  const overview = snapshot?.tradier?.overview || {};
+  const bias = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
+  const vix = typeof overview.vix === 'number' ? overview.vix : parseFloat(overview.vix || '0') || 0;
+  const directional = overview.directionalCount || 0;
+  const premium = overview.premiumCount || 0;
+  const leaders = overview.leaderCount || 0;
+  const nearMisses = snapshot?.tradier?.nearMisses?.count || (snapshot?.tradier?.nearMisses?.candidates || []).length;
+
+  let structure = 'mixed';
+  if (directional > premium && directional > 0) structure = 'trend / directional';
+  else if (premium > directional && premium > 0) structure = 'carry / premium';
+  
+  let volatility = 'calm';
+  if (vix >= 28) volatility = 'unstable';
+  else if (vix >= 20) volatility = 'elevated';
+
+  let tone = 'indecisive';
+  if (leaders > 0 && directional > premium) tone = 'risk-on';
+  else if (leaders > 0 && premium >= directional) tone = 'defensive';
+  else if (nearMisses > 0) tone = 'not yet ripe';
+
+  let impact = 'Stand-down environment due to weak clarity.';
+  if (bias === 'directional_momentum') impact = 'Momentum setups have the cleaner edge right now.';
+  else if (bias === 'premium_credit') impact = 'Premium / credit structures currently carry the stronger lean.';
+  else if (nearMisses > 0) impact = 'Setups are close, but regime quality is not yet clean enough for approval.';
+  else if (vix >= 28) impact = 'Elevated instability is suppressing clean setup quality and widening caution.';
+
+  stateEl.textContent = `${structure.toUpperCase()}`;
+  stateEl.className = `panel-status ${leaders > 0 ? 'fresh' : nearMisses > 0 ? 'stale' : ''}`;
+
+  wrap.innerHTML = `
+    <div class="regime-grid">
+      <div class="regime-card">
+        <div class="regime-title">Today feels like</div>
+        <div class="regime-copy">${escapeHtml(structure)} · ${escapeHtml(volatility)} · ${escapeHtml(tone)}</div>
+      </div>
+      <div class="regime-card">
+        <div class="regime-title">Trade quality impact</div>
+        <div class="regime-copy">${escapeHtml(impact)}</div>
+      </div>
+      <div class="regime-card">
+        <div class="regime-title">Bias linkage</div>
+        <div class="regime-copy">Current Bazaar lean: <strong>${escapeHtml(bias)}</strong>. This regime framing explains why the system is favoring or suppressing certain setup classes today.</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderPreopenChecklist(snapshot) {
   const wrap = document.getElementById('preopenChecklistWrap');
   const stateEl = document.getElementById('preopenState');
@@ -530,6 +583,7 @@ function renderOverview(snapshot) {
   renderScanStatus(snapshot);
   renderCommandLayer(snapshot);
   renderPreopenChecklist(snapshot);
+  renderRegimeLayer(snapshot);
 }
 
 let refreshStatusData = null;
