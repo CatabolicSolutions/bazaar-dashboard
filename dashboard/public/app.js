@@ -445,6 +445,31 @@ function renderPreopenChecklist(snapshot) {
   `;
 }
 
+function urgencyStateForItem(item, snapshot) {
+  const bias = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
+  const freshAt = snapshot?.systemHealth?.tradierBoardUpdatedAt ? new Date(snapshot.systemHealth.tradierBoardUpdatedAt) : null;
+  const freshMinutes = freshAt ? Math.round((Date.now() - freshAt.getTime()) / 60000) : 999;
+  const fresh = freshMinutes < 30;
+
+  if (item.kind === 'valid_trade') {
+    const score = parseInt(String(item.payload?.confidence || '0').split('/')[0]) || 0;
+    if (fresh && score >= 7) return 'LOOK NOW';
+    if (fresh && score >= 6) return 'LOOK SOON';
+    return 'PERIPHERAL';
+  }
+
+  if (item.kind === 'near_miss') {
+    const nm = item.payload || {};
+    const score = nm.near_miss_score || 0;
+    const favored = (bias === 'directional_momentum' && String(nm.strategy).includes('Directional')) || (bias === 'premium_credit' && String(nm.strategy).includes('Premium'));
+    if (fresh && favored && score >= 70) return 'LOOK SOON';
+    if (score >= 55) return 'PERIPHERAL';
+    return 'IGNORE UNLESS CHANGES';
+  }
+
+  return 'PERIPHERAL';
+}
+
 function buildPriorityStack(snapshot) {
   const leaders = (snapshot?.tradier?.leaders || []).map((leader, idx) => ({
     kind: 'valid_trade',
@@ -464,7 +489,8 @@ function buildPriorityStack(snapshot) {
     payload: nm,
   }));
 
-  return [...leaders, ...nearMisses].sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 4);
+  const stack = [...leaders, ...nearMisses].sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 4);
+  return stack.map(item => ({ ...item, urgency: urgencyStateForItem(item, snapshot) }));
 }
 
 function renderCommandLayer(snapshot) {
@@ -489,6 +515,11 @@ function renderCommandLayer(snapshot) {
   let attention = [];
   let action = [];
   let ctas = [];
+  if (topPriority) {
+    badges.push(`<span class="badge ${topPriority.urgency === 'LOOK NOW' ? 'bad' : topPriority.urgency === 'LOOK SOON' ? 'warn' : topPriority.urgency === 'PERIPHERAL' ? 'info' : ''}">Urgency: ${topPriority.urgency}</span>`);
+  }
+
+  const topPriority = priorityStack[0] || null;
 
   if (leaders.length) {
     mode = 'ACT NOW';
@@ -554,7 +585,7 @@ function renderCommandLayer(snapshot) {
         ${priorityStack.length ? `
           <div class="command-action-label" style="margin-top: var(--space-md);">Priority stack</div>
           <div class="command-list">
-            ${priorityStack.map((item, i) => `<div class="command-list-item">${i + 1}. <strong>${escapeHtml(item.rankType)}</strong> — ${escapeHtml(item.label)} <span class="text-muted">(${escapeHtml(item.why)})</span></div>`).join('')}
+            ${priorityStack.map((item, i) => `<div class="command-list-item">${i + 1}. <strong>${escapeHtml(item.rankType)}</strong> · <span class="badge ${item.urgency === 'LOOK NOW' ? 'bad' : item.urgency === 'LOOK SOON' ? 'warn' : item.urgency === 'PERIPHERAL' ? 'info' : ''}">${escapeHtml(item.urgency)}</span> — ${escapeHtml(item.label)} <span class="text-muted">(${escapeHtml(item.why)})</span></div>`).join('')}
           </div>
         ` : ''}
       </div>
