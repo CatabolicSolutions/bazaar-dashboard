@@ -319,6 +319,79 @@ function focusNearMisses() {
   if (leadersWrap) leadersWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function renderPreopenChecklist(snapshot) {
+  const wrap = document.getElementById('preopenChecklistWrap');
+  const stateEl = document.getElementById('preopenState');
+  if (!wrap || !stateEl) return;
+
+  const health = snapshot?.systemHealth || {};
+  const leaders = snapshot?.tradier?.leaders || [];
+  const nearMisses = snapshot?.tradier?.nearMisses?.candidates || [];
+  const freshAt = health.tradierBoardUpdatedAt ? new Date(health.tradierBoardUpdatedAt) : null;
+  const freshMinutes = freshAt ? Math.round((Date.now() - freshAt.getTime()) / 60000) : null;
+  const fresh = freshMinutes !== null && freshMinutes < 30;
+  const selected = getSelectedLeader();
+
+  const checks = [
+    {
+      ok: !!health.tradierApiKeyLoaded,
+      label: 'API connected',
+      subtext: health.tradierApiKeyLoaded ? 'Tradier runtime available' : 'Tradier API unavailable'
+    },
+    {
+      ok: !!fresh,
+      label: 'Freshness current',
+      subtext: fresh ? `Last scan ${freshMinutes}m ago` : 'Data not fresh enough for open confidence'
+    },
+    {
+      ok: true,
+      label: 'Command state visible',
+      subtext: document.getElementById('commandState')?.textContent || 'Unknown'
+    },
+    {
+      ok: leaders.length > 0 || nearMisses.length > 0 || true,
+      label: 'Signal state known',
+      subtext: leaders.length ? 'Valid trade available' : nearMisses.length ? 'Near-miss watchlist active' : 'Stand-down/no-trade state confirmed'
+    },
+    {
+      ok: !!selected || leaders.length === 0,
+      label: 'Selected path ready',
+      subtext: selected ? leaderDisplayName(selected) : 'Select a leader if one appears'
+    },
+    {
+      ok: true,
+      label: 'Execute / monitor handoff ready',
+      subtext: 'Operator rail provides direct execute and monitor path'
+    }
+  ];
+
+  const readyCount = checks.filter(c => c.ok).length;
+  const ready = readyCount >= 5 && health.tradierApiKeyLoaded && fresh;
+  stateEl.textContent = ready ? 'READY' : 'CHECK';
+  stateEl.className = `panel-status ${ready ? 'fresh' : 'stale'}`;
+
+  let watchFirst = 'Stand down and wait for next cycle.';
+  if (leaders.length) watchFirst = `Watch first: ${leaderDisplayName(leaders[0])}`;
+  else if (nearMisses.length) watchFirst = `Watch first: ${nearMisses[0].symbol} ${nearMisses[0].option_type} ${nearMisses[0].strike}`;
+
+  wrap.innerHTML = `
+    <div class="checklist-list">
+      ${checks.map(c => `
+        <div class="checklist-item">
+          <div class="checklist-icon">${c.ok ? '✓' : '•'}</div>
+          <div class="checklist-text">
+            <div class="checklist-label">${escapeHtml(c.label)}</div>
+            <div class="checklist-subtext">${escapeHtml(c.subtext)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="preopen-note">
+      <strong>Orientation:</strong> ${escapeHtml(watchFirst)}
+    </div>
+  `;
+}
+
 function renderCommandLayer(snapshot) {
   const wrap = document.getElementById('commandLayerWrap');
   const stateEl = document.getElementById('commandState');
@@ -456,6 +529,7 @@ function renderOverview(snapshot) {
   // Update scan status
   renderScanStatus(snapshot);
   renderCommandLayer(snapshot);
+  renderPreopenChecklist(snapshot);
 }
 
 let refreshStatusData = null;

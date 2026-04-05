@@ -401,7 +401,8 @@ body {
 }
 
 /* Panel sizing */
-.panel-command-layer { grid-column: span 12; }
+.panel-command-layer { grid-column: span 8; }
+.panel-preopen-checklist { grid-column: span 4; }
 .panel-overview { grid-column: span 12; }
 .panel-scanner { grid-column: span 4; }
 .panel-status { grid-column: span 4; }
@@ -417,9 +418,10 @@ body {
 .panel-history { grid-column: span 6; }
 
 @media (max-width: 1200px) {
+  .panel-command-layer,
+  .panel-preopen-checklist,
   .panel-scanner,
   .panel-leaders,
-  .panel-detail { grid-column: span 6; }
   .panel-detail { grid-column: span 12; }
   .panel-positions,
   .panel-heatmap,
@@ -976,6 +978,53 @@ body {
   margin-left: auto;
   font-family: var(--font-mono);
   font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRE-OPEN CHECKLIST
+   ═══════════════════════════════════════════════════════════════ */
+
+.checklist-list {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+}
+
+.checklist-icon {
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.checklist-text {
+  flex: 1;
+}
+
+.checklist-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checklist-subtext {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.preopen-note {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 /* ═══════════════════════════════════════════════════════════════
