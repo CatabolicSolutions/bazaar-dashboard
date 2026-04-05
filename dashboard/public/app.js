@@ -1586,7 +1586,7 @@ async function runExecuteConfirm() {
       updatedAt: new Date().toISOString(),
     };
 
-    status.textContent = `✅ Order executed: ${data.order?.broker_order_id || 'N/A'}`;
+    status.textContent = `✅ Order executed: ${data.order?.broker_order_id || 'N/A'} · monitor next`;
     status.className = 'action-status good small';
     
     // Clear preview and refresh
@@ -1608,6 +1608,41 @@ function bindActionButtons() {
       }
     }));
   });
+}
+
+function buildExecutionConfidence(leader, snapshot) {
+  if (!leader) return null;
+  const priorityItem = buildPriorityStack(snapshot).find(item => leaderKey(item.payload) === leaderKey(leader) || item.label === leaderDisplayName(leader)) || null;
+  const favored = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
+  const freshMinutes = getSnapshotAgeMinutes(snapshot);
+  const freshText = freshMinutes === null ? 'freshness unknown' : freshMinutes < 30 ? `fresh ${Math.round(freshMinutes)}m` : `stale ${Math.round(freshMinutes)}m`;
+  const confidence = leader.confidence || '--';
+  const regime = document.getElementById('regimeState')?.textContent || 'MIXED';
+  const whyNow = [
+    `Qualification strength ${confidence}`,
+    `Regime frame ${regime.toLowerCase()}`,
+    `Bias alignment ${favored}`,
+    priorityItem ? `Priority ${priorityItem.rankType.toLowerCase()} · urgency ${priorityItem.urgency.toLowerCase()}` : null,
+    `Snapshot ${freshText}`,
+  ].filter(Boolean);
+
+  let caution = leader.risk || 'Defined-risk discipline only.';
+  if ((parseInt(String(confidence).split('/')[0]) || 0) <= 6) caution = `${caution} Confidence is usable but not thick; inspect fills and stand down if structure weakens.`;
+  if (freshMinutes !== null && freshMinutes >= 30) caution = `${caution} Data freshness is slipping, so confirm the setup still holds before action.`;
+
+  return {
+    whyNow: whyNow.join(' · '),
+    caution,
+    nextWatch: stateLabelForMonitor(leader),
+  };
+}
+
+function stateLabelForMonitor(leader) {
+  const state = getLeaderState(leader);
+  if (state.watchItem?.invalidation) return `Watch invalidation: ${state.watchItem.invalidation}`;
+  if (leader?.invalidation) return `Watch invalidation: ${leader.invalidation}`;
+  if (leader?.entry) return `Watch execution/entry integrity: ${leader.entry}`;
+  return 'Watch fill quality, state change, and invalidation immediately after action.';
 }
 
 function renderActions(leader, stateMeta = null) {
@@ -1633,6 +1668,7 @@ function renderActions(leader, stateMeta = null) {
   const state = getLeaderState(leader);
   const feedback = getSelectedLeaderFeedback(leader);
   const actions = inferActions(leader);
+  const executionConfidence = buildExecutionConfidence(leader, currentSnapshot);
   const actionStateSummary = [
     state.queued ? statusBadge('Queued in local state', 'queued') : statusBadge('Queue pending', 'neutral'),
     state.watched ? statusBadge('Watching in local state', 'watch') : statusBadge('Watch pending', 'neutral'),
@@ -1652,6 +1688,14 @@ function renderActions(leader, stateMeta = null) {
       <div class="badge-stack">${actionStateSummary}</div>
       <div class="muted small">Real local actions only. No remote execution or workflow expansion.</div>
     </div>
+    ${executionConfidence ? `
+      <div class="action-feedback-box">
+        <div class="label">Why Execute This Now</div>
+        <div class="feedback-title">${escapeHtml(executionConfidence.whyNow)}</div>
+        <div class="feedback-body">${escapeHtml(executionConfidence.caution)}</div>
+        <div class="muted small">If you act, monitoring should begin with: ${escapeHtml(executionConfidence.nextWatch)}</div>
+      </div>
+    ` : ''}
     ${feedback ? `
       <div class="action-feedback-box">
         <div class="label">What Just Happened</div>
@@ -1671,6 +1715,14 @@ function renderActions(leader, stateMeta = null) {
           <button class="action-btn" data-action-key="${escapeHtml(action.key)}" ${action.disabled ? 'disabled' : ''}>${escapeHtml(action.cta)}</button>
         </div>
       `).join('')}
+    </div>
+    <div class="action-feedback-box">
+      <div class="label">Monitor Continuity</div>
+      <div class="feedback-title">Next destination after action: Positions / Monitor</div>
+      <div class="feedback-body">${escapeHtml(stateLabelForMonitor(leader))}</div>
+      <div class="preview-actions" style="margin-top: var(--space-sm);">
+        <button class="action-btn" onclick="goToMonitorPositions()">Go to Monitor</button>
+      </div>
     </div>
     <div id="actionStatus" class="action-status ${(lastActionStatus && lastActionStatus.leaderKey === leaderKey(leader)) ? 'good' : 'muted'} small">${escapeHtml(coherentStatus)}</div>
   `;
