@@ -91,9 +91,13 @@ def later_state(record: dict, underlying_now: float | None, option_now: dict | N
     metrics = record.get('metrics', {})
     underlying_then = metrics.get('underlying')
     delta = metrics.get('delta')
+    try:
+        delta_value = float(delta or 0)
+    except Exception:
+        delta_value = 0.0
     if underlying_then is None or underlying_now is None:
         return 'unresolved'
-    implied_dir = 'up' if (delta or 0) > 0 else 'down'
+    implied_dir = 'up' if delta_value > 0 else 'down'
     moved_up = underlying_now > float(underlying_then)
     favorable = (implied_dir == 'up' and moved_up) or (implied_dir == 'down' and not moved_up)
     if record.get('type') == 'near_miss' and option_now and option_now.get('mid') is not None:
