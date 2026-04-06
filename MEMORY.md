@@ -80,3 +80,12 @@ When recovering context for Bazaar work, consult in this order:
 2. `USER.md`
 3. recent daily notes in `memory/`
 4. relevant scripts / committed pipeline files
+
+### Operational mandates - token efficiency protocol
+- Default reply standard is minimal-noise, high-signal execution reporting.
+- For slice completion reports, return `DONE` or `BLOCKED` only.
+- Lead every `DONE` report with `commit:` as the first content line.
+- Use one-line summaries only; avoid paragraphs, speculative next steps, and redundant repetition.
+- If files are unchanged from a recent slice, say `same as prior commit` instead of relisting.
+- If blocked, state the exact blocker and smallest needed input in one sentence each.
+- Treat token efficiency and anti-bloat discipline as standing operational mandates, not temporary preferences.
