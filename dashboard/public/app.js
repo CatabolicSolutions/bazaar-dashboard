@@ -1348,22 +1348,35 @@ async function submitOperatorFeedback(payloadJson) {
 
 function renderUnderlyingChart(leader) {
   const wrap = document.getElementById('underlyingChartWrap');
-  if (!wrap || !leader?.symbol) return;
-  wrap.innerHTML = '<div class="muted small">Loading chart…</div>'; // Show loading state
+  if (!wrap || !leader?.symbol) {
+    console.log('[DIAG] renderUnderlyingChart: no wrap or no symbol');
+    return;
+  }
+  console.log(`[DIAG] renderUnderlyingChart called for ${leader.symbol}`);
+  wrap.innerHTML = '<div class="muted small">Loading chart…</div>';
 
-  fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`)
-    .then(response => response.json())
+  const url = `/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`;
+  console.log(`[DIAG] Fetching: ${url}`);
+  
+  fetch(url)
+    .then(response => {
+      console.log(`[DIAG] Response status: ${response.status}`);
+      return response.json();
+    })
     .then(data => {
+      console.log(`[DIAG] Response data:`, data);
       if (data.ok && data.points && data.points.length) {
-        wrap.innerHTML = ''; // Clear loading state
+        console.log(`[DIAG] Rendering chart with ${data.points.length} points`);
+        wrap.innerHTML = '';
         drawChart(wrap, data.points, leader);
       } else {
-        wrap.innerHTML = renderForecastViz(leader); // Fallback to setup map
+        console.log(`[DIAG] Falling back to setup map. ok=${data.ok}, points=${data.points?.length}, error=${data.error}`);
+        wrap.innerHTML = renderForecastViz(leader);
       }
     })
     .catch(error => {
-      console.error('Error fetching underlying history:', error);
-      wrap.innerHTML = renderForecastViz(leader); // Fallback on error
+      console.error('[DIAG] Error fetching underlying history:', error);
+      wrap.innerHTML = renderForecastViz(leader);
     });
 }
 

@@ -349,6 +349,7 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
         symbol = (params.get('symbol', [''])[0] or '').strip().upper()
+        print(f"[DIAG] underlying-history called for symbol: {symbol}")
         if not symbol:
             return self.json_response(400, {'ok': False, 'error': 'symbol required'})
         api_key = os.getenv('TRADIER_API_KEY')
@@ -359,14 +360,14 @@ class Handler(SimpleHTTPRequestHandler):
                     api_key = line.split('=', 1)[1].strip()
                     break
         if not api_key:
+            print(f"[DIAG] No API key found")
             return self.json_response(500, {'ok': False, 'error': 'TRADIER_API_KEY not configured'})
         try:
-            # Use UTC for Tradier API (Tradier interprets times as UTC)
             from datetime import timedelta
             now_utc = datetime.now(timezone.utc)
-            # Request last 4 hours of data (or since market open if earlier)
             start_time = (now_utc - timedelta(hours=4)).strftime('%Y-%m-%d %H:%M')
             end_time = now_utc.strftime('%Y-%m-%d %H:%M')
+            print(f"[DIAG] Fetching timesales for {symbol}: {start_time} to {end_time}")
             
             res = requests.get(
                 'https://api.tradier.com/v1/markets/timesales',
@@ -374,18 +375,19 @@ class Handler(SimpleHTTPRequestHandler):
                 headers={'Accept': 'application/json', 'Authorization': f'Bearer {api_key}'},
                 timeout=20,
             )
+            print(f"[DIAG] Tradier response status: {res.status_code}")
             
-            # Handle non-JSON error responses
             if res.status_code != 200:
                 error_text = res.text[:200] if res.text else f'HTTP {res.status_code}'
+                print(f"[DIAG] Tradier error: {error_text}")
                 return self.json_response(200, {'ok': True, 'symbol': symbol, 'points': [], 'error': f'Tradier API: {error_text}'})
             
             try:
                 data = res.json()
-            except ValueError:
+            except ValueError as e:
+                print(f"[DIAG] JSON parse error: {e}")
                 return self.json_response(200, {'ok': True, 'symbol': symbol, 'points': [], 'error': 'Invalid JSON response from Tradier'})
             
-            # Handle both single object and list responses
             series_data = data.get('series', {}) if isinstance(data, dict) else {}
             if series_data is None:
                 series = []
@@ -393,16 +395,15 @@ class Handler(SimpleHTTPRequestHandler):
                 series = series_data.get('data', []) or []
             else:
                 series = series_data or []
-            
-            # Ensure series is a list
             if isinstance(series, dict):
                 series = [series]
             
             points = [{'time': p.get('time'), 'close': p.get('close')} for p in series if p and p.get('close') is not None][-40:]
+            print(f"[DIAG] Returning {len(points)} points for {symbol}")
             return self.json_response(200, {'ok': True, 'symbol': symbol, 'points': points})
         except Exception as e:
             import traceback
-            print(f"Error in _handle_underlying_history: {e}")
+            print(f"[DIAG] Exception in _handle_underlying_history: {e}")
             traceback.print_exc()
             return self.json_response(500, {'ok': False, 'error': str(e)})
 

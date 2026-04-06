@@ -1,0 +1,137 @@
+{
+  "setupClasses": {
+    "directional_momentum": {
+      "unfavorable": 12,
+      "favorable": 3,
+      "unresolved": 38,
+      "worsened": 12
+    },
+    "premium_credit": {
+      "favorable": 12,
+      "unfavorable": 3,
+      "unresolved": 10
+    }
+  },
+  "setupClassByConfidence": {
+    "directional_momentum": {
+      "medium": {
+        "unfavorable": 12,
+        "favorable": 3,
+        "unresolved": 10
+      },
+      "high": {
+        "unresolved": 28,
+        "worsened": 12
+      }
+    },
+    "premium_credit": {
+      "high": {
+        "favorable": 12,
+        "unfavorable": 3,
+        "unresolved": 10
+      }
+    }
+  },
+  "qualificationReasonQuality": {
+    "Near-ATM delta (0.35-0.80) for directional exposure": {
+      "unfavorable": 12,
+      "favorable": 3,
+      "unresolved": 10
+    },
+    "7-14 DTE for optimal gamma/theta balance": {
+      "unfavorable": 12,
+      "favorable": 3,
+      "unresolved": 10
+    },
+    "Tight bid-ask spread for clean entry/exit": {
+      "unfavorable": 12,
+      "favorable": 3,
+      "unresolved": 10
+    },
+    "Tight bid-ask spread (3.0%)": {
+      "unfavorable": 3,
+      "unresolved": 2
+    },
+    "Tight bid-ask spread (1.0%)": {
+      "favorable": 3,
+      "unresolved": 2
+    },
+    "Tight bid-ask spread (4.6%)": {
+      "unfavorable": 1
+    },
+    "OTM delta (~0.14) for defined-risk premium": {
+      "favorable": 12,
+      "unfavorable": 3,
+      "unresolved": 10
+    },
+    "Spread structure limits max loss": {
+      "favorable": 12,
+      "unfavorable": 3,
+      "unresolved": 10
+    },
+    "Time decay working in your favor": {
+      "favorable": 12,
+      "unfavorable": 3,
+      "unresolved": 10
+    },
+    "Tight bid-ask spread (1.6%)": {
+      "favorable": 3,
+      "unresolved": 2
+    },
+    "Tight bid-ask spread (3.2%)": {
+      "favorable": 1
+    },
+    "Tight bid-ask spread (5.0%)": {
+      "favorable": 3,
+      "unresolved": 2
+    },
+    "Tight bid-ask spread (4.5%)": {
+      "unfavorable": 1,
+      "unresolved": 1
+    },
+    "Tight bid-ask spread (3.6%)": {
+      "favorable": 2
+    },
+    "Tight bid-ask spread (4.7%)": {
+      "unfavorable": 1
+    },
+    "Tight bid-ask spread (4.4%)": {
+      "unfavorable": 1
+    },
+    "Tight bid-ask spread (4.8%)": {
+      "unresolved": 1
+    }
+  },
+  "rejectionReasonQuality": {
+    "reward/risk / distance outside scalping tolerance": {
+      "unresolved": 28,
+      "worsened": 12
+    }
+  },
+  "ranking": [
+    {
+      "setupClass": "premium_credit",
+      "score": 9,
+      "counts": {
+        "favorable": 12,
+        "unfavorable": 3,
+        "unresolved": 10
+      }
+    },
+    {
+      "setupClass": "directional_momentum",
+      "score": -21,
+      "counts": {
+        "unfavorable": 12,
+        "favorable": 3,
+        "unresolved": 38,
+        "worsened": 12
+      }
+    }
+  ],
+  "sampleSize": {
+    "decisions": 90,
+    "attachments": 72,
+    "note": "Early pattern ranking only; not statistically mature."
+  }
+}
