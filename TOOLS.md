@@ -38,3 +38,6 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 ---
 
 Add whatever helps you do your job. This is your cheat sheet.
+
+### VPS
+- Canonical Bazaar VPS deploy path: cd /var/www/bazaar && git pull origin master && sudo ./deploy/deploy.sh

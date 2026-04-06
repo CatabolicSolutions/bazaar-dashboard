@@ -89,3 +89,5 @@ When recovering context for Bazaar work, consult in this order:
 - If files are unchanged from a recent slice, say `same as prior commit` instead of relisting.
 - If blocked, state the exact blocker and smallest needed input in one sentence each.
 - Treat token efficiency and anti-bloat discipline as standing operational mandates, not temporary preferences.
+
+- Bazaar VPS deploy command is cd /var/www/bazaar && git pull origin master && sudo ./deploy/deploy.sh.

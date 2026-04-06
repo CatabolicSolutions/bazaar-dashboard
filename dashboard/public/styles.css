@@ -1556,3 +1556,26 @@ body {
   line-height: 1.5;
   color: var(--text-secondary);
 }
+
+.leader-row.selected {
+  background: #1f2a18;
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(245, 197, 66, 0.18);
+}
+
+.leader-row.selected .leader-symbol,
+.leader-row.selected .leader-meta,
+.leader-row.selected .badge,
+.leader-row.selected .btn-action {
+  color: var(--text-primary);
+}
+
+.leader-row.selected .badge {
+  background: rgba(10, 13, 18, 0.45);
+}
+
+.panel .muted,
+.panel .small,
+.panel .label {
+  color: var(--text-secondary);
+}

@@ -1,15 +1,13 @@
 **BAZAAR OF FORTUNES — DAILY MACRO MARKET ANALYSIS**
-**Generated:** 2026-04-03 06:30 MDT
+**Generated:** 2026-04-05 06:30 MDT
 
 **1. Overnight Drivers**
 - Asia-Pacific markets close mixed as oil gains and Iran war keeps investors on edge - CNBC
+- Wall Street Rattled Anew by US-China Trade Worries: Markets Wrap - Bloomberg.com
 - European stocks jump 2% as sliding oil prices buoy sentiment - CNBC
-- European markets close lower as oil price surges amid Middle East turmoil - CNBC
 
 **2. US Economic Calendar (Today / Tomorrow)**
-- Fri 12:30 PM ET — Non-Farm Employment Change (High)
-- Fri 12:30 PM ET — Unemployment Rate (High)
-- Fri 12:30 PM ET — Average Hourly Earnings m/m (High)
+- Mon 02:00 PM ET — ISM Services PMI (High)
 
 **3. VIX Context**
 - VIX: 23.87 vs yesterday 24.54 (-2.73%)

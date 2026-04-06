@@ -20,6 +20,8 @@ SETUP_QUALITY_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'set
 PREFERENCE_ACTION_BIAS_SUMMARY = ROOT / 'dashboard' / 'state' / 'decision_context' / 'preference_action_bias_summary.json'
 OPERATOR_FEEDBACK_SUMMARY = ROOT / 'dashboard' / 'state' / 'operator_feedback' / 'feedback_summary.json'
 FIELD_TEST_SUMMARY = ROOT / 'dashboard' / 'state' / 'field_test' / 'monday_session_summary.json'
+REFRESH_STATUS_STATE = ROOT / 'dashboard' / 'state' / 'refresh_status.json'
+ENV_FILE = ROOT / '.bazaar.env'
 
 
 def read_text(path):
@@ -30,6 +32,15 @@ def read_json(path):
     if path.exists():
         return json.loads(path.read_text())
     return {}
+
+
+def env_file_has_tradier_key():
+    if not ENV_FILE.exists():
+        return False
+    try:
+        return any(line.strip().startswith('TRADIER_API_KEY=') for line in ENV_FILE.read_text().splitlines())
+    except Exception:
+        return False
 
 
 def cmd(command):
@@ -107,12 +118,16 @@ def build_tradier_overview(leaders, board_meta):
 raw_board = read_text(BOARD)
 leaders, board_meta = parse_board(raw_board)
 
+refresh_status = read_json(REFRESH_STATUS_STATE)
+tradier_key_available = bool(cmd("python3 -c \"import os; print('yes' if os.environ.get('TRADIER_API_KEY') else 'no')\"") == 'yes') or env_file_has_tradier_key()
+
 snapshot = {
     'updatedAt': datetime.now(timezone.utc).isoformat(),
     'systemHealth': {
         'tradierBoardPresent': BOARD.exists(),
         'tradierBoardUpdatedAt': datetime.fromtimestamp(BOARD.stat().st_mtime, tz=timezone.utc).isoformat() if BOARD.exists() else None,
-        'tradierApiKeyLoaded': bool(cmd("python3 -c \"import os; print('yes' if os.environ.get('TRADIER_API_KEY') else 'no')\"") == 'yes'),
+        'tradierApiKeyLoaded': tradier_key_available,
+        'refreshStatus': refresh_status,
         'latestCommit': cmd('git log --oneline -n 1'),
     },
     'tradier': {
