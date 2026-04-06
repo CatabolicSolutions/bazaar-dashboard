@@ -802,6 +802,10 @@ function renderScanStatus(snapshot) {
   }
 }
 
+function isTerminalRefreshStage(stage) {
+  return ['complete', 'failed', 'timeout', 'env'].includes(String(stage || '').toLowerCase());
+}
+
 async function fetchRefreshStatus() {
   try {
     const res = await fetch('/api/refresh-status');
@@ -815,6 +819,22 @@ async function fetchRefreshStatus() {
     console.error('Failed to fetch refresh status:', err);
   }
   return null;
+}
+
+async function waitForRefreshTerminalState(timeoutMs = 210000) {
+  const started = Date.now();
+  while ((Date.now() - started) < timeoutMs) {
+    const status = await fetchRefreshStatus();
+    if (status && isTerminalRefreshStage(status.stage)) return status;
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  refreshStatusData = {
+    ok: false,
+    stage: 'timeout',
+    message: 'Manual refresh did not reach a terminal state in time',
+    updatedAt: new Date().toISOString(),
+  };
+  return refreshStatusData;
 }
 
 function renderNoTradeState() {
@@ -958,19 +978,10 @@ async function forceRefresh() {
   updateStatusPanel(currentSnapshot);
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 190000);
-    const res = await fetch('/api/manual-refresh', { method: 'POST', signal: controller.signal });
-    clearTimeout(timeoutId);
-    const data = await res.json();
-    refreshStatusData = data.data || {
-      ok: res.ok,
-      stage: res.ok ? 'complete' : 'failed',
-      message: data.error || 'Manual refresh finished',
-      updatedAt: new Date().toISOString(),
-    };
+    fetch('/api/manual-refresh', { method: 'POST' }).catch(() => null);
+    const terminal = await waitForRefreshTerminalState();
     await refresh();
-    if (btn) btn.textContent = res.ok ? '✓ Refreshed' : '✗ Failed';
+    if (btn) btn.textContent = terminal.ok ? '✓ Refreshed' : '✗ Failed';
   } catch (err) {
     refreshStatusData = {
       ok: false,
