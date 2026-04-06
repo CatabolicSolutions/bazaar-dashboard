@@ -573,15 +573,31 @@ class Handler(SimpleHTTPRequestHandler):
             'stage': 'starting',
             'message': 'Manual refresh queued',
             'updatedAt': now_iso(),
+            'trigger': 'manual_dashboard_run',
         }
         self.write_json(REFRESH_STATUS_STATE, payload)
 
-        proc = subprocess.run(
-            ['bash', str(REFRESH_SCRIPT)],
-            cwd=str(ROOT),
-            capture_output=True,
-            text=True,
-        )
+        try:
+            proc = subprocess.run(
+                ['bash', str(REFRESH_SCRIPT)],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+        except subprocess.TimeoutExpired as err:
+            status = self.read_json(REFRESH_STATUS_STATE, payload)
+            status.update({
+                'ok': False,
+                'stage': 'timeout',
+                'message': 'Manual refresh timed out after 180s',
+                'updatedAt': now_iso(),
+                'trigger': 'manual_dashboard_run',
+                'stdoutTail': ((err.stdout or '')[-600:] if isinstance(err.stdout, str) else ''),
+                'stderrTail': ((err.stderr or '')[-600:] if isinstance(err.stderr, str) else ''),
+            })
+            self.write_json(REFRESH_STATUS_STATE, status)
+            return self.json_response(504, {'ok': False, 'error': status['message'], 'data': status})
 
         status = self.read_json(REFRESH_STATUS_STATE, payload)
         status['updatedAt'] = now_iso()
@@ -599,7 +615,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         status['ok'] = False
         status['stage'] = 'failed'
-        status['message'] = (proc.stderr or proc.stdout or status.get('message') or 'Manual refresh failed').strip()[-400:]
+        status['message'] = (status.get('message') or proc.stderr or proc.stdout or 'Manual refresh failed').strip()[-400:]
         self.write_json(REFRESH_STATUS_STATE, status)
         return self.json_response(500, {'ok': False, 'error': status['message'], 'data': status})
 

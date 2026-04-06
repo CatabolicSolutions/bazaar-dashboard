@@ -958,7 +958,10 @@ async function forceRefresh() {
   updateStatusPanel(currentSnapshot);
 
   try {
-    const res = await fetch('/api/manual-refresh', { method: 'POST' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 190000);
+    const res = await fetch('/api/manual-refresh', { method: 'POST', signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
     refreshStatusData = data.data || {
       ok: res.ok,
