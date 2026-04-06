@@ -1,3 +1,4 @@
+const d3 = window.d3;
 // ═══════════════════════════════════════════════════════════════
 // THE BAZAAR - Trading Command Center
 // Zone-based navigation with operator-first layout
@@ -1346,23 +1347,175 @@ async function submitOperatorFeedback(payloadJson) {
   }
 }
 
-async function renderUnderlyingChart(leader) {
+function renderUnderlyingChart(leader) {
   const wrap = document.getElementById('underlyingChartWrap');
   if (!wrap || !leader?.symbol) return;
-  wrap.innerHTML = '<div class="muted small">Loading chart…</div>';
-  try {
-    const res = await fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`);
-    const data = await res.json();
-    if (!res.ok || !data.ok || !data.points?.length) throw new Error(data.error || 'No chart data');
-    const vals = data.points.map(p => Number(p.close));
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const range = Math.max(max - min, 0.01);
-    const path = vals.map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i / (vals.length - 1)) * 100} ${100 - (((v - min) / range) * 100)}`).join(' ');
-    wrap.innerHTML = `<svg viewBox="0 0 100 100" class="underlying-chart"><path d="${path}" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
-  } catch (err) {
+  wrap.innerHTML = '<div class="muted small">Loading chart…</div>'; // Show loading state
+
+  fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.ok && data.points && data.points.length) {
+        wrap.innerHTML = ''; // Clear loading state
+        drawChart(wrap, data.points, leader);
+      } else {
+        wrap.innerHTML = renderForecastViz(leader); // Fallback to setup map
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching underlying history:', error);
+      wrap.innerHTML = renderForecastViz(leader); // Fallback on error
+    });
+}
+
+function drawChart(wrap, points, leader) {
+  const svgWidth = wrap.clientWidth || 300;
+  const svgHeight = 200; // Fixed height for compactness
+  const padding = { top: 10, right: 50, bottom: 25, left: 50 };
+
+  // Convert time strings to timestamps for scaling (backend returns 'time', not 'date')
+  const timePoints = points.map(p => new Date(p.time).getTime()).filter(t => !isNaN(t));
+  const prices = points.map(p => p.close).filter(c => c !== null && c !== undefined);
+  
+  if (timePoints.length === 0 || prices.length === 0) {
     wrap.innerHTML = renderForecastViz(leader);
+    return;
   }
+
+  // Determine min/max values for scaling with padding
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const pricePadding = (maxPrice - minPrice) * 0.1 || 1;
+
+  // Scale functions
+  const xScale = d3.scaleTime()
+    .domain(d3.extent(timePoints))
+    .range([padding.left, svgWidth - padding.right]);
+
+  const yScale = d3.scaleLinear()
+    .domain([minPrice - pricePadding, maxPrice + pricePadding])
+    .range([svgHeight - padding.bottom, padding.top]);
+
+  // Create SVG element
+  const svg = d3.select(wrap).append("svg")
+    .attr("width", svgWidth)
+    .attr("height", svgHeight)
+    .attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`)
+    .style("max-width", "100%");
+
+  // Add grid lines
+  svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(0,${svgHeight - padding.bottom})`)
+    .call(d3.axisBottom(xScale).ticks(4).tickSize(-(svgHeight - padding.top - padding.bottom)).tickFormat(""))
+    .call(g => g.select(".domain").remove())
+    .call(g => g.selectAll("line").attr("stroke", "var(--border-color)").attr("stroke-opacity", 0.3));
+
+  svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(${padding.left},0)`)
+    .call(d3.axisLeft(yScale).ticks(5).tickSize(-(svgWidth - padding.left - padding.right)).tickFormat(""))
+    .call(g => g.select(".domain").remove())
+    .call(g => g.selectAll("line").attr("stroke", "var(--border-color)").attr("stroke-opacity", 0.3));
+
+  // Add X axis
+  svg.append("g")
+    .attr("transform", `translate(0,${svgHeight - padding.bottom})`)
+    .call(d3.axisBottom(xScale).ticks(4).tickFormat(d3.timeFormat("%H:%M")))
+    .call(g => g.select(".domain").attr("stroke", "var(--text-secondary)"))
+    .call(g => g.selectAll("text").attr("fill", "var(--text-secondary)").style("font-size", "9px"));
+
+  // Add Y axis
+  svg.append("g")
+    .attr("transform", `translate(${padding.left},0)`)
+    .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.format("$.2f")))
+    .call(g => g.select(".domain").attr("stroke", "var(--text-secondary)"))
+    .call(g => g.selectAll("text").attr("fill", "var(--text-secondary)").style("font-size", "9px"));
+
+  // Line generator - use time field from backend
+  const line = d3.line()
+    .x(d => xScale(d.time))
+    .y(d => yScale(d.close))
+    .curve(d3.curveMonotoneX);
+
+  // Prepare data with proper time objects
+  const chartData = points.filter(p => p.time && p.close !== null).map(p => ({
+    time: new Date(p.time).getTime(),
+    close: p.close
+  }));
+
+  // Draw price line
+  svg.append("path")
+    .datum(chartData)
+    .attr("fill", "none")
+    .attr("stroke", "var(--accent-color)")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+  // Add current price marker at last data point
+  const lastPoint = chartData[chartData.length - 1];
+  const currentPrice = parseFloat(currentSnapshot?.liveScanner?.leaders?.find(l => l.symbol === leader.symbol)?.quote?.last || leader.underlying || lastPoint?.close || '0');
+  
+  if (currentPrice && !isNaN(currentPrice) && lastPoint) {
+    // Current price dot
+    svg.append("circle")
+      .attr("cx", xScale(lastPoint.time))
+      .attr("cy", yScale(currentPrice))
+      .attr("r", 5)
+      .attr("fill", "var(--accent-color)")
+      .attr("stroke", "white")
+      .attr("stroke-width", 2);
+
+    // Current price label
+    svg.append("text")
+      .attr("x", xScale(lastPoint.time) + 8)
+      .attr("y", yScale(currentPrice) + 4)
+      .attr("fill", "var(--accent-color)")
+      .style("font-size", "11px")
+      .style("font-weight", "bold")
+      .text(`$${currentPrice.toFixed(2)}`);
+  }
+
+  // Add Entry/Trigger Zone, Invalidation Line, Target Zone(s)
+  const addZone = (value, label, color, isLine = false) => {
+    const val = parseFloat(value);
+    if (isNaN(val)) return;
+
+    const y = yScale(val);
+
+    if (isLine) {
+      svg.append("line")
+        .attr("x1", padding.left)
+        .attr("y1", y)
+        .attr("x2", svgWidth - padding.right)
+        .attr("y2", y)
+        .attr("stroke", color)
+        .attr("stroke-dasharray", "2,2")
+        .attr("stroke-width", 1);
+    } else {
+      svg.append("rect")
+        .attr("x", padding.left)
+        .attr("y", y - 5)
+        .attr("width", svgWidth - padding.left - padding.right)
+        .attr("height", 10)
+        .attr("fill", color)
+        .attr("opacity", 0.1);
+    }
+    
+    svg.append("text")
+      .attr("x", svgWidth - padding.right)
+      .attr("y", y - 5)
+      .attr("text-anchor", "end")
+      .attr("fill", color)
+      .style("font-size", "10px")
+      .text(`${label}: $${val.toFixed(2)}`);
+  };
+
+  addZone(leader.entry, 'Entry', 'var(--good-color)', true);
+  addZone(leader.invalidation, 'Invalidation', 'var(--bad-color)', true);
+  String(leader.targets || '').split(/[;,]/).map(s => s.trim()).filter(Boolean).forEach(target => {
+    addZone(target, 'Target', 'var(--info-color)', true);
+  });
 }
 
 function renderForecastViz(leader) {

@@ -327,6 +327,7 @@
     </main>
   </div>
   
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
     // Clock updater
     function updateClock() {
@@ -341,10 +342,19 @@
       // Hide all zones
       document.querySelectorAll('.zone').forEach(z => z.classList.remove('active'));
       // Show selected zone
-      document.getElementById('zone-' + zoneName).classList.add('active');
+      const targetZone = document.getElementById('zone-' + zoneName);
+      if (targetZone) {
+        targetZone.style.display = 'block';
+        // Small delay for animation
+        setTimeout(() => targetZone.classList.add('active'), 10);
+      }
       // Update nav
-      document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
-      document.querySelector('[data-zone="' + zoneName + '"]').classList.add('active');
+      document.querySelectorAll('.nav-pill').forEach(p => {
+        p.classList.remove('active');
+        if (p.dataset.zone === zoneName) {
+          p.classList.add('active');
+        }
+      });
     }
   </script>
   
