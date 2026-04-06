@@ -1704,3 +1704,39 @@ body {
   background: var(--accent-dim);
   color: var(--text-primary);
 }
+
+.panel-collapsible {
+  grid-column: span 12;
+}
+
+.panel-collapsible .panel-body {
+  display: none;
+}
+
+.panel-collapsible[open] .panel-body {
+  display: block;
+}
+
+.panel-collapsible summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.panel-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-command-layer,
+.panel-overview,
+.panel-leaders,
+.panel-detail {
+  align-self: start;
+}
+
+.panel-leaders {
+  grid-column: span 7;
+}
+
+.panel-detail {
+  grid-column: span 5;
+}

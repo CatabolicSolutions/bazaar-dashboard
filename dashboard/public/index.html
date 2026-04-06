@@ -76,21 +76,21 @@
           <div id="commandLayerWrap" class="panel-body"></div>
         </section>
 
-        <section class="panel panel-preopen-checklist">
-          <div class="panel-header">
+        <details class="panel panel-preopen-checklist panel-collapsible">
+          <summary class="panel-header">
             <span class="panel-label">PRE-OPEN READINESS CHECKLIST</span>
             <span class="panel-status" id="preopenState">--</span>
-          </div>
+          </summary>
           <div id="preopenChecklistWrap" class="panel-body compact"></div>
-        </section>
+        </details>
 
-        <section class="panel panel-regime-layer">
-          <div class="panel-header">
+        <details class="panel panel-regime-layer panel-collapsible">
+          <summary class="panel-header">
             <span class="panel-label">LIVE REGIME & CONTEXT</span>
             <span class="panel-status" id="regimeState">--</span>
-          </div>
+          </summary>
           <div id="regimeLayerWrap" class="panel-body compact"></div>
-        </section>
+        </details>
 
         <!-- Market Overview Strip -->
         <section class="panel panel-overview">
@@ -98,7 +98,7 @@
         </section>
         
         <!-- Pre-Market Scanner -->
-        <section class="panel panel-scanner">
+        <details class="panel panel-scanner panel-collapsible">
           <div class="panel-header">
             <span class="panel-label">GAP SCANNER</span>
             <button class="btn-action" onclick="runPremarketScan()">SCAN</button>
@@ -106,10 +106,10 @@
           <div id="premarketResults" class="panel-body compact">
             <div class="void">Initialize scan to detect overnight movers</div>
           </div>
-        </section>
+        </details>
         
         <!-- Scan Status Panel -->
-        <section class="panel panel-status">
+        <details class="panel panel-status panel-collapsible">
           <div class="panel-header">
             <span class="panel-label">SCAN STATUS</span>
             <span class="panel-status" id="scanStatus">Checking...</span>
@@ -171,7 +171,7 @@
             </div>
             <div id="actionBiasFeedbackWrap" style="margin-top: var(--space-sm);"></div>
           </div>
-        </section>
+        </details>
         
         <!-- Leaders Board -->
         <section class="panel panel-leaders">
