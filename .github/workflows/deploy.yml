@@ -21,14 +21,14 @@ jobs:
     - name: Add VPS to known hosts
       run: |
         mkdir -p ~/.ssh
-        ssh-keyscan -H 137.184.144.19 >> ~/.ssh/known_hosts
+        ssh-keyscan -H 137.184.144.196 >> ~/.ssh/known_hosts
     
     - name: Deploy to VPS
       run: |
-        ssh alfred-deploy@137.184.144.19 'cd /var/www/bazaar && sudo ./deploy/deploy.sh'
+        ssh alfred-deploy@137.184.144.196 'cd /var/www/bazaar && sudo ./deploy/deploy.sh'
     
     - name: Verify deployment
       run: |
         sleep 5
-        curl -sf http://137.184.144.19:8765/api/health || exit 1
+        curl -sf http://137.184.144.196:8765/api/health || exit 1
         echo "✓ Deployment verified"
