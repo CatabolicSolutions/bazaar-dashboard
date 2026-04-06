@@ -71,10 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
   switchZone('market');
 
-  document.addEventListener('click', (event) => {
-    const refreshButton = event.target.closest('[data-refresh-action="run-now"]');
-    if (refreshButton) {
-      event.preventDefault();
+  if (!document.getElementById('manualRefreshSink')) {
+    const sink = document.createElement('iframe');
+    sink.name = 'manualRefreshSink';
+    sink.id = 'manualRefreshSink';
+    sink.style.display = 'none';
+    document.body.appendChild(sink);
+  }
+
+  document.addEventListener('submit', (event) => {
+    const refreshForm = event.target.closest('[data-manual-refresh-form="true"]');
+    if (refreshForm) {
       forceRefresh();
     }
   });
@@ -97,6 +104,12 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function manualRefreshControlHtml(label = '↻ Run Now') {
+  return `<form method="POST" action="/api/manual-refresh" target="manualRefreshSink" class="manual-refresh-form" data-manual-refresh-form="true">
+    <button class="btn-action" type="submit" data-refresh-action="run-now">${escapeHtml(label)}</button>
+  </form>`;
 }
 
 function formatSection(section) {
@@ -581,7 +594,7 @@ function renderCommandLayer(snapshot) {
     action = ['Monitor near-miss watchlist', 'Force refresh on structure change', 'Do not treat as approved signal'];
     ctas = [
       '<button class="btn-action" onclick="focusNearMisses()">Review Near-Misses</button>',
-      '<button class="btn-action" onclick="forceRefresh()">Refresh Now</button>',
+      manualRefreshControlHtml('Refresh Now'),
       '<button class="btn-action" onclick="goToMonitorPositions()">Check Positions</button>'
     ];
   } else {
@@ -594,7 +607,7 @@ function renderCommandLayer(snapshot) {
     ];
     action = ['Wait', 'Refresh next cycle', 'Inspect filter criteria if needed'];
     ctas = [
-      '<button class="btn-action" onclick="forceRefresh()">Refresh Now</button>',
+      manualRefreshControlHtml('Refresh Now'),
       '<button class="btn-action" onclick="showFilterCriteria()">Review Filters</button>',
       '<button class="btn-action" onclick="goToMonitorPositions()">Check Positions</button>'
     ];
@@ -950,7 +963,7 @@ function renderNoTradeState() {
       ` : ''}
       
       <div class="status-actions" style="justify-content: center; margin-top: var(--space-md);">
-        <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>
+        ${manualRefreshControlHtml('↻ Force Refresh')}
         <button class="btn-action" onclick="showFilterCriteria()">⚙ View Filters</button>
       </div>
       <div style="margin-top: var(--space-sm); display:flex; justify-content:center;">
