@@ -23,6 +23,7 @@ POSITIONS_STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE_STATE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
 ACTION_FEEDBACK_STATE = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
 REFRESH_STATUS_STATE = ROOT / 'dashboard' / 'state' / 'refresh_status.json'
+REFRESH_SCRIPT = ROOT / 'scripts' / 'bazaar_refresh_cycle.sh'
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -523,6 +524,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._run_save(SAVE_QUEUE, body)
         if self.path == '/api/actions':
             return self._handle_action(body)
+        if self.path == '/api/manual-refresh':
+            return self._handle_manual_refresh()
         if self.path == '/api/close-position':
             return self._handle_close_position(body)
         if self.path == '/api/journal/export':
@@ -563,6 +566,42 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, result)
         except Exception as e:
             return self.json_response(400, {'ok': False, 'error': str(e)})
+
+    def _handle_manual_refresh(self):
+        payload = {
+            'ok': False,
+            'stage': 'starting',
+            'message': 'Manual refresh queued',
+            'updatedAt': now_iso(),
+        }
+        self.write_json(REFRESH_STATUS_STATE, payload)
+
+        proc = subprocess.run(
+            ['bash', str(REFRESH_SCRIPT)],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+        )
+
+        status = self.read_json(REFRESH_STATUS_STATE, payload)
+        status['updatedAt'] = now_iso()
+        status['trigger'] = 'manual_dashboard_run'
+        status['stdoutTail'] = (proc.stdout or '')[-600:]
+        status['stderrTail'] = (proc.stderr or '')[-600:]
+
+        if proc.returncode == 0:
+            status['ok'] = True
+            status['stage'] = 'complete'
+            status['message'] = status.get('message') or 'Manual refresh completed'
+            self.write_json(REFRESH_STATUS_STATE, status)
+            self.refresh_snapshot()
+            return self.json_response(200, {'ok': True, 'data': status})
+
+        status['ok'] = False
+        status['stage'] = 'failed'
+        status['message'] = (proc.stderr or proc.stdout or status.get('message') or 'Manual refresh failed').strip()[-400:]
+        self.write_json(REFRESH_STATUS_STATE, status)
+        return self.json_response(500, {'ok': False, 'error': status['message'], 'data': status})
 
     def _handle_close_position(self, body):
         """Close a position"""

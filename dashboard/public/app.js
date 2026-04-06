@@ -942,24 +942,47 @@ function renderNoTradeState() {
   `;
 }
 
-function forceRefresh() {
+async function forceRefresh() {
   const btn = document.querySelector('button[onclick="forceRefresh()"]');
   if (btn) {
-    btn.textContent = '⟳ Refreshing...';
+    btn.textContent = '⟳ Running...';
     btn.disabled = true;
   }
-  refresh().then(() => {
+
+  refreshStatusData = {
+    ok: false,
+    stage: 'starting',
+    message: 'Manual refresh starting…',
+    updatedAt: new Date().toISOString(),
+  };
+  updateStatusPanel(currentSnapshot);
+
+  try {
+    const res = await fetch('/api/manual-refresh', { method: 'POST' });
+    const data = await res.json();
+    refreshStatusData = data.data || {
+      ok: res.ok,
+      stage: res.ok ? 'complete' : 'failed',
+      message: data.error || 'Manual refresh finished',
+      updatedAt: new Date().toISOString(),
+    };
+    await refresh();
+    if (btn) btn.textContent = res.ok ? '✓ Refreshed' : '✗ Failed';
+  } catch (err) {
+    refreshStatusData = {
+      ok: false,
+      stage: 'failed',
+      message: err.message,
+      updatedAt: new Date().toISOString(),
+    };
+    updateStatusPanel(currentSnapshot);
+    if (btn) btn.textContent = '✗ Failed';
+  } finally {
     if (btn) {
-      btn.textContent = '↻ Force Refresh';
       btn.disabled = false;
+      setTimeout(() => { btn.textContent = '↻ Run Now'; }, 2500);
     }
-  }).catch(() => {
-    if (btn) {
-      btn.textContent = '✗ Failed';
-      btn.disabled = false;
-      setTimeout(() => { btn.textContent = '↻ Force Refresh'; }, 2000);
-    }
-  });
+  }
 }
 
 function showFilterCriteria() {
