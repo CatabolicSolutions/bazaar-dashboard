@@ -70,6 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set initial zone
   document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
   switchZone('market');
+
+  document.addEventListener('click', (event) => {
+    const refreshButton = event.target.closest('[data-refresh-action="run-now"]');
+    if (refreshButton) {
+      event.preventDefault();
+      forceRefresh();
+    }
+  });
   
   // Start data refresh
   refresh();
@@ -963,7 +971,7 @@ function renderNoTradeState() {
 }
 
 async function forceRefresh() {
-  const btn = document.querySelector('button[onclick="forceRefresh()"]');
+  const btn = document.querySelector('[data-refresh-action="run-now"]');
   if (btn) {
     btn.textContent = '⟳ Running...';
     btn.disabled = true;
