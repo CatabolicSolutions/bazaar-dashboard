@@ -2,8 +2,7 @@ name: Deploy to VPS
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ master, main ]
 
 jobs:
   deploy:
@@ -11,35 +10,25 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup SSH
-      uses: webfactory/ssh-agent@v0.7.0
+      uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+        log-public-key: false
     
-    - name: Add host to known hosts
+    - name: Add VPS to known hosts
       run: |
         mkdir -p ~/.ssh
-        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H 137.184.144.19 >> ~/.ssh/known_hosts
     
     - name: Deploy to VPS
       run: |
-        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-          cd /var/www/bazaar
-          git pull origin main
-          
-          # Restart dashboard
-          pm2 restart bazaar-dashboard || pm2 start ecosystem.config.js
-          
-          # Check status
-          pm2 status
-        EOF
+        ssh alfred-deploy@137.184.144.19 'cd /var/www/bazaar && sudo ./deploy/deploy.sh'
     
-    - name: Notify on success
-      if: success()
-      run: echo "Deployment successful!"
-    
-    - name: Notify on failure
-      if: failure()
-      run: echo "Deployment failed!"
+    - name: Verify deployment
+      run: |
+        sleep 5
+        curl -sf http://137.184.144.19:8765/api/health || exit 1
+        echo "✓ Deployment verified"
