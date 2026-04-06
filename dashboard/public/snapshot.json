@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-06T14:16:55.769001+00:00",
+  "updatedAt": "2026-04-06T14:18:14.396424+00:00",
   "systemHealth": {
     "tradierBoardPresent": true,
     "tradierBoardUpdatedAt": "2026-04-06T14:15:24.814147+00:00",
@@ -12,7 +12,7 @@
       "boardMtime": "2026-04-06T14:00:22.234379Z",
       "updatedAt": "2026-04-06T14:15:01.085130Z"
     },
-    "latestCommit": "96897a7 fix(dashboard): ensure TRADIER_API_KEY is available to all subprocesses"
+    "latestCommit": "4f42931 fix(config): add TRADIER_ACCOUNT_ID to .bazaar.env"
   },
   "tradier": {
     "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\nVIX: 24.2\n\nDirectional / Scalping Leaders\n1. NVDA CALL | Underlying 176.54 | Strike 175.00 | Exp 2026-04-13 | 7DTE | \u0394 0.6232 | Bid/Ask 4.15/4.20\n   Candidate ID: NVDA-2026-04-13-CALL-175\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n2. IWM PUT | Underlying 251.27 | Strike 255.00 | Exp 2026-04-13 | 7DTE | \u0394 -0.6367 | Bid/Ask 5.84/5.93\n   Candidate ID: IWM-2026-04-13-PUT-255\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n3. TSLA PUT | Underlying 358.87 | Strike 370.00 | Exp 2026-04-13 | 7DTE | \u0394 -0.6395 | Bid/Ask 14.45/15.00\n   Candidate ID: TSLA-2026-04-13-PUT-370\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n4. XSP CALL | Underlying 660.40 | Strike 650.00 | Exp 2026-04-13 | 7DTE | \u0394 0.6450 | Bid/Ask 14.63/15.31\n   Candidate ID: XSP-2026-04-13-CALL-650\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n5. QQQ CALL | Underlying 588.27 | Strike 577.00 | Exp 2026-04-13 | 7DTE | \u0394 0.6459 | Bid/Ask 15.19/16.26\n   Candidate ID: QQQ-2026-04-13-CALL-577\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n\nPremium / Credit Leaders\n1. XSP PUT | Underlying 660.40 | Strike 628.00 | Exp 2026-04-13 | 7DTE | \u0394 -0.1406 | Bid/Ask 1.15/1.24\n   Candidate ID: XSP-2026-04-13-PUT-628\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n2. SPY PUT | Underlying 658.10 | Strike 627.00 | Exp 2026-04-13 | 7DTE | \u0394 -0.1393 | Bid/Ask 1.28/1.30\n   Candidate ID: SPY-2026-04-13-PUT-627\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n3. QQQ PUT | Underlying 588.27 | Strike 557.00 | Exp 2026-04-13 | 7DTE | \u0394 -0.1388 | Bid/Ask 1.19/1.22\n   Candidate ID: QQQ-2026-04-13-PUT-557\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n4. XSP PUT | Underlying 660.40 | Strike 621.00 | Exp 2026-04-20 | 14DTE | \u0394 -0.1388 | Bid/Ask 1.97/2.18\n   Candidate ID: XSP-2026-04-20-PUT-621\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n5. IWM PUT | Underlying 251.27 | Strike 235.00 | Exp 2026-04-20 | 14DTE | \u0394 -0.1442 | Bid/Ask 1.30/1.35\n   Candidate ID: IWM-2026-04-20-PUT-235\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n\nRun Notes\n- Leaders emitted: 19\n- Fallback-expiry leaders: 0\n- All leaders matched requested expiry intent directly\n\n",
@@ -560,7 +560,7 @@
     ]
   },
   "tradierExecution": {
-    "updatedAt": "2026-04-06T14:15:24.585824+00:00",
+    "updatedAt": "2026-04-06T14:17:14.593025+00:00",
     "intents": [
       {
         "mode": "cash_day",
@@ -1277,6 +1277,116 @@
           }
         ],
         "updated_at": "2026-04-06T14:15:24.585754+00:00"
+      },
+      {
+        "mode": "cash_day",
+        "strategy_type": "long_call",
+        "symbol": "SPY",
+        "contract": "SPY 500 CALL 2026-04-11",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": "1.1",
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "SPY-2026-04-11-CALL-500",
+        "notes": "Dashboard execution: ",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "long_call",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "SPY-2026-04-11-CALL-500",
+        "origin": "system_generated",
+        "decision_state": "proposed",
+        "decision_actor": "system",
+        "decision_note": "Created from leaders board candidate",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_eb47d678cf38",
+        "created_at": "2026-04-06T14:17:01.109414+00:00",
+        "status": "queued",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day intent from SPY-2026-04-11-CALL-500",
+            "timestamp": "2026-04-06T14:17:01.109678+00:00"
+          }
+        ],
+        "updated_at": "2026-04-06T14:17:01.109682+00:00"
+      },
+      {
+        "mode": "cash_day",
+        "strategy_type": "long_call",
+        "symbol": "SPY",
+        "contract": "SPY 520 CALL 2026-04-17",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": "2.60",
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "SPY-2026-04-17-CALL-520",
+        "notes": "Dashboard execution: SPY CALL 520 momentum candidate",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "long_call",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "SPY-2026-04-17-CALL-520",
+        "origin": "system_generated",
+        "decision_state": "proposed",
+        "decision_actor": "system",
+        "decision_note": "Created from leaders board candidate",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_040de351e70a",
+        "created_at": "2026-04-06T14:17:14.118878+00:00",
+        "status": "queued",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day intent from SPY-2026-04-17-CALL-520",
+            "timestamp": "2026-04-06T14:17:14.119227+00:00"
+          }
+        ],
+        "updated_at": "2026-04-06T14:17:14.119233+00:00"
       }
     ],
     "previews": [
@@ -1591,11 +1701,57 @@
           }
         },
         "timestamp": "2026-03-31T04:59:04.311174+00:00"
+      },
+      {
+        "intent_id": "intent_eb47d678cf38",
+        "mode": "cash_day",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "open_positions_count": 2,
+          "estimated_notional": 110.00000000000001,
+          "buying_power_reference": 197.78,
+          "manual_limit_drift": {
+            "mark_price": null,
+            "limit_price": "1.1",
+            "max_drift_pct": 0.05
+          }
+        },
+        "timestamp": "2026-04-06T14:17:01.672997+00:00"
+      },
+      {
+        "intent_id": "intent_040de351e70a",
+        "mode": "cash_day",
+        "allowed": false,
+        "reasons": [
+          "estimated notional 260.00 exceeds buying power reference 197.78"
+        ],
+        "checks": {
+          "mode": "cash_day",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "open_positions_count": 2,
+          "estimated_notional": 260.0,
+          "buying_power_reference": 197.78,
+          "manual_limit_drift": {
+            "mark_price": null,
+            "limit_price": "2.60",
+            "max_drift_pct": 0.05
+          }
+        },
+        "timestamp": "2026-04-06T14:17:14.592911+00:00"
       }
     ]
   },
   "tradierAudit": {
-    "updatedAt": "2026-04-06T14:15:24.587708+00:00",
+    "updatedAt": "2026-04-06T14:17:14.595019+00:00",
     "events": [
       {
         "timestamp": "2026-03-31T04:29:18.652840+00:00",
@@ -1972,11 +2128,51 @@
         "extra": {
           "candidate_id": "SPY-2026-04-11-CALL-500"
         }
+      },
+      {
+        "timestamp": "2026-04-06T14:17:01.110716+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_eb47d678cf38",
+        "summary": "Created cash_day intent from SPY-2026-04-11-CALL-500",
+        "extra": {
+          "candidate_id": "SPY-2026-04-11-CALL-500"
+        }
+      },
+      {
+        "timestamp": "2026-04-06T14:17:01.673983+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_eb47d678cf38",
+        "summary": "Risk evaluation completed",
+        "extra": {
+          "allowed": true
+        }
+      },
+      {
+        "timestamp": "2026-04-06T14:17:14.120398+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_040de351e70a",
+        "summary": "Created cash_day intent from SPY-2026-04-17-CALL-520",
+        "extra": {
+          "candidate_id": "SPY-2026-04-17-CALL-520"
+        }
+      },
+      {
+        "timestamp": "2026-04-06T14:17:14.595014+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_040de351e70a",
+        "summary": "Risk evaluation completed",
+        "extra": {
+          "allowed": false
+        }
       }
     ]
   },
   "decisionContext": {
-    "updatedAt": "2026-04-06T14:16:55.774193+00:00",
+    "updatedAt": "2026-04-06T14:18:14.401099+00:00",
     "totalLoggedThisRun": 18,
     "qualifiedTradeCount": 10,
     "nearMissCount": 8,
