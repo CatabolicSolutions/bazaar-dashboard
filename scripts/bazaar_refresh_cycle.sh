@@ -14,11 +14,12 @@ write_status() {
   local ok="$1"
   local stage="$2"
   local message="$3"
-  python3 - "$ok" "$stage" "$message" <<'PY'
+  python3 - "$ok" "$stage" "$message" "$STATUS_FILE" "$WORKDIR/dashboard/public/snapshot.json" "$WORKDIR/out/tradier_leaders_board.txt" <<'PY'
 import json, datetime, pathlib, sys
-status = pathlib.Path("dashboard/state/refresh_status.json")
-snapshot = pathlib.Path("dashboard/public/snapshot.json")
-board = pathlib.Path("out/tradier_leaders_board.txt")
+status = pathlib.Path(sys.argv[4])
+snapshot = pathlib.Path(sys.argv[5])
+board = pathlib.Path(sys.argv[6])
+status.parent.mkdir(parents=True, exist_ok=True)
 status.write_text(json.dumps({
   "ok": sys.argv[1].lower() == "true",
   "stage": sys.argv[2],
