@@ -996,7 +996,6 @@ async function forceRefresh() {
     message: 'Manual refresh starting…',
     updatedAt: new Date().toISOString(),
   };
-  updateStatusPanel(currentSnapshot);
 
   try {
     fetch('/api/manual-refresh', { method: 'POST' }).catch(() => null);
@@ -1010,7 +1009,6 @@ async function forceRefresh() {
       message: err.message,
       updatedAt: new Date().toISOString(),
     };
-    updateStatusPanel(currentSnapshot);
     if (btn) btn.textContent = '✗ Failed';
   } finally {
     if (btn) {
