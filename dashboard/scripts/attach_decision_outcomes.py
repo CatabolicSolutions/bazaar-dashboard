@@ -50,6 +50,9 @@ def dt(s: str | None):
 
 
 def quote(symbol: str):
+    symbol = str(symbol or '').strip()
+    if not symbol:
+        return None
     r = requests.get(f'{BASE_URL}quotes', params={'symbols': symbol, 'greeks': 'false'}, headers=HEADERS, timeout=20)
     r.raise_for_status()
     q = r.json().get('quotes', {}).get('quote')
@@ -115,9 +118,15 @@ def attach():
             key = attachment_key(record, horizon)
             if key in existing:
                 continue
-            symbol = record.get('symbol')
+            symbol = str(record.get('symbol') or '').strip()
             contract = record.get('contract', {})
-            q = quote(symbol)
+            if not symbol:
+                continue
+            try:
+                q = quote(symbol) or {}
+            except Exception as exc:
+                print(json.dumps({'warning': 'quote_lookup_failed', 'symbol': symbol, 'reason': str(exc)}))
+                q = {}
             underlying_now = q.get('last')
             option_now = None
             if contract.get('expiration') and contract.get('option_type') and contract.get('strike') is not None:
