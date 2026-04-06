@@ -42,7 +42,26 @@ class Handler(SimpleHTTPRequestHandler):
         return default
 
     def write_json(self, path, payload):
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2))
+
+    def _canonical_refresh_payload(self, *, ok, stage, message, trigger='manual_dashboard_run', stdout_tail='', stderr_tail=''):
+        snapshot = PUBLIC / 'snapshot.json'
+        board = ROOT / 'out' / 'tradier_leaders_board.txt'
+        payload = {
+            'ok': ok,
+            'stage': stage,
+            'message': message,
+            'updatedAt': now_iso(),
+            'trigger': trigger,
+            'snapshotMtime': datetime.fromtimestamp(snapshot.stat().st_mtime, tz=timezone.utc).isoformat() if snapshot.exists() else None,
+            'boardMtime': datetime.fromtimestamp(board.stat().st_mtime, tz=timezone.utc).isoformat() if board.exists() else None,
+        }
+        if stdout_tail:
+            payload['stdoutTail'] = stdout_tail[-600:]
+        if stderr_tail:
+            payload['stderrTail'] = stderr_tail[-600:]
+        return payload
 
     def json_response(self, status_code, payload):
         self.send_response(status_code)
@@ -308,6 +327,19 @@ class Handler(SimpleHTTPRequestHandler):
             'snapshotMtime': None,
             'boardMtime': None,
         })
+        if payload.get('stage') == 'starting' and payload.get('updatedAt'):
+            try:
+                age = datetime.now(timezone.utc) - datetime.fromisoformat(str(payload['updatedAt']).replace('Z', '+00:00'))
+                if age.total_seconds() > 300:
+                    payload = self._canonical_refresh_payload(
+                        ok=False,
+                        stage='failed',
+                        message='Refresh status was left in starting and has been marked stale by backend guardrail.',
+                        trigger=payload.get('trigger', 'manual_dashboard_run'),
+                    )
+                    self.write_json(REFRESH_STATUS_STATE, payload)
+            except Exception:
+                pass
         return self.json_response(200, {'ok': True, 'data': payload})
 
     def _handle_live_positions(self):
@@ -568,13 +600,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(400, {'ok': False, 'error': str(e)})
 
     def _handle_manual_refresh(self):
-        payload = {
-            'ok': False,
-            'stage': 'starting',
-            'message': 'Manual refresh queued',
-            'updatedAt': now_iso(),
-            'trigger': 'manual_dashboard_run',
-        }
+        payload = self._canonical_refresh_payload(
+            ok=False,
+            stage='starting',
+            message='Manual refresh queued',
+        )
         self.write_json(REFRESH_STATUS_STATE, payload)
 
         try:
@@ -586,36 +616,35 @@ class Handler(SimpleHTTPRequestHandler):
                 timeout=180,
             )
         except subprocess.TimeoutExpired as err:
-            status = self.read_json(REFRESH_STATUS_STATE, payload)
-            status.update({
-                'ok': False,
-                'stage': 'timeout',
-                'message': 'Manual refresh timed out after 180s',
-                'updatedAt': now_iso(),
-                'trigger': 'manual_dashboard_run',
-                'stdoutTail': ((err.stdout or '')[-600:] if isinstance(err.stdout, str) else ''),
-                'stderrTail': ((err.stderr or '')[-600:] if isinstance(err.stderr, str) else ''),
-            })
+            status = self._canonical_refresh_payload(
+                ok=False,
+                stage='timeout',
+                message='Manual refresh timed out after 180s',
+                stdout_tail=(err.stdout or '') if isinstance(err.stdout, str) else '',
+                stderr_tail=(err.stderr or '') if isinstance(err.stderr, str) else '',
+            )
             self.write_json(REFRESH_STATUS_STATE, status)
             return self.json_response(504, {'ok': False, 'error': status['message'], 'data': status})
 
-        status = self.read_json(REFRESH_STATUS_STATE, payload)
-        status['updatedAt'] = now_iso()
-        status['trigger'] = 'manual_dashboard_run'
-        status['stdoutTail'] = (proc.stdout or '')[-600:]
-        status['stderrTail'] = (proc.stderr or '')[-600:]
-
         if proc.returncode == 0:
-            status['ok'] = True
-            status['stage'] = 'complete'
-            status['message'] = status.get('message') or 'Manual refresh completed'
-            self.write_json(REFRESH_STATUS_STATE, status)
             self.refresh_snapshot()
+            status = self._canonical_refresh_payload(
+                ok=True,
+                stage='complete',
+                message='Manual refresh completed',
+                stdout_tail=proc.stdout or '',
+                stderr_tail=proc.stderr or '',
+            )
+            self.write_json(REFRESH_STATUS_STATE, status)
             return self.json_response(200, {'ok': True, 'data': status})
 
-        status['ok'] = False
-        status['stage'] = 'failed'
-        status['message'] = (status.get('message') or proc.stderr or proc.stdout or 'Manual refresh failed').strip()[-400:]
+        status = self._canonical_refresh_payload(
+            ok=False,
+            stage='failed',
+            message=((proc.stderr or proc.stdout or 'Manual refresh failed').strip()[-400:]) or 'Manual refresh failed',
+            stdout_tail=proc.stdout or '',
+            stderr_tail=proc.stderr or '',
+        )
         self.write_json(REFRESH_STATUS_STATE, status)
         return self.json_response(500, {'ok': False, 'error': status['message'], 'data': status})
 
