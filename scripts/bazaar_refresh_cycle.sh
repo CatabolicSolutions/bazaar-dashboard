@@ -6,6 +6,7 @@ WORKDIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$WORKDIR/out/logs"
 LOG_FILE="$LOG_DIR/bazaar_refresh_cycle.log"
 STATUS_FILE="$WORKDIR/dashboard/state/refresh_status.json"
+LOCK_FILE="$WORKDIR/dashboard/state/bazaar_refresh_cycle.lock"
 mkdir -p "$LOG_DIR" "$(dirname "$STATUS_FILE")"
 
 exec >>"$LOG_FILE" 2>&1
@@ -49,6 +50,12 @@ trap 'on_timeout_or_termination 124' TERM INT
 
 echo "=== Bazaar refresh cycle start: $(date -Is) ==="
 cd "$WORKDIR"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  write_status false running "Refresh cycle already in progress"
+  echo "=== Bazaar refresh cycle skipped: already running ==="
+  exit 0
+fi
 write_status false starting "Refresh cycle starting"
 
 if [[ -f "$WORKDIR/.bazaar.env" ]]; then

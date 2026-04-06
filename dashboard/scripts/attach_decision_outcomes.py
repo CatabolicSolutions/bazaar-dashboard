@@ -87,22 +87,27 @@ def attachment_key(record: dict, horizon: str):
     return f"{record.get('type')}|{record.get('symbol')}|{c.get('option_type')}|{c.get('strike')}|{c.get('expiration')}|{record.get('capturedAt')}|{horizon}"
 
 
+def to_float(value, default=None):
+    try:
+        if value is None or value == '':
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
 def later_state(record: dict, underlying_now: float | None, option_now: dict | None):
     metrics = record.get('metrics', {})
-    underlying_then = metrics.get('underlying')
-    delta = metrics.get('delta')
-    try:
-        delta_value = float(delta or 0)
-    except Exception:
-        delta_value = 0.0
+    underlying_then = to_float(metrics.get('underlying'))
+    delta_value = to_float(metrics.get('delta'), 0.0)
     if underlying_then is None or underlying_now is None:
         return 'unresolved'
     implied_dir = 'up' if delta_value > 0 else 'down'
-    moved_up = underlying_now > float(underlying_then)
+    moved_up = underlying_now > underlying_then
     favorable = (implied_dir == 'up' and moved_up) or (implied_dir == 'down' and not moved_up)
     if record.get('type') == 'near_miss' and option_now and option_now.get('mid') is not None:
-        spread_ratio = metrics.get('spread_ratio')
-        if spread_ratio and spread_ratio > 0.35 and option_now.get('mid'):
+        spread_ratio = to_float(metrics.get('spread_ratio'))
+        if spread_ratio is not None and spread_ratio > 0.35 and option_now.get('mid'):
             return 'improved' if favorable else 'worsened'
     if record.get('type') == 'qualified_trade':
         return 'favorable' if favorable else 'unfavorable'
@@ -155,7 +160,7 @@ def attach():
                 'outcome': {
                     'underlyingThen': record.get('metrics', {}).get('underlying'),
                     'underlyingNow': underlying_now,
-                    'underlyingMove': (underlying_now - float(record.get('metrics', {}).get('underlying'))) if underlying_now is not None and record.get('metrics', {}).get('underlying') is not None else None,
+                    'underlyingMove': (underlying_now - to_float(record.get('metrics', {}).get('underlying'))) if underlying_now is not None and to_float(record.get('metrics', {}).get('underlying')) is not None else None,
                     'optionNow': option_now,
                     'state': later_state(record, underlying_now, option_now),
                     'wouldNowQualify': None if record.get('type') != 'near_miss' else (later_state(record, underlying_now, option_now) == 'improved'),
