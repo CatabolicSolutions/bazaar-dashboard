@@ -113,12 +113,48 @@ nohup python3 dashboard/scripts/serve_dashboard.py --host 0.0.0.0 --port 8765 > 
 sudo /var/www/bazaar/deploy/rollback.sh
 ```
 
+## Environment Setup
+
+### Initial VPS Configuration
+
+1. **Copy environment template:**
+   ```bash
+   cd /var/www/bazaar
+   cp .bazaar.env.template .bazaar.env
+   ```
+
+2. **Edit `.bazaar.env` with real values:**
+   ```bash
+   # Required: Tradier API credentials
+   export TRADIER_API_KEY=your_actual_api_key
+   export TRADIER_ACCOUNT_ID=your_actual_account_id
+   ```
+
+3. **Verify environment is loaded:**
+   ```bash
+   source .bazaar.env
+   echo $TRADIER_ACCOUNT_ID  # Should show your account ID
+   ```
+
+### Required Environment Variables
+
+| Variable | Purpose | Source |
+|----------|---------|--------|
+| `TRADIER_API_KEY` | API authentication | Tradier Developer Portal |
+| `TRADIER_ACCOUNT_ID` | Account for order placement | Tradier Account Settings |
+| `TRADIER_DASHBOARD_HOST` | Server bind address (default: 0.0.0.0) | Optional |
+| `TRADIER_DASHBOARD_PORT` | Server port (default: 8765) | Optional |
+
+**Note:** The dashboard will fail with 500 errors if `TRADIER_ACCOUNT_ID` is not set.
+
 ## File Locations
 
 | Component | Path |
 |-----------|------|
 | Dashboard frontend | `/var/www/bazaar/dashboard/public/` |
 | Deploy scripts | `/var/www/bazaar/deploy/` |
+| Environment template | `/var/www/bazaar/.bazaar.env.template` |
+| Environment config | `/var/www/bazaar/.bazaar.env` |
 | Logs | `/var/log/bazaar-deploy.log` |
 | Backups | `/var/www/bazaar-backups/` |
 | Service | `python3 dashboard/scripts/serve_dashboard.py` |
