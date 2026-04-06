@@ -105,3 +105,15 @@ OSError: [Errno 98] Address already in use
 127.0.0.1 - - [06/Apr/2026 08:16:55] "GET / HTTP/1.1" 200 -
 127.0.0.1 - - [06/Apr/2026 08:17:01] "POST /api/actions HTTP/1.1" 500 -
 127.0.0.1 - - [06/Apr/2026 08:17:14] "POST /api/actions HTTP/1.1" 500 -
+127.0.0.1 - - [06/Apr/2026 08:18:14] "GET /api/underlying-history?symbol=SPY HTTP/1.1" 200 -
+Traceback (most recent call last):
+  File "/home/catabolic_solutions/.openclaw/workspace/dashboard/scripts/serve_dashboard.py", line 853, in <module>
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.12/http/server.py", line 136, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.12/socketserver.py", line 473, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use

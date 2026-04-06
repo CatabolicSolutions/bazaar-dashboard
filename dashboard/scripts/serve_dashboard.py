@@ -383,8 +383,9 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             from datetime import timedelta
             now_utc = datetime.now(timezone.utc)
-            start_time = (now_utc - timedelta(hours=4)).strftime('%Y-%m-%d %H:%M')
-            end_time = now_utc.strftime('%Y-%m-%d %H:%M')
+            # Use 5 minutes ago as end time to avoid "start must be before" error
+            end_time = (now_utc - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M')
+            start_time = (now_utc - timedelta(hours=4, minutes=5)).strftime('%Y-%m-%d %H:%M')
             print(f"[DIAG] Fetching timesales for {symbol}: {start_time} to {end_time}")
             
             res = requests.get(

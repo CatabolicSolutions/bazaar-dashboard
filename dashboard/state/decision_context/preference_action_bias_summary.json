@@ -1,170 +1,165 @@
 {
   "preferences": [
     {
-      "setupClass": "premium_credit",
-      "preference": "favored",
-      "score": 2,
-      "sample": 140,
-      "evidenceNote": "Observed pattern currently leans constructive",
+      "setupClass": "directional_momentum",
+      "preference": "de-emphasized",
+      "score": -39,
+      "sample": 494,
+      "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "favorable": 21,
-        "unfavorable": 19,
-        "unresolved": 100
+        "unfavorable": 31,
+        "favorable": 84,
+        "unresolved": 287,
+        "worsened": 92
       },
       "confidenceBands": {
-        "high": {
-          "favorable": 21,
-          "unfavorable": 18,
-          "unresolved": 90
-        },
         "medium": {
-          "unfavorable": 1,
-          "unresolved": 10
+          "unfavorable": 31,
+          "favorable": 84,
+          "unresolved": 75
+        },
+        "high": {
+          "unresolved": 212,
+          "worsened": 92
         }
       }
     },
     {
-      "setupClass": "directional_momentum",
+      "setupClass": "premium_credit",
       "preference": "de-emphasized",
-      "score": -40,
-      "sample": 364,
+      "score": -59,
+      "sample": 190,
       "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "unfavorable": 24,
-        "favorable": 16,
-        "unresolved": 292,
-        "worsened": 32
+        "favorable": 28,
+        "unfavorable": 87,
+        "unresolved": 75
       },
       "confidenceBands": {
-        "medium": {
-          "unfavorable": 24,
-          "favorable": 16,
-          "unresolved": 100
-        },
         "high": {
-          "unresolved": 192,
-          "worsened": 32
+          "favorable": 28,
+          "unfavorable": 76,
+          "unresolved": 75
+        },
+        "medium": {
+          "unfavorable": 11
         }
       }
     }
   ],
-  "favored": [
-    {
-      "setupClass": "premium_credit",
-      "preference": "favored",
-      "score": 2,
-      "sample": 140,
-      "evidenceNote": "Observed pattern currently leans constructive",
-      "counts": {
-        "favorable": 21,
-        "unfavorable": 19,
-        "unresolved": 100
-      },
-      "confidenceBands": {
-        "high": {
-          "favorable": 21,
-          "unfavorable": 18,
-          "unresolved": 90
-        },
-        "medium": {
-          "unfavorable": 1,
-          "unresolved": 10
-        }
-      }
-    }
-  ],
+  "favored": [],
   "cautious": [],
   "deEmphasized": [
     {
       "setupClass": "directional_momentum",
       "preference": "de-emphasized",
-      "score": -40,
-      "sample": 364,
+      "score": -39,
+      "sample": 494,
       "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "unfavorable": 24,
-        "favorable": 16,
-        "unresolved": 292,
-        "worsened": 32
+        "unfavorable": 31,
+        "favorable": 84,
+        "unresolved": 287,
+        "worsened": 92
       },
       "confidenceBands": {
         "medium": {
-          "unfavorable": 24,
-          "favorable": 16,
-          "unresolved": 100
+          "unfavorable": 31,
+          "favorable": 84,
+          "unresolved": 75
         },
         "high": {
-          "unresolved": 192,
-          "worsened": 32
+          "unresolved": 212,
+          "worsened": 92
+        }
+      }
+    },
+    {
+      "setupClass": "premium_credit",
+      "preference": "de-emphasized",
+      "score": -59,
+      "sample": 190,
+      "evidenceNote": "Observed pattern currently leans weak",
+      "counts": {
+        "favorable": 28,
+        "unfavorable": 87,
+        "unresolved": 75
+      },
+      "confidenceBands": {
+        "high": {
+          "favorable": 28,
+          "unfavorable": 76,
+          "unresolved": 75
+        },
+        "medium": {
+          "unfavorable": 11
         }
       }
     }
   ],
   "qualificationReasonSignals": [
     {
-      "reason": "OTM delta (~0.14) for defined-risk premium",
-      "score": 2,
+      "reason": "Near-ATM delta (0.35-0.80) for directional exposure",
+      "score": 53,
       "counts": {
-        "favorable": 21,
-        "unfavorable": 19,
-        "unresolved": 100
+        "unfavorable": 31,
+        "favorable": 84,
+        "unresolved": 75
       }
     },
     {
-      "reason": "Spread structure limits max loss",
-      "score": 2,
+      "reason": "7-14 DTE for optimal gamma/theta balance",
+      "score": 53,
       "counts": {
-        "favorable": 21,
-        "unfavorable": 19,
-        "unresolved": 100
+        "unfavorable": 31,
+        "favorable": 84,
+        "unresolved": 75
       }
     },
     {
-      "reason": "Time decay working in your favor",
-      "score": 2,
+      "reason": "Tight bid-ask spread for clean entry/exit",
+      "score": 53,
       "counts": {
-        "favorable": 21,
-        "unfavorable": 19,
-        "unresolved": 100
-      }
-    },
-    {
-      "reason": "Tight bid-ask spread (1.0%)",
-      "score": 1,
-      "counts": {
-        "favorable": 4,
-        "unfavorable": 3
-      }
-    },
-    {
-      "reason": "Tight bid-ask spread (1.6%)",
-      "score": 1,
-      "counts": {
-        "favorable": 4,
-        "unfavorable": 3
+        "unfavorable": 31,
+        "favorable": 84,
+        "unresolved": 75
       }
     },
     {
       "reason": "Tight bid-ask spread (3.2%)",
-      "score": 1,
+      "score": 3,
       "counts": {
-        "favorable": 1,
-        "unresolved": 2
+        "favorable": 3
+      }
+    },
+    {
+      "reason": "Tight bid-ask spread (4.8%)",
+      "score": 3,
+      "counts": {
+        "favorable": 3
+      }
+    },
+    {
+      "reason": "Tight bid-ask spread (3.8%)",
+      "score": 2,
+      "counts": {
+        "favorable": 2,
+        "unresolved": 3
       }
     }
   ],
   "rejectionReasonSignals": [
     {
       "reason": "reward/risk / distance outside scalping tolerance",
-      "score": -32,
+      "score": -92,
       "counts": {
-        "unresolved": 192,
-        "worsened": 32
+        "unresolved": 212,
+        "worsened": 92
       }
     }
   ],
   "operatorSummary": {
-    "favoredSetupClass": "premium_credit",
+    "favoredSetupClass": "directional_momentum",
     "sampleNote": "Preferences are evidence-grounded but early; not automation-grade."
   }
 }
