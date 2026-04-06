@@ -1740,3 +1740,57 @@ body {
 .panel-detail {
   grid-column: span 5;
 }
+
+.forecast-card {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-accent);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+
+.forecast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.forecast-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.forecast-rail {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px;
+  gap: 10px;
+  align-items: center;
+}
+
+.forecast-track {
+  height: 10px;
+  background: #1c2530;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.forecast-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--info), var(--accent));
+}
+
+.forecast-node {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.forecast-node span,
+.forecast-caption {
+  color: var(--text-secondary);
+  font-weight: 500;
+}

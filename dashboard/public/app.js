@@ -1346,6 +1346,35 @@ async function submitOperatorFeedback(payloadJson) {
   }
 }
 
+function renderForecastViz(leader) {
+  const underlying = parseFloat(leader?.underlying || '0') || 0;
+  const delta = parseFloat(leader?.delta || '0') || 0;
+  const targetText = String(leader?.targets || '').split(/[;,]/).map(s => s.trim()).filter(Boolean)[0] || 'Target zone pending';
+  const invalidationText = leader?.invalidation || 'Invalidation pending';
+  const directional = delta >= 0 ? 'Upside thesis path' : 'Downside thesis path';
+  const progress = Math.min(85, Math.max(15, 50 + Math.round(delta * 40)));
+  return `
+    <div class="forecast-card">
+      <div class="forecast-header">
+        <div>
+          <div class="label">Forecast Path</div>
+          <div class="forecast-title">${escapeHtml(directional)}</div>
+        </div>
+        <div class="badge-stack">
+          <span class="badge info">Underlying ${escapeHtml(String(leader?.underlying || '--'))}</span>
+          <span class="badge ${delta >= 0 ? 'good' : 'warn'}">Delta ${escapeHtml(String(leader?.delta || '--'))}</span>
+        </div>
+      </div>
+      <div class="forecast-rail">
+        <div class="forecast-node invalidation">Invalidation<br><span>${escapeHtml(invalidationText)}</span></div>
+        <div class="forecast-track"><div class="forecast-progress" style="width:${progress}%"></div></div>
+        <div class="forecast-node target">Target<br><span>${escapeHtml(targetText)}</span></div>
+      </div>
+      <div class="forecast-caption">Trying to capture a ${delta >= 0 ? 'higher' : 'lower'} move from ${underlying ? underlying.toFixed(2) : '--'} toward the target zone while respecting invalidation.</div>
+    </div>
+  `;
+}
+
 function renderDetail(leader, stateMeta = null) {
   const wrap = document.getElementById('detailWrap');
   const meta = document.getElementById('selectedMeta');
@@ -1387,6 +1416,7 @@ function renderDetail(leader, stateMeta = null) {
     ${stateMeta?.kind === 'selection-reset' ? stateBanner('Selected detail was re-anchored because the previous leader disappeared after refresh.', 'warn') : ''}
     ${staleNote.tone !== 'good' ? stateBanner(staleNote.text, staleNote.tone) : ''}
     ${qualificationCard}
+    ${renderForecastViz(leader)}
     <div class="detail-state-row">
       <div>
         <div class="label">Local Action State</div>
