@@ -51,8 +51,10 @@ cd "$WORKDIR"
 write_status false starting "Refresh cycle starting"
 
 if [[ -f "$WORKDIR/.bazaar.env" ]]; then
+  set -a
   # shellcheck disable=SC1090
   source "$WORKDIR/.bazaar.env"
+  set +a
 elif [[ -f "$HOME/.bashrc" ]]; then
   # shellcheck disable=SC1090
   source "$HOME/.bashrc"
