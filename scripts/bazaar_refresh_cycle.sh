@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKDIR="$HOME/.openclaw/workspace"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+WORKDIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$WORKDIR/out/logs"
 LOG_FILE="$LOG_DIR/bazaar_refresh_cycle.log"
 STATUS_FILE="$WORKDIR/dashboard/state/refresh_status.json"

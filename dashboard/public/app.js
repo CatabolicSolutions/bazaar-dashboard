@@ -533,12 +533,12 @@ function renderCommandLayer(snapshot) {
   let attention = [];
   let action = [];
   let ctas = [];
-  if (topPriority) {
-    badges.push(`<span class="badge ${topPriority.urgency === 'LOOK NOW' ? 'bad' : topPriority.urgency === 'LOOK SOON' ? 'warn' : topPriority.urgency === 'PERIPHERAL' ? 'info' : ''}">Urgency: ${topPriority.urgency}</span>`);
-  }
 
   const topPriority = priorityStack[0] || null;
   const proceedGuidance = buildProceedGuidance(snapshot, priorityStack);
+  if (topPriority) {
+    badges.push(`<span class="badge ${topPriority.urgency === 'LOOK NOW' ? 'bad' : topPriority.urgency === 'LOOK SOON' ? 'warn' : topPriority.urgency === 'PERIPHERAL' ? 'info' : ''}">Urgency: ${topPriority.urgency}</span>`);
+  }
 
   if (leaders.length) {
     mode = 'ACT NOW';
