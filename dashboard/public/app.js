@@ -1346,6 +1346,25 @@ async function submitOperatorFeedback(payloadJson) {
   }
 }
 
+async function renderUnderlyingChart(leader) {
+  const wrap = document.getElementById('underlyingChartWrap');
+  if (!wrap || !leader?.symbol) return;
+  wrap.innerHTML = '<div class="muted small">Loading chart…</div>';
+  try {
+    const res = await fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`);
+    const data = await res.json();
+    if (!res.ok || !data.ok || !data.points?.length) throw new Error(data.error || 'No chart data');
+    const vals = data.points.map(p => Number(p.close));
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const range = Math.max(max - min, 0.01);
+    const path = vals.map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i / (vals.length - 1)) * 100} ${100 - (((v - min) / range) * 100)}`).join(' ');
+    wrap.innerHTML = `<svg viewBox="0 0 100 100" class="underlying-chart"><path d="${path}" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+  } catch (err) {
+    wrap.innerHTML = renderForecastViz(leader);
+  }
+}
+
 function renderForecastViz(leader) {
   const liveData = getLeaderLiveData(leader);
   const quote = liveData?.quote || {};
@@ -1428,7 +1447,7 @@ function renderDetail(leader, stateMeta = null) {
     ${stateMeta?.kind === 'selection-reset' ? stateBanner('Selected detail was re-anchored because the previous leader disappeared after refresh.', 'warn') : ''}
     ${staleNote.tone !== 'good' ? stateBanner(staleNote.text, staleNote.tone) : ''}
     ${qualificationCard}
-    ${renderForecastViz(leader)}
+    <div id="underlyingChartWrap">${renderForecastViz(leader)}</div>
     <div class="detail-state-row">
       <div>
         <div class="label">Local Action State</div>
@@ -1469,6 +1488,7 @@ function renderDetail(leader, stateMeta = null) {
       ${detailField('Source Headline', leader.headline, true)}
     </div>
   `;
+  renderUnderlyingChart(leader);
 }
 
 // Global state for execution preview

@@ -5,6 +5,8 @@ import os
 import json
 import argparse
 from datetime import datetime, timezone
+from urllib.parse import parse_qs, urlparse
+import requests
 from operator_feedback import append_feedback
 from session_capture import append_event
 
@@ -337,10 +339,41 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_crypto_pairs()
         elif self.path == '/api/crypto/emergency':
             return self._handle_crypto_emergency()
+        elif self.path.startswith('/api/underlying-history'):
+            return self._handle_underlying_history()
         elif self.path == '/api/refresh-status':
             return self._handle_refresh_status()
         return super().do_GET()
     
+    def _handle_underlying_history(self):
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        symbol = (params.get('symbol', [''])[0] or '').strip().upper()
+        if not symbol:
+            return self.json_response(400, {'ok': False, 'error': 'symbol required'})
+        api_key = os.getenv('TRADIER_API_KEY')
+        env_file = ROOT / '.bazaar.env'
+        if not api_key and env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith('TRADIER_API_KEY='):
+                    api_key = line.split('=', 1)[1].strip()
+                    break
+        if not api_key:
+            return self.json_response(500, {'ok': False, 'error': 'TRADIER_API_KEY not configured'})
+        try:
+            res = requests.get(
+                'https://api.tradier.com/v1/markets/timesales',
+                params={'symbol': symbol, 'interval': '5min', 'start': datetime.now(timezone.utc).strftime('%Y-%m-%d 13:30'), 'end': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')},
+                headers={'Accept': 'application/json', 'Authorization': f'Bearer {api_key}'},
+                timeout=20,
+            )
+            res.raise_for_status()
+            series = res.json().get('series', {}).get('data', []) or []
+            points = [{'time': p.get('time'), 'close': p.get('close')} for p in series if p.get('close') is not None][-40:]
+            return self.json_response(200, {'ok': True, 'symbol': symbol, 'points': points})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
     def _handle_refresh_status(self):
         payload = self.read_json(REFRESH_STATUS_STATE, {
             'ok': False,
