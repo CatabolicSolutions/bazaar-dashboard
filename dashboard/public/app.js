@@ -1347,30 +1347,42 @@ async function submitOperatorFeedback(payloadJson) {
 }
 
 function renderForecastViz(leader) {
-  const underlying = parseFloat(leader?.underlying || '0') || 0;
+  const liveData = getLeaderLiveData(leader);
+  const quote = liveData?.quote || {};
+  const underlying = parseFloat(quote.last || leader?.underlying || '0') || 0;
   const delta = parseFloat(leader?.delta || '0') || 0;
-  const targetText = String(leader?.targets || '').split(/[;,]/).map(s => s.trim()).filter(Boolean)[0] || 'Target zone pending';
+  const directionalUp = delta >= 0;
+  const entryText = leader?.entry || 'Entry pending';
   const invalidationText = leader?.invalidation || 'Invalidation pending';
-  const directional = delta >= 0 ? 'Upside thesis path' : 'Downside thesis path';
-  const progress = Math.min(85, Math.max(15, 50 + Math.round(delta * 40)));
+  const targets = String(leader?.targets || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
+  const targetText = targets[0] || 'Target zone pending';
+  const vwapText = quote?.vwap && typeof quote.vwap === 'number' ? quote.vwap.toFixed(2) : '--';
+  const mapStops = [
+    { label: 'Invalidation', value: invalidationText, kind: 'invalidation' },
+    { label: 'Entry', value: entryText, kind: 'entry' },
+    { label: 'Current', value: underlying ? underlying.toFixed(2) : '--', kind: 'current' },
+    { label: 'VWAP', value: vwapText, kind: 'vwap' },
+    { label: 'Target', value: targetText, kind: 'target' },
+  ];
   return `
     <div class="forecast-card">
       <div class="forecast-header">
         <div>
-          <div class="label">Forecast Path</div>
-          <div class="forecast-title">${escapeHtml(directional)}</div>
+          <div class="label">Setup Map</div>
+          <div class="forecast-title">${directionalUp ? 'Upside capture map' : 'Downside capture map'}</div>
         </div>
         <div class="badge-stack">
-          <span class="badge info">Underlying ${escapeHtml(String(leader?.underlying || '--'))}</span>
-          <span class="badge ${delta >= 0 ? 'good' : 'warn'}">Delta ${escapeHtml(String(leader?.delta || '--'))}</span>
+          <span class="badge info">Underlying ${escapeHtml(String(underlying ? underlying.toFixed(2) : '--'))}</span>
+          <span class="badge ${directionalUp ? 'good' : 'warn'}">Delta ${escapeHtml(String(leader?.delta || '--'))}</span>
         </div>
       </div>
-      <div class="forecast-rail">
-        <div class="forecast-node invalidation">Invalidation<br><span>${escapeHtml(invalidationText)}</span></div>
-        <div class="forecast-track"><div class="forecast-progress" style="width:${progress}%"></div></div>
-        <div class="forecast-node target">Target<br><span>${escapeHtml(targetText)}</span></div>
+      <div class="setup-map-shell ${directionalUp ? 'up' : 'down'}">
+        <div class="setup-map-axis">
+          ${mapStops.map(stop => `<div class="setup-map-stop ${stop.kind}"><span class="setup-map-label">${escapeHtml(stop.label)}</span><span class="setup-map-value">${escapeHtml(stop.value)}</span></div>`).join('')}
+          <div class="setup-map-path"></div>
+        </div>
       </div>
-      <div class="forecast-caption">Trying to capture a ${delta >= 0 ? 'higher' : 'lower'} move from ${underlying ? underlying.toFixed(2) : '--'} toward the target zone while respecting invalidation.</div>
+      <div class="forecast-caption">Path intent: ${directionalUp ? 'hold above invalidation, enter cleanly, and push toward higher target zones' : 'hold below invalidation, enter cleanly, and press toward lower target zones'}.</div>
     </div>
   `;
 }

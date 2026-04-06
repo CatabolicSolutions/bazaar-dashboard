@@ -1794,3 +1794,70 @@ body {
   color: var(--text-secondary);
   font-weight: 500;
 }
+
+.setup-map-shell {
+  margin-top: 10px;
+}
+
+.setup-map-axis {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.setup-map-path {
+  position: absolute;
+  left: 88px;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--bad), var(--accent), var(--good));
+  opacity: 0.9;
+}
+
+.setup-map-shell.down .setup-map-path {
+  background: linear-gradient(180deg, var(--good), var(--accent), var(--bad));
+}
+
+.setup-map-stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 34px;
+  z-index: 1;
+}
+
+.setup-map-stop::before {
+  content: '';
+  position: absolute;
+  left: 82px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid var(--bg);
+}
+
+.setup-map-stop.invalidation::before { background: var(--bad); }
+.setup-map-stop.entry::before { background: var(--accent); }
+.setup-map-stop.current::before { background: var(--info); }
+.setup-map-stop.vwap::before { background: #c084fc; }
+.setup-map-stop.target::before { background: var(--good); }
+
+.setup-map-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.setup-map-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
