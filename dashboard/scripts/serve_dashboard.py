@@ -23,6 +23,7 @@ POSITIONS_STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE_STATE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
 ACTION_FEEDBACK_STATE = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
 REFRESH_STATUS_STATE = ROOT / 'dashboard' / 'state' / 'refresh_status.json'
+REFRESH_LOCK_STATE = ROOT / 'dashboard' / 'state' / 'manual_refresh.lock'
 REFRESH_SCRIPT = ROOT / 'scripts' / 'bazaar_refresh_cycle.sh'
 
 
@@ -44,6 +45,28 @@ class Handler(SimpleHTTPRequestHandler):
     def write_json(self, path, payload):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2))
+
+    def _refresh_lock_active(self):
+        if not REFRESH_LOCK_STATE.exists():
+            return False
+        try:
+            payload = json.loads(REFRESH_LOCK_STATE.read_text())
+            pid = int(payload.get('pid', 0))
+            if pid > 0:
+                os.kill(pid, 0)
+                return True
+        except Exception:
+            return False
+        return False
+
+    def _write_refresh_lock(self):
+        self.write_json(REFRESH_LOCK_STATE, {'pid': os.getpid(), 'updatedAt': now_iso()})
+
+    def _clear_refresh_lock(self):
+        try:
+            REFRESH_LOCK_STATE.unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def _canonical_refresh_payload(self, *, ok, stage, message, trigger='manual_dashboard_run', stdout_tail='', stderr_tail=''):
         snapshot = PUBLIC / 'snapshot.json'
@@ -600,53 +623,66 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(400, {'ok': False, 'error': str(e)})
 
     def _handle_manual_refresh(self):
+        if self._refresh_lock_active():
+            status = self._canonical_refresh_payload(
+                ok=False,
+                stage='running',
+                message='Manual refresh already in progress',
+            )
+            self.write_json(REFRESH_STATUS_STATE, status)
+            return self.json_response(409, {'ok': False, 'error': status['message'], 'data': status})
+
         payload = self._canonical_refresh_payload(
             ok=False,
             stage='starting',
             message='Manual refresh queued',
         )
         self.write_json(REFRESH_STATUS_STATE, payload)
+        self._write_refresh_lock()
 
         try:
-            proc = subprocess.run(
-                ['bash', str(REFRESH_SCRIPT)],
-                cwd=str(ROOT),
-                capture_output=True,
-                text=True,
-                timeout=180,
-            )
-        except subprocess.TimeoutExpired as err:
+            try:
+                proc = subprocess.run(
+                    ['bash', str(REFRESH_SCRIPT)],
+                    cwd=str(ROOT),
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                )
+            except subprocess.TimeoutExpired as err:
+                status = self._canonical_refresh_payload(
+                    ok=False,
+                    stage='timeout',
+                    message='Manual refresh timed out after 180s',
+                    stdout_tail=(err.stdout or '') if isinstance(err.stdout, str) else '',
+                    stderr_tail=(err.stderr or '') if isinstance(err.stderr, str) else '',
+                )
+                self.write_json(REFRESH_STATUS_STATE, status)
+                return self.json_response(504, {'ok': False, 'error': status['message'], 'data': status})
+
+            if proc.returncode == 0:
+                self.refresh_snapshot()
+                status = self._canonical_refresh_payload(
+                    ok=True,
+                    stage='complete',
+                    message='Manual refresh completed',
+                    stdout_tail=proc.stdout or '',
+                    stderr_tail=proc.stderr or '',
+                )
+                self.write_json(REFRESH_STATUS_STATE, status)
+                return self.json_response(200, {'ok': True, 'data': status})
+
             status = self._canonical_refresh_payload(
                 ok=False,
-                stage='timeout',
-                message='Manual refresh timed out after 180s',
-                stdout_tail=(err.stdout or '') if isinstance(err.stdout, str) else '',
-                stderr_tail=(err.stderr or '') if isinstance(err.stderr, str) else '',
-            )
-            self.write_json(REFRESH_STATUS_STATE, status)
-            return self.json_response(504, {'ok': False, 'error': status['message'], 'data': status})
-
-        if proc.returncode == 0:
-            self.refresh_snapshot()
-            status = self._canonical_refresh_payload(
-                ok=True,
-                stage='complete',
-                message='Manual refresh completed',
+                stage='failed',
+                message=((proc.stderr or proc.stdout or 'Manual refresh failed').strip()[-400:]) or 'Manual refresh failed',
                 stdout_tail=proc.stdout or '',
                 stderr_tail=proc.stderr or '',
             )
             self.write_json(REFRESH_STATUS_STATE, status)
-            return self.json_response(200, {'ok': True, 'data': status})
-
-        status = self._canonical_refresh_payload(
-            ok=False,
-            stage='failed',
-            message=((proc.stderr or proc.stdout or 'Manual refresh failed').strip()[-400:]) or 'Manual refresh failed',
-            stdout_tail=proc.stdout or '',
-            stderr_tail=proc.stderr or '',
-        )
-        self.write_json(REFRESH_STATUS_STATE, status)
-        return self.json_response(500, {'ok': False, 'error': status['message'], 'data': status})
+            return self.json_response(500, {'ok': False, 'error': status['message'], 'data': status})
+        finally:
+            self._clear_refresh_lock()
 
     def _handle_close_position(self, body):
         """Close a position"""

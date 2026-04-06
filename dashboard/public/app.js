@@ -998,7 +998,6 @@ async function forceRefresh() {
   };
 
   try {
-    fetch('/api/manual-refresh', { method: 'POST' }).catch(() => null);
     const terminal = await waitForRefreshTerminalState();
     await refresh();
     if (btn) btn.textContent = terminal.ok ? '✓ Refreshed' : '✗ Failed';
