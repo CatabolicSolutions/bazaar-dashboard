@@ -361,16 +361,38 @@ class Handler(SimpleHTTPRequestHandler):
         if not api_key:
             return self.json_response(500, {'ok': False, 'error': 'TRADIER_API_KEY not configured'})
         try:
+            # Use US/Eastern time for market hours (9:30 AM - 4:00 PM ET)
+            from datetime import timedelta
+            et_now = datetime.now(timezone.utc) - timedelta(hours=4)  # Approximate ET
+            start_time = et_now.strftime('%Y-%m-%d 09:30')
+            end_time = et_now.strftime('%Y-%m-%d %H:%M')
+            
             res = requests.get(
                 'https://api.tradier.com/v1/markets/timesales',
-                params={'symbol': symbol, 'interval': '5min', 'start': datetime.now(timezone.utc).strftime('%Y-%m-%d 13:30'), 'end': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')},
+                params={'symbol': symbol, 'interval': '5min', 'start': start_time, 'end': end_time},
                 headers={'Accept': 'application/json', 'Authorization': f'Bearer {api_key}'},
                 timeout=20,
             )
             res.raise_for_status()
-            series = res.json().get('series', {}).get('data', []) or []
-            points = [{'time': p.get('time'), 'close': p.get('close')} for p in series if p.get('close') is not None][-40:]
+            data = res.json()
+            
+            # Handle both single object and list responses
+            series_data = data.get('series', {})
+            if series_data is None:
+                series = []
+            elif isinstance(series_data, dict):
+                series = series_data.get('data', []) or []
+            else:
+                series = series_data or []
+            
+            # Ensure series is a list
+            if isinstance(series, dict):
+                series = [series]
+            
+            points = [{'time': p.get('time'), 'close': p.get('close')} for p in series if p and p.get('close') is not None][-40:]
             return self.json_response(200, {'ok': True, 'symbol': symbol, 'points': points})
+        except requests.exceptions.RequestException as e:
+            return self.json_response(500, {'ok': False, 'error': f'Tradier API error: {str(e)}'})
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
 

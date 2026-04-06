@@ -185,7 +185,6 @@ function setSelectedLeader(index, leaders) {
   selectedLeaderIndex = index;
   selectedLeaderKey = leaderKey(leaders[index]);
   renderTradierSlice();
-  renderOperatorRail();
   const leader = leaders[index];
   captureSessionEventOnce(`first_selection_${leaderKey(leader)}`, {
     eventType: 'first_operator_selection',
