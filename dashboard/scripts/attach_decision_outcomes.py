@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -49,9 +50,14 @@ def dt(s: str | None):
         return None
 
 
+def is_valid_symbol(symbol: str) -> bool:
+    symbol = str(symbol or '').strip()
+    return bool(symbol) and re.fullmatch(r'[A-Za-z0-9._-]+', symbol) is not None
+
+
 def quote(symbol: str):
     symbol = str(symbol or '').strip()
-    if not symbol:
+    if not is_valid_symbol(symbol):
         return None
     r = requests.get(f'{BASE_URL}quotes', params={'symbols': symbol, 'greeks': 'false'}, headers=HEADERS, timeout=20)
     r.raise_for_status()
@@ -106,6 +112,7 @@ def attach():
     existing = {row['attachmentKey'] for row in read_jsonl(ATTACH_LOG)} if ATTACH_LOG.exists() else set()
     now = datetime.now(timezone.utc)
     new_rows = []
+    warning_counts = {'skipped_invalid_symbol': 0, 'quote_lookup_failed': 0}
 
     for record in records:
         captured = dt(record.get('capturedAt'))
@@ -120,12 +127,13 @@ def attach():
                 continue
             symbol = str(record.get('symbol') or '').strip()
             contract = record.get('contract', {})
-            if not symbol:
+            if not is_valid_symbol(symbol):
+                warning_counts['skipped_invalid_symbol'] += 1
                 continue
             try:
                 q = quote(symbol) or {}
-            except Exception as exc:
-                print(json.dumps({'warning': 'quote_lookup_failed', 'symbol': symbol, 'reason': str(exc)}))
+            except Exception:
+                warning_counts['quote_lookup_failed'] += 1
                 q = {}
             underlying_now = q.get('last')
             option_now = None
@@ -162,6 +170,7 @@ def attach():
         'newAttachments': len(new_rows),
         'totalAttachments': len(read_jsonl(ATTACH_LOG)) if ATTACH_LOG.exists() else len(new_rows),
         'horizons': list(HORIZONS.keys()),
+        'warnings': warning_counts,
     }
     ATTACH_SUMMARY.write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary))
