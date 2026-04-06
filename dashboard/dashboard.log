@@ -53,3 +53,22 @@
 192.168.208.1 - - [30/Mar/2026 13:58:23] "GET /snapshot.json?ts=1774900702784 HTTP/1.1" 200 -
 127.0.0.1 - - [30/Mar/2026 13:58:49] "GET /snapshot.json?ts=1774900729404 HTTP/1.1" 200 -
 127.0.0.1 - - [30/Mar/2026 13:59:49] "GET /snapshot.json?ts=1774900789398 HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:41:15] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:41:28] "GET /api/underlying-history?symbol=SPY HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "/home/catabolic_solutions/.openclaw/workspace/dashboard/scripts/serve_dashboard.py", line 827, in <module>
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.12/http/server.py", line 136, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.12/socketserver.py", line 473, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+127.0.0.1 - - [06/Apr/2026 07:42:56] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:43:02] "GET /api/underlying-history?symbol=SPY HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:43:09] "GET /api/underlying-history?symbol=AAPL HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:43:13] "GET /api/refresh-status HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:44:12] "POST /api/manual-refresh HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:45:17] "GET /api/refresh-status HTTP/1.1" 200 -

@@ -991,7 +991,7 @@ function renderNoTradeState() {
 }
 
 async function forceRefresh() {
-  const btn = document.querySelector('[data-refresh-action="run-now"]');
+  const btn = document.querySelector('[data-refresh-action="run-now"]') || document.querySelector('button[onclick="forceRefresh()"]');
   if (btn) {
     btn.textContent = '⟳ Running...';
     btn.disabled = true;
@@ -1005,6 +1005,13 @@ async function forceRefresh() {
   };
 
   try {
+    // Trigger the refresh via POST
+    const res = await fetch('/api/manual-refresh', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Refresh request failed: ${res.status}`);
+    }
+    
+    // Wait for terminal state
     const terminal = await waitForRefreshTerminalState();
     await refresh();
     if (btn) btn.textContent = terminal.ok ? '✓ Refreshed' : '✗ Failed';

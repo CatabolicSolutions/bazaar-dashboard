@@ -10,6 +10,13 @@ if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
   exit 0
 fi
 
+# Load environment variables
+if [ -f "$ROOT/.bazaar.env" ]; then
+  set -a
+  source "$ROOT/.bazaar.env"
+  set +a
+fi
+
 python3 "$ROOT/dashboard/scripts/serve_dashboard.py" >> "$LOGFILE" 2>&1 &
 PID=$!
 echo "$PID" > "$PIDFILE"
