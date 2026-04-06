@@ -4,8 +4,8 @@ After=default.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/catabolic_solutions/.openclaw/workspace
-ExecStart=/usr/bin/python3 /home/catabolic_solutions/.openclaw/workspace/dashboard/scripts/serve_dashboard.py
+WorkingDirectory=/var/www/bazaar
+ExecStart=/usr/bin/python3 /var/www/bazaar/dashboard/scripts/serve_dashboard.py
 Restart=always
 RestartSec=2
 Environment=PYTHONUNBUFFERED=1

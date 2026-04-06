@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 DECISION_DIR = ROOT / 'dashboard' / 'state' / 'decision_context'
 SETUP_QUALITY = DECISION_DIR / 'setup_quality_summary.json'
 CALIBRATION = DECISION_DIR / 'confidence_calibration_summary.json'

@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from datetime import datetime, timezone
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 
 payload = json.load(sys.stdin)

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Add scripts directory to path
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from tradier_account import positions as get_tradier_positions, balances

@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 FEEDBACK_DIR = ROOT / 'dashboard' / 'state' / 'operator_feedback'
 FEEDBACK_LOG = FEEDBACK_DIR / 'feedback_log.jsonl'
 FEEDBACK_SUMMARY = FEEDBACK_DIR / 'feedback_summary.json'

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import subprocess
 from decision_context import persist_decision_context
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'dashboard' / 'public' / 'snapshot.json'
 BOARD = ROOT / 'out' / 'tradier_leaders_board.txt'
 ACTIVE = ROOT / 'dashboard' / 'state' / 'active_positions.json'

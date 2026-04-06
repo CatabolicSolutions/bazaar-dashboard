@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 DECISION_DIR = ROOT / 'dashboard' / 'state' / 'decision_context'
 DECISION_LOG = DECISION_DIR / 'decision_context_log.jsonl'
 ATTACH_LOG = DECISION_DIR / 'outcome_attachments.jsonl'

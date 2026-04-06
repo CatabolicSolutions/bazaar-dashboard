@@ -15,7 +15,7 @@ from tradier_intent_readiness import intent_readiness_for_intent
 from tradier_intent_timing import intent_timing_for_intent
 from tradier_reconciliation_state import intent_reconciliation_for_intent
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace/dashboard/state')
+ROOT = Path(__file__).resolve().parents[1] / 'dashboard' / 'state'
 EXECUTION_STATE_PATH = ROOT / 'tradier_execution_state.json'
 AUDIT_LOG_PATH = ROOT / 'tradier_audit_log.json'
 

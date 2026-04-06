@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 # Add scripts directory to path
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from position_manager import get_live_positions

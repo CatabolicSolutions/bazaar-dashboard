@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import json
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 DECISION_DIR = ROOT / 'dashboard' / 'state' / 'decision_context'
 DECISION_LOG = DECISION_DIR / 'decision_context_log.jsonl'
 DECISION_SUMMARY = DECISION_DIR / 'decision_context_summary.json'

@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path('/home/catabolic_solutions/.openclaw/workspace')
+ROOT = Path(__file__).resolve().parents[2]
 SESSION_DIR = ROOT / 'dashboard' / 'state' / 'field_test'
 EVENT_LOG = SESSION_DIR / 'monday_session_events.jsonl'
 SUMMARY = SESSION_DIR / 'monday_session_summary.json'
