@@ -17,6 +17,8 @@ if [ -f "$ROOT/.bazaar.env" ]; then
   set +a
 fi
 
+export TRADIER_API_KEY
+
 python3 "$ROOT/dashboard/scripts/serve_dashboard.py" >> "$LOGFILE" 2>&1 &
 PID=$!
 echo "$PID" > "$PIDFILE"

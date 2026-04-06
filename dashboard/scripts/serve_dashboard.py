@@ -16,6 +16,21 @@ def now_iso() -> str:
 # Get the repository root based on this script's location
 SCRIPT_DIR = Path(__file__).parent.resolve()
 ROOT = SCRIPT_DIR.parent.parent
+
+# Load environment from .bazaar.env if not already set
+env_file = ROOT / '.bazaar.env'
+if env_file.exists():
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and line.startswith('export '):
+                line = line[7:]  # Remove 'export '
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip().strip('"\'')
+                    if key not in os.environ:
+                        os.environ[key] = value
 PUBLIC = ROOT / 'dashboard' / 'public'
 BUILDER = ROOT / 'dashboard' / 'scripts' / 'build_snapshot.py'
 SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
@@ -106,6 +121,7 @@ class Handler(SimpleHTTPRequestHandler):
             input=body,
             cwd=str(ROOT),
             capture_output=True,
+            env=os.environ
         )
         if proc.returncode == 0:
             self.refresh_snapshot()
@@ -240,7 +256,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(EXECUTE_LEADER), '--leader', json_mod.dumps(leader), '--preview'],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -270,7 +287,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(EXECUTE_LEADER), '--execute', intent_id],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -440,7 +458,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(ROOT / 'dashboard' / 'scripts' / 'position_manager.py'), '--get-positions'],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -462,7 +481,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(ROOT / 'dashboard' / 'scripts' / 'market_data_feed.py'), '--scanner'],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -484,7 +504,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(ROOT / 'dashboard' / 'scripts' / 'exit_predictor.py'), '--analyze'],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -548,7 +569,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(ROOT / 'dashboard' / 'scripts' / 'premarket_scanner.py'), '--scan'],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -569,7 +591,8 @@ class Handler(SimpleHTTPRequestHandler):
             ['python3', str(ROOT / 'dashboard' / 'scripts' / 'portfolio_heatmap.py'), '--heatmap'],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:
@@ -714,6 +737,7 @@ class Handler(SimpleHTTPRequestHandler):
                     capture_output=True,
                     text=True,
                     timeout=180,
+                    env=os.environ
                 )
             except subprocess.TimeoutExpired as err:
                 status = self._canonical_refresh_payload(
@@ -777,7 +801,8 @@ class Handler(SimpleHTTPRequestHandler):
             ],
             cwd=str(ROOT),
             capture_output=True,
-            text=True
+            text=True,
+            env=os.environ
         )
         
         try:

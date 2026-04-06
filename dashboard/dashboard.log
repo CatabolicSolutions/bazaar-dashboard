@@ -72,3 +72,31 @@ OSError: [Errno 98] Address already in use
 127.0.0.1 - - [06/Apr/2026 07:43:13] "GET /api/refresh-status HTTP/1.1" 200 -
 127.0.0.1 - - [06/Apr/2026 07:44:12] "POST /api/manual-refresh HTTP/1.1" 200 -
 127.0.0.1 - - [06/Apr/2026 07:45:17] "GET /api/refresh-status HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:49:54] "GET /api/refresh-status HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:51:14] "GET /api/underlying-history?symbol=XSP HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:59:01] "GET /api/underlying-history?symbol=SPY HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 07:59:17] "GET /api/refresh-status HTTP/1.1" 200 -
+Traceback (most recent call last):
+  File "/home/catabolic_solutions/.openclaw/workspace/dashboard/scripts/serve_dashboard.py", line 837, in <module>
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.12/http/server.py", line 136, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.12/socketserver.py", line 473, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+Traceback (most recent call last):
+  File "/home/catabolic_solutions/.openclaw/workspace/dashboard/scripts/serve_dashboard.py", line 837, in <module>
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.12/http/server.py", line 136, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.12/socketserver.py", line 473, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+127.0.0.1 - - [06/Apr/2026 08:11:12] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [06/Apr/2026 08:11:33] "GET /api/underlying-history?symbol=SPY HTTP/1.1" 200 -
