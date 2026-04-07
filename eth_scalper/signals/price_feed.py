@@ -34,10 +34,14 @@ class PriceFeed:
                 timeout=10
             )
             
-            # Try Binance first, then Coinbase as backup
+            # Try multiple price sources
             price = self._get_binance_eth_price()
             if not price:
                 price = self._get_coinbase_eth_price()
+            if not price:
+                price = self._get_coingecko_eth_price()
+            if not price:
+                price = self._get_cryptocompare_eth_price()
             
             if price:
                 self._record_price(price)
@@ -81,6 +85,32 @@ class PriceFeed:
             return float(data['data']['rates']['USD'])
         except Exception as e:
             print(f"Error fetching Coinbase price: {e}")
+            return None
+    
+    def _get_coingecko_eth_price(self) -> Optional[float]:
+        """Get ETH price from CoinGecko (backup #2)"""
+        try:
+            response = requests.get(
+                'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd',
+                timeout=5
+            )
+            data = response.json()
+            return float(data['ethereum']['usd'])
+        except Exception as e:
+            print(f"Error fetching CoinGecko price: {e}")
+            return None
+    
+    def _get_cryptocompare_eth_price(self) -> Optional[float]:
+        """Get ETH price from CryptoCompare (backup #3)"""
+        try:
+            response = requests.get(
+                'https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD',
+                timeout=5
+            )
+            data = response.json()
+            return float(data['USD'])
+        except Exception as e:
+            print(f"Error fetching CryptoCompare price: {e}")
             return None
     
     def _record_price(self, price: float):
