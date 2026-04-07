@@ -1439,7 +1439,29 @@ function toggleCardExpand(index) {
   
   // Load chart after render if expanded
   if (expandedCardIndex === index) {
-    setTimeout(() => loadCardChart(index), 100);
+    setTimeout(() => loadFullChart(index), 100);
+  }
+}
+
+async function loadFullChart(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) return;
+  
+  const container = document.getElementById(`fullChart-${index}`);
+  if (!container) return;
+  
+  try {
+    const res = await fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`);
+    const data = await res.json();
+    
+    if (data.ok && data.points && data.points.length > 0) {
+      container.innerHTML = '';
+      drawMiniChart(container, data.points, leader);
+    } else {
+      container.innerHTML = '<div class="chart-loading">No chart data available</div>';
+    }
+  } catch (err) {
+    container.innerHTML = '<div class="chart-loading">Failed to load chart</div>';
   }
 }
 
@@ -1628,15 +1650,173 @@ function renderLeaders(leaders) {
     return;
   }
 
-  wrap.innerHTML = `
-    <div class="leader-cards">
-      ${leaders.map((leader, idx) => renderLeaderCard(leader, idx)).join('')}
-    </div>
-  `;
+  // Check if any card is expanded
+  const hasExpandedCard = expandedCardIndex !== null && expandedCardIndex >= 0 && expandedCardIndex < leaders.length;
+
+  if (hasExpandedCard) {
+    // Full-width layout when card is expanded
+    wrap.innerHTML = `
+      <div class="leader-cards-compact">
+        ${leaders.map((leader, idx) => idx === expandedCardIndex ? '' : renderCompactCard(leader, idx)).join('')}
+      </div>
+      ${renderExpandedCardFull(leaders[expandedCardIndex], expandedCardIndex)}
+    `;
+  } else {
+    // Normal grid layout
+    wrap.innerHTML = `
+      <div class="leader-cards">
+        ${leaders.map((leader, idx) => renderLeaderCard(leader, idx)).join('')}
+      </div>
+    `;
+  }
 
   // Only render summary strip, not full detail panel
   const { leader: selectedLeader } = syncSelectedLeader(leaders);
   renderSummaryStrip(selectedLeader, null);
+}
+
+function renderCompactCard(leader, index) {
+  const isSelected = selectedLeaderIndex === index;
+  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
+  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
+  
+  return `
+    <div class="leader-card-compact ${leader.option_type?.toLowerCase()} ${isSelected ? 'selected' : ''}" onclick="toggleCardExpand(${index})">
+      <div class="compact-symbol">${escapeHtml(leader.symbol)}</div>
+      <div class="compact-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))}</div>
+      <div class="compact-price">$${escapeHtml(leader.ask || leader.bid || '--')}</div>
+      <div class="compact-confidence">${confidenceScore}/10</div>
+    </div>
+  `;
+}
+
+function renderExpandedCardFull(leader, index) {
+  const state = getLeaderState(leader);
+  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
+  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
+  const spectrumWidth = confidenceScore * 10;
+  
+  return `
+    <div class="expanded-card-full">
+      <div class="expanded-full-header">
+        <div class="expanded-title">
+          <span class="expanded-symbol">${escapeHtml(leader.symbol)}</span>
+          <span class="expanded-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))} @ $${escapeHtml(leader.underlying || '--')}</span>
+        </div>
+        <button class="btn-close-expanded" onclick="toggleCardExpand(${index})">✕ Close</button>
+      </div>
+      
+      <div class="expanded-full-grid">
+        <!-- Left: Chart & Visuals -->
+        <div class="expanded-full-visuals">
+          <div class="full-chart-container" id="fullChart-${index}">
+            <div class="chart-loading">Loading chart...</div>
+          </div>
+          
+          <div class="trade-levels-horizontal">
+            <div class="level-item stop">
+              <span class="level-dot"></span>
+              <span class="level-label">Stop</span>
+              <span class="level-value">$${leader.invalidation || '--'}</span>
+            </div>
+            <div class="level-arrow">→</div>
+            <div class="level-item entry">
+              <span class="level-dot"></span>
+              <span class="level-label">Entry</span>
+              <span class="level-value">$${leader.underlying || '--'}</span>
+            </div>
+            <div class="level-arrow">→</div>
+            <div class="level-item target">
+              <span class="level-dot"></span>
+              <span class="level-label">Target</span>
+              <span class="level-value">$${leader.targets || '--'}</span>
+            </div>
+          </div>
+          
+          <div class="spectrum-full">
+            <div class="spectrum-header">
+              <span>Trade Quality</span>
+              <span class="spectrum-score">${confidenceScore}/10</span>
+            </div>
+            <div class="spectrum-bar-full">
+              <div class="spectrum-fill-full" style="width: ${spectrumWidth}%; background: ${confidenceScore >= 7 ? 'var(--good)' : confidenceScore >= 5 ? 'var(--accent)' : 'var(--bad)'}"></div>
+            </div>
+            <div class="spectrum-labels-full">
+              <span>Weak</span>
+              <span>Strong</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Right: Info & Actions -->
+        <div class="expanded-full-info">
+          <div class="info-section">
+            <h4>✓ Why This Passed Filters</h4>
+            <ul>
+              ${leader.section === 'directional' ? `
+                <li>Near-ATM delta (${leader.delta}) for directional exposure</li>
+                <li>7-14 DTE for optimal gamma/theta balance</li>
+                <li>Tight bid-ask spread for clean entry/exit</li>
+              ` : `
+                <li>OTM delta (~0.14) for defined-risk premium</li>
+                <li>Spread structure limits max loss</li>
+                <li>Time decay working in your favor</li>
+              `}
+            </ul>
+          </div>
+          
+          <div class="info-section">
+            <h4>⚠ Key Risk Factors</h4>
+            <ul class="risk-list">
+              <li>Momentum confirmation required - do not blind enter</li>
+              <li>Hard stop discipline essential</li>
+              <li>${leader.section === 'directional' ? 'Directional risk - wrong way move = loss' : 'Assignment risk if ITM at expiry'}</li>
+            </ul>
+          </div>
+          
+          <div class="info-section">
+            <h4>🎯 Setup Thesis</h4>
+            <p class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</p>
+          </div>
+          
+          <div class="full-actions">
+            <button class="btn-execute-large" onclick="showOrderEntryForCard(${index})">📋 Enter Order</button>
+            ${state.queued ? 
+              '<button class="btn-action-secondary" disabled>✓ Queued</button>' : 
+              '<button class="btn-action-secondary" onclick="quickQueueFromScanner(${index})">+ Queue</button>'}
+            ${state.watched ? 
+              '<button class="btn-action-secondary" disabled>👁 Watching</button>' : 
+              '<button class="btn-action-secondary" onclick="quickWatchFromScanner(${index})">👁 Watch</button>'}
+          </div>
+          
+          <div id="cardOrderEntry-${index}" class="card-order-entry-full" style="display:none;">
+            <div class="order-form-full">
+              <div class="form-row-full">
+                <label>Contracts</label>
+                <input type="number" id="cardOrderQty-${index}" value="1" min="1" max="5" onchange="updateCardOrderValue(${index})" />
+              </div>
+              <div class="form-row-full">
+                <label>Order Type</label>
+                <select id="cardOrderType-${index}" onchange="updateCardOrderValue(${index})">
+                  <option value="market">Market</option>
+                  <option value="limit">Limit</option>
+                </select>
+              </div>
+              <div class="form-row-full" id="cardLimitPriceRow-${index}" style="display:none;">
+                <label>Limit Price</label>
+                <input type="number" id="cardLimitPrice-${index}" step="0.01" value="${leader.ask || leader.bid || ''}" />
+              </div>
+              <div class="order-value-full">
+                Est. Value: <strong id="cardOrderValue-${index}">$0</strong>
+                <span class="risk-note">(Max $200)</span>
+              </div>
+              <button class="btn-execute-full" onclick="submitCardOrder(${index})">⚡ Execute Trade</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function detailField(label, value, wide = false) {
