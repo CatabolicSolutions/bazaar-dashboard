@@ -1,10 +1,12 @@
 /**
- * ETH Scalper Tab - Crypto Native Dashboard
- * Completely separate from Tradier stock trading interface
+ * ETH Scalper Tab - GitHub Dark Theme
+ * Clean, minimal crypto trading interface
  */
 
-class ETHScalperTab {
+class EthScalperTab {
   constructor() {
+    this.container = document.getElementById('ethScalperContainer');
+    this.refreshInterval = null;
     this.data = {
       status: 'loading',
       pnl: { today: 0, total: 0 },
@@ -14,13 +16,13 @@ class ETHScalperTab {
       wallet: { eth: 0, usdc: 0, gas: 0 },
       requests: { used: 0, limit: 900 }
     };
-    this.refreshInterval = null;
   }
 
-  init() {
+  async init() {
+    if (!this.container) return;
     this.render();
-    this.startAutoRefresh();
-    this.fetchData();
+    await this.loadData();
+    this.startPolling();
   }
 
   destroy() {
@@ -29,11 +31,11 @@ class ETHScalperTab {
     }
   }
 
-  startAutoRefresh() {
-    this.refreshInterval = setInterval(() => this.fetchData(), 5000); // 5 seconds
+  startPolling() {
+    this.refreshInterval = setInterval(() => this.loadData(), 5000);
   }
 
-  async fetchData() {
+  async loadData() {
     try {
       const [statusRes, tradesRes, positionsRes, signalsRes, walletRes] = await Promise.all([
         fetch('/api/eth-scalper/status').catch(() => null),
@@ -70,12 +72,263 @@ class ETHScalperTab {
         this.data.wallet = wallet;
       }
 
-      this.render();
+      this.updateUI();
     } catch (err) {
-      console.error('ETH Scalper fetch error:', err);
-      this.data.status = 'error';
-      this.render();
+      console.error('ETH Scalper load error:', err);
     }
+  }
+
+  render() {
+    if (!this.container) return;
+
+    this.container.innerHTML = `
+      <div class="eth-scalper-tab">
+        <header class="eth-header">
+          <h2>ETH Scalper</h2>
+          <span id="eth-status-badge" class="status-badge loading">Loading...</span>
+        </header>
+
+        <div class="eth-grid">
+          <div class="eth-card pnl-card">
+            <h3>Today's P&L</h3>
+            <div id="eth-pnl-value" class="pnl-value">$0.00</div>
+            <div id="eth-pnl-subtext" class="pnl-subtext">Total: $0.00</div>
+          </div>
+
+          <div class="eth-card positions-card">
+            <h3>Open Positions</h3>
+            <div id="eth-positions-count" class="positions-count">0</div>
+            <div class="positions-detail">Max: 2 positions</div>
+          </div>
+
+          <div class="eth-card status-card">
+            <h3>API Status</h3>
+            <div class="status-item">
+              <span class="status-label">1inch Requests</span>
+              <span id="eth-requests-value" class="status-value">0/900</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Daily Trades</span>
+              <span id="eth-trades-value" class="status-value">0/20</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="eth-card trades-section">
+          <h3>Live Trades</h3>
+          <div id="eth-trades-table">
+            <div class="eth-empty">
+              <div class="eth-empty-icon">📈</div>
+              <p>No trades yet. Waiting for signals...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="eth-card signals-section">
+          <h3>Signal Log</h3>
+          <div id="eth-signals-log">
+            <div class="eth-empty">
+              <div class="eth-empty-icon">📡</div>
+              <p>No signals detected yet...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="eth-card wallet-section">
+          <h3>Wallet & Gas</h3>
+          <div class="wallet-grid">
+            <div class="wallet-item">
+              <div class="wallet-icon eth">⟠</div>
+              <div class="wallet-info">
+                <div class="wallet-label">ETH Balance</div>
+                <div id="eth-balance" class="wallet-value">0.0000 ETH</div>
+              </div>
+            </div>
+            <div class="wallet-item">
+              <div class="wallet-icon usdc">💵</div>
+              <div class="wallet-info">
+                <div class="wallet-label">USDC Balance</div>
+                <div id="usdc-balance" class="wallet-value">$0.00</div>
+              </div>
+            </div>
+            <div class="wallet-item">
+              <div class="wallet-icon gas">⛽</div>
+              <div class="wallet-info">
+                <div class="wallet-label">Gas Price</div>
+                <div id="gas-price" class="wallet-value">0.0 gwei</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="eth-controls">
+          <button class="eth-btn danger" onclick="ethScalperTab.sendCommand('STOP')">
+            🛑 STOP BOT
+          </button>
+          <button class="eth-btn primary" onclick="ethScalperTab.sendCommand('START')">
+            ▶️ START BOT
+          </button>
+          <button class="eth-btn secondary" onclick="ethScalperTab.toggleMode()">
+            📝 PAPER MODE
+          </button>
+          <button class="eth-btn secondary" onclick="window.open('/logs/eth-scalper.log', '_blank')">
+            📄 VIEW LOGS
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  updateUI() {
+    // Update status badge
+    const statusBadge = document.getElementById('eth-status-badge');
+    if (statusBadge) {
+      statusBadge.className = `status-badge ${this.data.status}`;
+      statusBadge.textContent = this.data.status.toUpperCase();
+    }
+
+    // Update P&L
+    const pnlValue = document.getElementById('eth-pnl-value');
+    const pnlSubtext = document.getElementById('eth-pnl-subtext');
+    if (pnlValue) {
+      const pnlClass = this.data.pnl.today >= 0 ? 'eth-profit' : 'eth-loss';
+      const pnlSign = this.data.pnl.today >= 0 ? '+' : '';
+      pnlValue.className = `pnl-value ${pnlClass}`;
+      pnlValue.textContent = `${pnlSign}$${this.data.pnl.today.toFixed(2)}`;
+    }
+    if (pnlSubtext) {
+      const totalSign = this.data.pnl.total >= 0 ? '+' : '';
+      pnlSubtext.textContent = `Total: ${totalSign}$${this.data.pnl.total.toFixed(2)}`;
+    }
+
+    // Update positions
+    const positionsCount = document.getElementById('eth-positions-count');
+    if (positionsCount) {
+      positionsCount.textContent = this.data.positions.length;
+    }
+
+    // Update API status
+    const requestsValue = document.getElementById('eth-requests-value');
+    if (requestsValue) {
+      requestsValue.textContent = `${this.data.requests.used}/${this.data.requests.limit}`;
+    }
+
+    // Update wallet
+    const ethBalance = document.getElementById('eth-balance');
+    const usdcBalance = document.getElementById('usdc-balance');
+    const gasPrice = document.getElementById('gas-price');
+
+    if (ethBalance) ethBalance.textContent = `${this.data.wallet.eth.toFixed(4)} ETH`;
+    if (usdcBalance) usdcBalance.textContent = `$${this.data.wallet.usdc.toFixed(2)}`;
+    if (gasPrice) gasPrice.textContent = `${this.data.wallet.gas.toFixed(1)} gwei`;
+
+    // Update trades table
+    this.updateTradesTable();
+
+    // Update signals log
+    this.updateSignalsLog();
+  }
+
+  updateTradesTable() {
+    const container = document.getElementById('eth-trades-table');
+    if (!container) return;
+
+    if (this.data.trades.length === 0) {
+      container.innerHTML = `
+        <div class="eth-empty">
+          <div class="eth-empty-icon">📈</div>
+          <p>No trades yet. Waiting for signals...</p>
+        </div>
+      `;
+      return;
+    }
+
+    const trades = this.data.trades.slice(0, 10);
+    container.innerHTML = `
+      <table class="eth-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>P&L</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${trades.map(t => this.renderTradeRow(t)).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  renderTradeRow(trade) {
+    const time = new Date(trade.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const pnlClass = (trade.pnl_usd || 0) >= 0 ? 'eth-profit' : 'eth-loss';
+    const pnlSign = (trade.pnl_usd || 0) >= 0 ? '+' : '';
+    const badgeClass = (trade.pnl_usd || 0) >= 0 ? 'win' : (trade.pnl_usd || 0) < 0 ? 'loss' : 'pending';
+    const emoji = (trade.pnl_usd || 0) >= 0 ? '✅' : (trade.pnl_usd || 0) < 0 ? '❌' : '⏳';
+
+    return `
+      <tr>
+        <td>${time}</td>
+        <td>${trade.type || 'ETH→USDC'}</td>
+        <td>$${(trade.entry_price || 0).toFixed(2)}</td>
+        <td>$${(trade.exit_price || 0).toFixed(2)}</td>
+        <td class="${pnlClass}">${pnlSign}$${(trade.pnl_usd || 0).toFixed(2)}</td>
+        <td><span class="trade-badge ${badgeClass}">${emoji}</span></td>
+      </tr>
+    `;
+  }
+
+  updateSignalsLog() {
+    const container = document.getElementById('eth-signals-log');
+    if (!container) return;
+
+    if (this.data.signals.length === 0) {
+      container.innerHTML = `
+        <div class="eth-empty">
+          <div class="eth-empty-icon">📡</div>
+          <p>No signals detected yet...</p>
+        </div>
+      `;
+      return;
+    }
+
+    const signals = this.data.signals.slice(0, 10);
+    container.innerHTML = `
+      <table class="eth-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Signal</th>
+            <th>Score</th>
+            <th>Action</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${signals.map(s => this.renderSignalRow(s)).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  renderSignalRow(signal) {
+    const time = new Date(signal.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const badgeClass = signal.executed ? 'executed' : 'skipped';
+    const badgeText = signal.executed ? 'EXECUTED' : 'SKIPPED';
+
+    return `
+      <tr>
+        <td>${time}</td>
+        <td>${signal.type || 'Momentum'}</td>
+        <td><span class="signal-score">${signal.score || 0}/10</span></td>
+        <td><span class="signal-badge ${badgeClass}">${badgeText}</span></td>
+        <td>${signal.reason || '-'}</td>
+      </tr>
+    `;
   }
 
   async sendCommand(command) {
@@ -85,259 +338,22 @@ class ETHScalperTab {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })
       });
-      
+
       if (res.ok) {
-        this.fetchData(); // Refresh immediately
+        // Refresh immediately
+        setTimeout(() => this.loadData(), 500);
       }
     } catch (err) {
       console.error('Command failed:', err);
-      alert('Command failed: ' + err.message);
     }
   }
 
-  render() {
-    const container = document.getElementById('ethScalperContainer');
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="eth-scalper-tab">
-        ${this.renderHeader()}
-        ${this.renderCards()}
-        ${this.renderTradesTable()}
-        ${this.renderSignalsLog()}
-        ${this.renderWalletPanel()}
-        ${this.renderControls()}
-      </div>
-    `;
-  }
-
-  renderHeader() {
-    const statusClass = this.data.status === 'active' ? 'active' : 
-                       this.data.status === 'paused' ? 'paused' : 'stopped';
-    
-    return `
-      <div class="eth-header">
-        <h1 class="eth-title">⚡ ETH SCALPER</h1>
-        <p class="eth-subtitle">Live Monitoring & Execution</p>
-        <div style="margin-top: 16px;">
-          <span class="eth-status ${statusClass}">
-            <span class="status-dot"></span>
-            ${this.data.status.toUpperCase()}
-          </span>
-        </div>
-      </div>
-    `;
-  }
-
-  renderCards() {
-    const pnlClass = this.data.pnl.today >= 0 ? 'positive' : 'negative';
-    const pnlSign = this.data.pnl.today >= 0 ? '+' : '';
-    
-    return `
-      <div class="eth-cards">
-        <div class="eth-card">
-          <div class="eth-card-header">
-            <span class="eth-card-label">Today's P&L</span>
-            <span class="eth-card-icon">💰</span>
-          </div>
-          <div class="eth-card-value ${pnlClass}">${pnlSign}$${this.data.pnl.today.toFixed(2)}</div>
-          <div class="eth-card-subtext">Total: ${this.data.pnl.total >= 0 ? '+' : ''}$${this.data.pnl.total.toFixed(2)}</div>
-        </div>
-
-        <div class="eth-card">
-          <div class="eth-card-header">
-            <span class="eth-card-label">Open Positions</span>
-            <span class="eth-card-icon">📊</span>
-          </div>
-          <div class="eth-card-value">${this.data.positions.length}</div>
-          <div class="eth-card-subtext">Max: 2 positions</div>
-        </div>
-
-        <div class="eth-card">
-          <div class="eth-card-header">
-            <span class="eth-card-label">1inch Requests</span>
-            <span class="eth-card-icon">🔄</span>
-          </div>
-          <div class="eth-card-value">${this.data.requests.used}</div>
-          <div class="eth-card-subtext">Limit: ${this.data.requests.limit}/day</div>
-        </div>
-      </div>
-    `;
-  }
-
-  renderTradesTable() {
-    const trades = this.data.trades.slice(0, 10); // Last 10 trades
-    
-    if (trades.length === 0) {
-      return `
-        <div class="eth-section">
-          <div class="eth-section-header">
-            <h3 class="eth-section-title">Live Trades</h3>
-          </div>
-          <div class="eth-empty">
-            <div class="eth-empty-icon">📈</div>
-            <p>No trades yet. Waiting for signals...</p>
-          </div>
-        </div>
-      `;
-    }
-
-    return `
-      <div class="eth-section">
-        <div class="eth-section-header">
-          <h3 class="eth-section-title">Live Trades</h3>
-        </div>
-        <table class="eth-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Type</th>
-              <th>Entry</th>
-              <th>Exit</th>
-              <th>P&L</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${trades.map(trade => this.renderTradeRow(trade)).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  renderTradeRow(trade) {
-    const time = new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const pnlClass = trade.pnl_usd >= 0 ? 'positive' : 'negative';
-    const pnlSign = trade.pnl_usd >= 0 ? '+' : '';
-    const statusClass = trade.pnl_usd >= 0 ? 'win' : trade.pnl_usd < 0 ? 'loss' : 'pending';
-    const statusEmoji = trade.pnl_usd >= 0 ? '✅' : trade.pnl_usd < 0 ? '❌' : '⏳';
-    
-    return `
-      <tr>
-        <td>${time}</td>
-        <td>${trade.type || 'ETH→USDC'}</td>
-        <td>$${trade.entry_price?.toFixed(2) || '--'}</td>
-        <td>$${trade.exit_price?.toFixed(2) || '--'}</td>
-        <td class="${pnlClass}">${pnlSign}$${trade.pnl_usd?.toFixed(2) || '0.00'}</td>
-        <td><span class="trade-status ${statusClass}">${statusEmoji} ${trade.status || 'Closed'}</span></td>
-      </tr>
-    `;
-  }
-
-  renderSignalsLog() {
-    const signals = this.data.signals.slice(0, 10); // Last 10 signals
-    
-    if (signals.length === 0) {
-      return `
-        <div class="eth-section">
-          <div class="eth-section-header">
-            <h3 class="eth-section-title">Signal Log</h3>
-          </div>
-          <div class="eth-empty">
-            <div class="eth-empty-icon">📡</div>
-            <p>No signals detected yet...</p>
-          </div>
-        </div>
-      `;
-    }
-
-    return `
-      <div class="eth-section">
-        <div class="eth-section-header">
-          <h3 class="eth-section-title">Signal Log (Last 10)</h3>
-        </div>
-        <table class="eth-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Signal</th>
-              <th>Score</th>
-              <th>Action</th>
-              <th>Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${signals.map(signal => this.renderSignalRow(signal)).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  renderSignalRow(signal) {
-    const time = new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const actionClass = signal.executed ? 'executed' : 'skipped';
-    const actionText = signal.executed ? 'EXECUTED' : 'SKIPPED';
-    
-    return `
-      <tr>
-        <td>${time}</td>
-        <td>${signal.type || 'Momentum'}</td>
-        <td><span class="signal-score">${signal.score}/10</span></td>
-        <td><span class="signal-badge ${actionClass}">${actionText}</span></td>
-        <td>${signal.reason || (signal.executed ? 'Pending' : '-')}</td>
-      </tr>
-    `;
-  }
-
-  renderWalletPanel() {
-    return `
-      <div class="eth-section">
-        <div class="eth-section-header">
-          <h3 class="eth-section-title">Wallet & Gas</h3>
-        </div>
-        <div class="eth-wallet">
-          <div class="wallet-item">
-            <div class="wallet-icon eth">⟠</div>
-            <div class="wallet-info">
-              <div class="wallet-label">ETH Balance</div>
-              <div class="wallet-value">${this.data.wallet.eth.toFixed(4)} ETH</div>
-            </div>
-          </div>
-          <div class="wallet-item">
-            <div class="wallet-icon usdc">💵</div>
-            <div class="wallet-info">
-              <div class="wallet-label">USDC Balance</div>
-              <div class="wallet-value">$${this.data.wallet.usdc.toFixed(2)}</div>
-            </div>
-          </div>
-          <div class="wallet-item">
-            <div class="wallet-icon gas">⛽</div>
-            <div class="wallet-info">
-              <div class="wallet-label">Gas Price</div>
-              <div class="wallet-value">${this.data.wallet.gas.toFixed(1)} gwei</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  renderControls() {
-    const isActive = this.data.status === 'active';
-    
-    return `
-      <div class="eth-controls">
-        <button class="eth-btn danger" onclick="ethScalperTab.sendCommand('STOP')">
-          🛑 STOP BOT
-        </button>
-        <button class="eth-btn primary" onclick="ethScalperTab.sendCommand('START')" ${isActive ? 'disabled' : ''}>
-          ▶️ START BOT
-        </button>
-        <button class="eth-btn secondary" onclick="ethScalperTab.sendCommand('PAPER')">
-          📝 PAPER MODE
-        </button>
-        <button class="eth-btn secondary" onclick="ethScalperTab.sendCommand('LIVE')">
-          💰 LIVE MODE
-        </button>
-        <button class="eth-btn secondary" onclick="window.open('/logs/eth-scalper.log', '_blank')">
-          📄 VIEW LOGS
-        </button>
-      </div>
-    `;
+  toggleMode() {
+    // Toggle between paper and live mode
+    const newMode = this.data.status === 'paper' ? 'LIVE' : 'PAPER';
+    this.sendCommand(newMode);
   }
 }
 
 // Global instance
-window.ethScalperTab = new ETHScalperTab();
+window.ethScalperTab = new EthScalperTab();
