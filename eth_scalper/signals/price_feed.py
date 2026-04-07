@@ -12,7 +12,7 @@ class PriceFeed:
         self.alchemy_cache_seconds = 5
     
     def get_eth_price(self) -> Optional[float]:
-        """Get current ETH price in USD from Alchemy"""
+        """Get current ETH price in USD"""
         # Simple cache to avoid hammering API
         now = time.time()
         if now - self.last_alchemy_call < self.alchemy_cache_seconds:
@@ -20,42 +20,49 @@ class PriceFeed:
             if self.eth_price_history:
                 return self.eth_price_history[-1][1]
         
+        # Try multiple price sources in order
+        price = None
+        
+        # 1. Try Binance
         try:
-            # Use Alchemy's eth_call to get price from a reliable source
-            # For now, using a simple approach - in production use Chainlink or similar
-            response = requests.post(
-                ALCHEMY_URL,
-                json={
-                    'jsonrpc': '2.0',
-                    'method': 'eth_gasPrice',
-                    'params': [],
-                    'id': 1
-                },
-                timeout=10
-            )
-            
-            # Try multiple price sources
             price = self._get_binance_eth_price()
-            if not price:
-                price = self._get_coinbase_eth_price()
-            if not price:
-                price = self._get_coingecko_eth_price()
-            if not price:
-                price = self._get_cryptocompare_eth_price()
-            
-            if price:
-                self._record_price(price)
-                self.last_alchemy_call = now
-                return price
-            
-            return None
-            
         except Exception as e:
-            print(f"Error fetching ETH price: {e}")
-            # Return last known price if available
-            if self.eth_price_history:
-                return self.eth_price_history[-1][1]
-            return None
+            print(f"Binance failed: {e}")
+        
+        # 2. Try Coinbase
+        if not price:
+            try:
+                price = self._get_coinbase_eth_price()
+            except Exception as e:
+                print(f"Coinbase failed: {e}")
+        
+        # 3. Try CoinGecko
+        if not price:
+            try:
+                price = self._get_coingecko_eth_price()
+            except Exception as e:
+                print(f"CoinGecko failed: {e}")
+        
+        # 4. Try CryptoCompare
+        if not price:
+            try:
+                price = self._get_cryptocompare_eth_price()
+            except Exception as e:
+                print(f"CryptoCompare failed: {e}")
+        
+        if price:
+            self._record_price(price)
+            self.last_alchemy_call = now
+            print(f"Got ETH price: ${price:.2f}")
+            return price
+        
+        # Return last known price if available
+        if self.eth_price_history:
+            print(f"Using cached price: ${self.eth_price_history[-1][1]:.2f}")
+            return self.eth_price_history[-1][1]
+        
+        print("ERROR: No price source available!")
+        return None
     
     def _get_binance_eth_price(self) -> Optional[float]:
         """Get ETH price from Binance (no API key needed)"""
