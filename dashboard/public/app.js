@@ -1187,6 +1187,47 @@ function getLeaderLiveData(leader) {
   return null;
 }
 
+function renderLeaderCard(leader, index, isSelected) {
+  const state = getLeaderState(leader);
+  const feedback = getSelectedLeaderFeedback(leader);
+  
+  // Parse confidence
+  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
+  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
+  const confidenceClass = confidenceScore >= 7 ? 'high' : confidenceScore >= 5 ? 'medium' : 'low';
+  
+  // Card badges
+  const badges = [];
+  if (state.queued) badges.push('<span class="card-badge queued">Queued</span>');
+  if (state.watched) badges.push('<span class="card-badge watching">Watching</span>');
+  if (leader.fallback) badges.push('<span class="card-badge">Fallback</span>');
+  
+  return `
+    <div class="leader-card ${leader.option_type?.toLowerCase()} ${isSelected ? 'selected' : ''}" data-index="${index}" onclick="selectLeaderCard(${index})">
+      <div class="card-header">
+        <div class="card-symbol">${escapeHtml(leader.symbol)}</div>
+        <div class="card-confidence ${confidenceClass}">${confidenceScore}/10</div>
+      </div>
+      <div class="card-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))}</div>
+      <div class="card-details">
+        <div class="card-detail">Δ <span>${escapeHtml(leader.delta)}</span></div>
+        <div class="card-detail">DTE <span>${escapeHtml(leader.exp?.split('-').slice(1).join('/'))}</span></div>
+      </div>
+      <div class="card-price">$${escapeHtml(leader.ask || leader.bid || '--')}</div>
+      <div class="card-badges">${badges.join('')}</div>
+    </div>
+  `;
+}
+
+function selectLeaderCard(index) {
+  const leaders = currentSnapshot?.tradier?.leaders || [];
+  if (index >= 0 && index < leaders.length) {
+    setSelectedLeader(index, leaders);
+    // Scroll to detail panel
+    document.getElementById('detailWrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
   if (!wrap) return;
@@ -1206,63 +1247,11 @@ function renderLeaders(leaders) {
 
   const { leader: selectedLeader, missingPreviousSelection } = syncSelectedLeader(leaders);
 
-  const selectionBanner = missingPreviousSelection ? '<div class="banner warn">Previous selection no longer available. Anchored to current leader.</div>' : '';
-
-  const index = selectedLeaderIndex;
-  const leader = selectedLeader;
-  const state = getLeaderState(leader);
-  const feedback = getSelectedLeaderFeedback(leader);
-  const liveData = getLeaderLiveData(leader);
-  const opportunity = liveData?.opportunity;
-  const quote = liveData?.quote;
-  const stateBadges = [
-    leader.fallback ? '<span class="badge warn">Fallback</span>' : `<span class="badge">${escapeHtml(leader.label || 'Primary')}</span>`,
-    state.queued ? statusBadge('Queued', 'queued') : '',
-    state.watched ? statusBadge('Watching', 'watch') : '',
-    feedback ? statusBadge('Recent', 'recent') : '',
-  ].filter(Boolean).join('');
-  const opportunityBadge = opportunity ? `<span class="${({ hot: 'badge bad', warm: 'badge warn', cool: 'badge info', cold: 'badge' }[opportunity.temperature] || 'badge')}">${opportunity.temperature.toUpperCase()}</span>` : '';
-  const livePriceInfo = quote?.last && typeof quote.last === 'number'
-    ? `<span class="${(quote.change || 0) >= 0 ? 'text-positive' : 'text-negative'}">$${quote.last.toFixed(2)} (${(quote.change || 0) >= 0 ? '+' : ''}${(quote.change_percent || 0).toFixed(1)}%)</span>`
-    : '';
-  const ivBadge = quote?.iv && typeof quote.iv === 'number' ? `<span class="badge info">IV ${quote.iv.toFixed(1)}%</span>` : '';
-
-  wrap.innerHTML = selectionBanner + `
-    <div class="leader-roledex">
-      <div class="leader-roledex-nav">
-        <button class="btn-action" onclick="selectRelativeLeader(-1)">← Prev</button>
-        <div class="leader-roledex-position">Leader ${index + 1} / ${leaders.length}</div>
-        <button class="btn-action" onclick="selectRelativeLeader(1)">Next →</button>
-      </div>
-      <div class="leader-roledex-strip">
-        ${leaders.map((item, idx) => `<button class="leader-chip ${idx === index ? 'active' : ''}" data-index="${idx}">${escapeHtml(item.symbol)} ${escapeHtml(item.option_type)} ${escapeHtml(String(item.strike))}</button>`).join('')}
-      </div>
-      <div class="leader-row selected ${opportunity?.temperature === 'hot' ? 'leader-hot' : ''}" data-index="${index}">
-        <div class="leader-row-top">
-          <div>
-            <div class="section">${escapeHtml(formatSection(leader.section))} ${opportunityBadge}</div>
-            <div class="headline">${escapeHtml(leaderDisplayName(leader))} ${livePriceInfo}</div>
-          </div>
-          <div class="badge-stack">${stateBadges} ${ivBadge}</div>
-        </div>
-        <div class="leader-row-grid">
-          <div><span class="label">Underlying</span><span class="value">${escapeHtml(leader.underlying)}</span></div>
-          <div><span class="label">Delta</span><span class="value">${escapeHtml(leader.delta)} ${quote?.delta && typeof quote.delta === 'number' ? `<span class="live-metric">(${quote.delta.toFixed(2)})</span>` : ''}</span></div>
-          <div><span class="label">Bid / Ask</span><span class="value">${escapeHtml(leader.bid)} / ${escapeHtml(leader.ask)} ${quote?.bid && typeof quote.bid === 'number' ? `<span class="live-metric">[$${quote.bid.toFixed(2)}/${quote?.ask && typeof quote.ask === 'number' ? '$' + quote.ask.toFixed(2) : '--'}]</span>` : ''}</span></div>
-          <div><span class="label">Confidence</span><span class="value">${escapeHtml(leader.confidence)}</span></div>
-        </div>
-        ${opportunity?.factors?.length ? `<div class="opportunity-factors">${opportunity.factors.map(f => `<span class="factor-badge">${escapeHtml(f)}</span>`).join('')}</div>` : ''}
-        <div class="leader-actions">
-          <button class="quick-execute-btn" onclick="event.stopPropagation(); quickExecuteFromScanner(${index})">⚡ Quick Execute</button>
-          <button class="queue-btn" onclick="event.stopPropagation(); quickQueueFromScanner(${index})">+ Queue</button>
-        </div>
-      </div>
+  wrap.innerHTML = `
+    <div class="leader-cards">
+      ${leaders.map((leader, idx) => renderLeaderCard(leader, idx, idx === selectedLeaderIndex)).join('')}
     </div>
   `;
-
-  wrap.querySelectorAll('.leader-chip').forEach(button => {
-    button.addEventListener('click', () => setSelectedLeader(Number(button.dataset.index), leaders));
-  });
 
   const selectionMeta = missingPreviousSelection ? { kind: 'selection-reset' } : null;
   renderSummaryStrip(selectedLeader, selectionMeta);
