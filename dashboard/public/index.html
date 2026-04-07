@@ -27,21 +27,17 @@
       </div>
       
       <nav class="command-nav">
-        <button class="nav-pill active" data-zone="market" onclick="switchZone('market')">
-          <span class="nav-icon">📊</span>
-          <span class="nav-label">Market</span>
+        <button class="nav-pill active" data-zone="trade" onclick="switchZone('trade')">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">Trade</span>
+        </button>
+        <button class="nav-pill" data-zone="research" onclick="switchZone('research')">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Research</span>
         </button>
         <button class="nav-pill" data-zone="execute" onclick="switchZone('execute')">
-          <span class="nav-icon">⚡</span>
+          <span class="nav-icon">🎯</span>
           <span class="nav-label">Execute</span>
-        </button>
-        <button class="nav-pill" data-zone="positions" onclick="switchZone('positions')">
-          <span class="nav-icon">📈</span>
-          <span class="nav-label">Positions</span>
-        </button>
-        <button class="nav-pill" data-zone="intel" onclick="switchZone('intel')">
-          <span class="nav-icon">🔮</span>
-          <span class="nav-label">Intel</span>
         </button>
         <button class="nav-pill" data-zone="journal" onclick="switchZone('journal')">
           <span class="nav-icon">📓</span>
@@ -59,8 +55,8 @@
       </div>
     </header>
 
-    <!-- Zone: Market (Scan + Leaders) -->
-    <main class="zone active" id="zone-market">
+    <!-- Zone: Trade (Leaders + Chart + Quick Actions) -->
+    <main class="zone active" id="zone-trade">
       <div class="zone-header">
         <h2 class="zone-title">Market Intelligence</h2>
         <p class="zone-subtitle">Pre-market gaps · Tradier leaders · Real-time scanner</p>
