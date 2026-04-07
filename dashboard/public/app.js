@@ -1286,6 +1286,86 @@ function feedbackButtonsHtml(targetType, payload, labels) {
   }).join('')}</div>`;
 }
 
+// Global to store narrative data
+let currentNarrative = null;
+
+async function fetchNarrative(symbol) {
+  try {
+    const res = await fetch(`/api/narrative?symbol=${encodeURIComponent(symbol)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.ok && data.narrative) {
+      currentNarrative = data.narrative;
+      return data.narrative;
+    }
+  } catch (err) {
+    console.error('Failed to fetch narrative:', err);
+  }
+  return null;
+}
+
+function renderNarrativePanel(leader) {
+  if (!currentNarrative) {
+    return '<div class="narrative-loading">Loading trade narrative...</div>';
+  }
+  
+  const n = currentNarrative;
+  const isBullish = n.direction === 'Bullish';
+  
+  return `
+    <div class="narrative-panel">
+      <div class="narrative-header">
+        <div class="narrative-title">Trade Narrative</div>
+        <div class="narrative-setup ${isBullish ? 'bullish' : 'bearish'}">${n.setup}</div>
+      </div>
+      
+      <div class="narrative-grid">
+        <div class="narrative-section">
+          <div class="section-label">Entry Trigger</div>
+          <div class="section-value">${escapeHtml(n.trigger)}</div>
+        </div>
+        
+        <div class="narrative-section">
+          <div class="section-label">Invalidation</div>
+          <div class="section-value warning">${escapeHtml(n.invalidation)}</div>
+        </div>
+      </div>
+      
+      <div class="trade-levels">
+        <div class="level entry">
+          <span class="level-label">Entry</span>
+          <span class="level-price">$${n.entry.price.toFixed(2)}</span>
+          <span class="level-underlying">@ $${n.entry.underlying.toFixed(2)}</span>
+        </div>
+        <div class="level stop">
+          <span class="level-label">Stop</span>
+          <span class="level-price">$${n.stop.price.toFixed(2)}</span>
+          <span class="level-distance">-${n.stop.distance.toFixed(2)}</span>
+        </div>
+        <div class="level target">
+          <span class="level-label">Target</span>
+          <span class="level-price">$${n.target.price.toFixed(2)}</span>
+          <span class="level-distance">+${n.target.distance.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <div class="position-sizing">
+        <div class="sizing-header">Position Sizing ($${n.position_sizing.max_risk} risk)</div>
+        <div class="sizing-details">
+          <span class="sizing-item">${n.position_sizing.suggested_contracts} contracts</span>
+          <span class="sizing-item">$${n.position_sizing.position_value.toFixed(0)} total</span>
+          <span class="sizing-item">${n.risk_reward.ratio} R:R</span>
+        </div>
+      </div>
+      
+      <div class="narrative-footer">
+        <span class="timeframe">${n.timeframe}</span>
+        <span class="confidence">Confidence: ${n.confidence}/10</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderQualificationCard(leader) {
   // Parse confidence score (e.g., "7/10" -> 7)
   const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
@@ -1634,7 +1714,7 @@ function renderForecastViz(leader) {
   `;
 }
 
-function renderDetail(leader, stateMeta = null) {
+async function renderDetail(leader, stateMeta = null) {
   const wrap = document.getElementById('detailWrap');
   const meta = document.getElementById('selectedMeta');
   if (!leader) {
@@ -1656,6 +1736,9 @@ function renderDetail(leader, stateMeta = null) {
     return;
   }
 
+  // Fetch narrative for this leader
+  await fetchNarrative(leader.symbol);
+
   const state = getLeaderState(leader);
   const feedback = getSelectedLeaderFeedback(leader);
   const stateSummary = [
@@ -1668,12 +1751,14 @@ function renderDetail(leader, stateMeta = null) {
   meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
   wrap.className = 'detail-wrap';
   
-  // Build qualification card
+  // Build qualification card and narrative panel
   const qualificationCard = renderQualificationCard(leader);
+  const narrativePanel = renderNarrativePanel(leader);
   
   wrap.innerHTML = `
     ${stateMeta?.kind === 'selection-reset' ? stateBanner('Selected detail was re-anchored because the previous leader disappeared after refresh.', 'warn') : ''}
     ${staleNote.tone !== 'good' ? stateBanner(staleNote.text, staleNote.tone) : ''}
+    ${narrativePanel}
     ${qualificationCard}
     <div id="underlyingChartWrap">${renderForecastViz(leader)}</div>
     <div class="detail-state-row">
