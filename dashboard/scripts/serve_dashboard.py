@@ -367,6 +367,16 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_narrative()
         elif self.path == '/api/account':
             return self._handle_account()
+        elif self.path == '/api/eth-scalper/status':
+            return self._handle_eth_scalper_status()
+        elif self.path == '/api/eth-scalper/trades':
+            return self._handle_eth_scalper_trades()
+        elif self.path == '/api/eth-scalper/positions':
+            return self._handle_eth_scalper_positions()
+        elif self.path == '/api/eth-scalper/signals':
+            return self._handle_eth_scalper_signals()
+        elif self.path == '/api/eth-scalper/wallet':
+            return self._handle_eth_scalper_wallet()
         return super().do_GET()
     
     def _handle_underlying_history(self):
@@ -695,6 +705,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_session_event(body)
         if self.path == '/api/order':
             return self._handle_order_submit(body)
+        if self.path == '/api/eth-scalper/command':
+            return self._handle_eth_scalper_command(body)
         self.send_response(404)
         self.end_headers()
     
@@ -972,6 +984,104 @@ class Handler(SimpleHTTPRequestHandler):
             })
         else:
             return self.json_response(500, result)
+
+    # ETH Scalper API Endpoints
+    def _handle_eth_scalper_status(self):
+        """Get ETH scalper bot status"""
+        try:
+            # Read from bot state file if it exists
+            state_file = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
+            if state_file.exists():
+                state = json.loads(state_file.read_text())
+            else:
+                state = {
+                    'status': 'unknown',
+                    'pnl': {'today': 0, 'total': 0},
+                    'requests': {'used': 0, 'limit': 900}
+                }
+            return self.json_response(200, state)
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_eth_scalper_trades(self):
+        """Get recent trades"""
+        try:
+            trades_file = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
+            trades = []
+            if trades_file.exists():
+                with open(trades_file) as f:
+                    for line in f.readlines()[-50:]:  # Last 50 trades
+                        try:
+                            entry = json.loads(line)
+                            if entry.get('type') == 'trade':
+                                trades.append(entry.get('data', {}))
+                        except:
+                            pass
+            return self.json_response(200, {'trades': trades})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_eth_scalper_positions(self):
+        """Get open positions"""
+        try:
+            positions_file = ROOT / 'eth_scalper' / 'state' / 'positions.json'
+            if positions_file.exists():
+                positions = json.loads(positions_file.read_text())
+            else:
+                positions = {'positions': []}
+            return self.json_response(200, positions)
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_eth_scalper_signals(self):
+        """Get signal history"""
+        try:
+            signals_file = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
+            signals = []
+            if signals_file.exists():
+                with open(signals_file) as f:
+                    for line in f.readlines()[-50:]:
+                        try:
+                            entry = json.loads(line)
+                            if entry.get('type') == 'signal':
+                                signals.append(entry.get('data', {}))
+                        except:
+                            pass
+            return self.json_response(200, {'signals': signals})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_eth_scalper_wallet(self):
+        """Get wallet balances"""
+        try:
+            # This would normally query Alchemy for real balances
+            # For now return placeholder
+            return self.json_response(200, {
+                'eth': 0.023,
+                'usdc': 127.50,
+                'gas': 24.5
+            })
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_eth_scalper_command(self, body):
+        """Handle bot commands (STOP, START, etc.)"""
+        try:
+            payload = json.loads(body.decode() or '{}')
+            command = payload.get('command', '').upper()
+            
+            # Write command to file for bot to pick up
+            cmd_file = ROOT / 'eth_scalper' / 'state' / 'command.txt'
+            cmd_file.parent.mkdir(parents=True, exist_ok=True)
+            cmd_file.write_text(command)
+            
+            return self.json_response(200, {
+                'ok': True,
+                'command': command,
+                'message': f'Command {command} queued'
+            })
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
 
 
 def parse_args():

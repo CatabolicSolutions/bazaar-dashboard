@@ -34,19 +34,24 @@ let currentZone = 'market';
 function switchZone(zoneName) {
   // Update state
   currentZone = zoneName;
-  
+
   // Hide all zones
   document.querySelectorAll('.zone').forEach(z => {
     z.classList.remove('active');
     z.style.display = 'none';
   });
-  
+
   // Show selected zone
   const targetZone = document.getElementById('zone-' + zoneName);
   if (targetZone) {
     targetZone.style.display = 'block';
     // Small delay for animation
     setTimeout(() => targetZone.classList.add('active'), 10);
+  }
+
+  // Initialize ETH Scalper tab if needed
+  if (zoneName === 'eth-scalper' && window.ethScalperTab) {
+    window.ethScalperTab.init();
   }
   
   // Update nav pills

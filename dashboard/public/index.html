@@ -43,6 +43,10 @@
           <span class="nav-icon">📓</span>
           <span class="nav-label">Journal</span>
         </button>
+        <button class="nav-pill" data-zone="eth-scalper" onclick="switchZone('eth-scalper')">
+          <span class="nav-icon">⟠</span>
+          <span class="nav-label">ETH Scalper</span>
+        </button>
       </nav>
       
       <div class="status-zone">
@@ -312,9 +316,16 @@
         </section>
       </div>
     </main>
+    
+    <!-- Zone: ETH Scalper -->
+    <main class="zone" id="zone-eth-scalper">
+      <div id="ethScalperContainer"></div>
+    </main>
   </div>
   
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="./eth-scalper/eth-scalper.css">
+  <script src="./eth-scalper/eth-scalper-tab.js"></script>
   <script>
     // Clock updater
     function updateClock() {
