@@ -1275,9 +1275,13 @@ function getLeaderLiveData(leader) {
   return null;
 }
 
-function renderLeaderCard(leader, index, isSelected) {
+// Track expanded card
+let expandedCardIndex = null;
+
+function renderLeaderCard(leader, index) {
   const state = getLeaderState(leader);
-  const feedback = getSelectedLeaderFeedback(leader);
+  const isExpanded = expandedCardIndex === index;
+  const isSelected = selectedLeaderIndex === index;
   
   // Parse confidence
   const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
@@ -1290,29 +1294,184 @@ function renderLeaderCard(leader, index, isSelected) {
   if (state.watched) badges.push('<span class="card-badge watching">Watching</span>');
   if (leader.fallback) badges.push('<span class="card-badge">Fallback</span>');
   
+  // Build expanded content if this card is selected
+  let expandedContent = '';
+  if (isExpanded) {
+    expandedContent = renderExpandedCardContent(leader, state);
+  }
+  
   return `
-    <div class="leader-card ${leader.option_type?.toLowerCase()} ${isSelected ? 'selected' : ''}" data-index="${index}" onclick="selectLeaderCard(${index})">
-      <div class="card-header">
-        <div class="card-symbol">${escapeHtml(leader.symbol)}</div>
-        <div class="card-confidence ${confidenceClass}">${confidenceScore}/10</div>
+    <div class="leader-card-wrapper ${isExpanded ? 'expanded' : ''}">
+      <div class="leader-card ${leader.option_type?.toLowerCase()} ${isSelected ? 'selected' : ''}" data-index="${index}" onclick="toggleCardExpand(${index})">
+        <div class="card-header">
+          <div class="card-symbol">${escapeHtml(leader.symbol)}</div>
+          <div class="card-confidence ${confidenceClass}">${confidenceScore}/10</div>
+        </div>
+        <div class="card-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))}</div>
+        <div class="card-details">
+          <div class="card-detail">Δ <span>${escapeHtml(leader.delta)}</span></div>
+          <div class="card-detail">DTE <span>${escapeHtml(leader.exp?.split('-').slice(1).join('/'))}</span></div>
+        </div>
+        <div class="card-price">$${escapeHtml(leader.ask || leader.bid || '--')}</div>
+        <div class="card-badges">${badges.join('')}</div>
+        <div class="card-expand-hint">${isExpanded ? '▲ Collapse' : '▼ Expand'}</div>
       </div>
-      <div class="card-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))}</div>
-      <div class="card-details">
-        <div class="card-detail">Δ <span>${escapeHtml(leader.delta)}</span></div>
-        <div class="card-detail">DTE <span>${escapeHtml(leader.exp?.split('-').slice(1).join('/'))}</span></div>
-      </div>
-      <div class="card-price">$${escapeHtml(leader.ask || leader.bid || '--')}</div>
-      <div class="card-badges">${badges.join('')}</div>
+      ${expandedContent}
     </div>
   `;
 }
 
-function selectLeaderCard(index) {
-  const leaders = currentSnapshot?.tradier?.leaders || [];
-  if (index >= 0 && index < leaders.length) {
-    setSelectedLeader(index, leaders);
-    // Scroll to detail panel
-    document.getElementById('detailWrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function renderExpandedCardContent(leader, state) {
+  return `
+    <div class="card-expanded-panel">
+      <div class="expanded-section">
+        <h4>✓ Why This Passed Filters</h4>
+        <ul>
+          ${leader.section === 'directional' ? `
+            <li>Near-ATM delta (${leader.delta}) for directional exposure</li>
+            <li>7-14 DTE for optimal gamma/theta balance</li>
+            <li>Tight bid-ask spread for clean entry/exit</li>
+          ` : `
+            <li>OTM delta (~0.14) for defined-risk premium</li>
+            <li>Spread structure limits max loss</li>
+            <li>Time decay working in your favor</li>
+          `}
+        </ul>
+      </div>
+      
+      <div class="expanded-section">
+        <h4>⚠ Key Risk Factors</h4>
+        <ul class="risk-list">
+          <li>Momentum confirmation required - do not blind enter</li>
+          <li>Hard stop discipline essential</li>
+          <li>${leader.section === 'directional' ? 'Directional risk - wrong way move = loss' : 'Assignment risk if ITM at expiry'}</li>
+        </ul>
+      </div>
+      
+      <div class="expanded-actions">
+        <button class="btn-execute" onclick="event.stopPropagation(); showOrderEntryForCard(${selectedLeaderIndex})">📋 Enter Order</button>
+        ${state.queued ? 
+          '<button class="btn-secondary" disabled>✓ Queued</button>' : 
+          '<button class="btn-secondary" onclick="event.stopPropagation(); quickQueueFromScanner(selectedLeaderIndex)">+ Queue</button>'}
+        ${state.watched ? 
+          '<button class="btn-secondary" disabled>👁 Watching</button>' : 
+          '<button class="btn-secondary" onclick="event.stopPropagation(); quickWatchFromScanner(selectedLeaderIndex)">👁 Watch</button>'}
+      </div>
+      
+      <div id="cardOrderEntry-${selectedLeaderIndex}" class="card-order-entry" style="display:none;">
+        <div class="order-form-compact">
+          <div class="form-row">
+            <label>Contracts</label>
+            <input type="number" id="cardOrderQty-${selectedLeaderIndex}" value="1" min="1" max="5" onchange="updateCardOrderValue(${selectedLeaderIndex})" />
+          </div>
+          <div class="form-row">
+            <label>Order Type</label>
+            <select id="cardOrderType-${selectedLeaderIndex}" onchange="updateCardOrderValue(${selectedLeaderIndex})">
+              <option value="market">Market</option>
+              <option value="limit">Limit</option>
+            </select>
+          </div>
+          <div class="form-row" id="cardLimitPriceRow-${selectedLeaderIndex}" style="display:none;">
+            <label>Limit Price</label>
+            <input type="number" id="cardLimitPrice-${selectedLeaderIndex}" step="0.01" value="${leader.ask || leader.bid || ''}" />
+          </div>
+          <div class="order-value-display">
+            Est. Value: <strong id="cardOrderValue-${selectedLeaderIndex}">$0</strong>
+            <span class="risk-limit">(Max $200)</span>
+          </div>
+          <button class="btn-execute-full" onclick="event.stopPropagation(); submitCardOrder(${selectedLeaderIndex})">⚡ Execute Trade</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleCardExpand(index) {
+  if (expandedCardIndex === index) {
+    expandedCardIndex = null; // Collapse if already expanded
+  } else {
+    expandedCardIndex = index; // Expand new card
+    setSelectedLeader(index, currentSnapshot?.tradier?.leaders || []);
+  }
+  renderLeaders(currentSnapshot?.tradier?.leaders || []);
+}
+
+function showOrderEntryForCard(index) {
+  const panel = document.getElementById(`cardOrderEntry-${index}`);
+  if (panel) {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') {
+      updateCardOrderValue(index);
+    }
+  }
+}
+
+function updateCardOrderValue(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) return;
+  
+  const qty = parseInt(document.getElementById(`cardOrderQty-${index}`)?.value || 1);
+  const orderType = document.getElementById(`cardOrderType-${index}`)?.value || 'market';
+  const limitPriceRow = document.getElementById(`cardLimitPriceRow-${index}`);
+  
+  // Show/hide limit price row
+  if (limitPriceRow) {
+    limitPriceRow.style.display = orderType === 'limit' ? 'flex' : 'none';
+  }
+  
+  let price = parseFloat(leader.ask || leader.bid || 0);
+  if (orderType === 'limit') {
+    const limitInput = document.getElementById(`cardLimitPrice-${index}`);
+    if (limitInput && limitInput.value) {
+      price = parseFloat(limitInput.value);
+    }
+  }
+  
+  const value = qty * price * 100;
+  const valueEl = document.getElementById(`cardOrderValue-${index}`);
+  if (valueEl) {
+    valueEl.textContent = `$${value.toFixed(0)}`;
+    valueEl.style.color = value > 200 ? 'var(--bad)' : 'var(--good)';
+  }
+}
+
+async function submitCardOrder(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) return;
+  
+  const qty = parseInt(document.getElementById(`cardOrderQty-${index}`)?.value || 1);
+  const orderType = document.getElementById(`cardOrderType-${index}`)?.value || 'market';
+  const limitPrice = document.getElementById(`cardLimitPrice-${index}`)?.value;
+  
+  const order = {
+    symbol: leader.symbol,
+    option_type: leader.option_type?.toLowerCase() || 'call',
+    strike: parseFloat(leader.strike),
+    expiration: leader.exp,
+    side: 'buy_to_open',
+    quantity: qty,
+    order_type: orderType,
+    limit_price: limitPrice ? parseFloat(limitPrice) : null,
+    time_in_force: 'day',
+    current_price: parseFloat(leader.ask || leader.bid || 0)
+  };
+  
+  try {
+    const res = await fetch('/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    
+    const data = await res.json();
+    if (data.ok) {
+      alert(`✅ Order submitted! ID: ${data.order_id}`);
+      document.getElementById(`cardOrderEntry-${index}`).style.display = 'none';
+    } else {
+      alert(`❌ Order failed: ${data.error || data.validation_errors?.join(', ')}`);
+    }
+  } catch (err) {
+    alert(`❌ Error: ${err.message}`);
   }
 }
 
@@ -1333,18 +1492,15 @@ function renderLeaders(leaders) {
     return;
   }
 
-  const { leader: selectedLeader, missingPreviousSelection } = syncSelectedLeader(leaders);
-
   wrap.innerHTML = `
     <div class="leader-cards">
-      ${leaders.map((leader, idx) => renderLeaderCard(leader, idx, idx === selectedLeaderIndex)).join('')}
+      ${leaders.map((leader, idx) => renderLeaderCard(leader, idx)).join('')}
     </div>
   `;
 
-  const selectionMeta = missingPreviousSelection ? { kind: 'selection-reset' } : null;
-  renderSummaryStrip(selectedLeader, selectionMeta);
-  renderDetail(selectedLeader, selectionMeta);
-  renderActions(selectedLeader, selectionMeta);
+  // Only render summary strip, not full detail panel
+  const { leader: selectedLeader } = syncSelectedLeader(leaders);
+  renderSummaryStrip(selectedLeader, null);
 }
 
 function detailField(label, value, wide = false) {

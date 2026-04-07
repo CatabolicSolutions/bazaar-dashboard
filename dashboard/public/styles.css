@@ -2234,3 +2234,139 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
 }
+
+/* Expanded Card Styles */
+.leader-card-wrapper {
+  transition: all 0.3s ease;
+}
+
+.leader-card-wrapper.expanded {
+  grid-column: 1 / -1;
+}
+
+.card-expand-hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.card-expanded-panel {
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  padding: 20px;
+  margin-top: -8px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expanded-section {
+  margin-bottom: 16px;
+}
+
+.expanded-section h4 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+}
+
+.expanded-section ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.expanded-section li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.expanded-section .risk-list li {
+  color: var(--bad);
+}
+
+.expanded-actions {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.card-order-entry {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.order-form-compact .form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.order-form-compact label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.order-form-compact input,
+.order-form-compact select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  width: 100px;
+}
+
+.order-value-display {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.order-value-display strong {
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.risk-limit {
+  color: var(--text-tertiary);
+  margin-left: 8px;
+}
+
+.btn-execute-full {
+  width: 100%;
+  background: linear-gradient(135deg, var(--good) 0%, #00b894 100%);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
