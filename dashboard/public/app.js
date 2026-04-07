@@ -66,6 +66,22 @@ function switchZone(zoneName) {
   }
 }
 
+// Render operator rail (command state indicator)
+function renderOperatorRail() {
+  const rail = document.getElementById('operatorRail');
+  if (!rail) return;
+  
+  const state = document.getElementById('commandState')?.textContent || 'STANDBY';
+  const stateClass = state === 'ACT NOW' ? 'act' : state === 'WATCH CLOSE' ? 'watch' : 'standby';
+  
+  rail.innerHTML = `
+    <div class="operator-rail-content ${stateClass}">
+      <span class="operator-rail-state">${state}</span>
+      <span class="operator-rail-indicator"></span>
+    </div>
+  `;
+}
+
 // Initialize zones on load
 document.addEventListener('DOMContentLoaded', () => {
   // Set initial zone
@@ -656,6 +672,9 @@ function renderCommandLayer(snapshot) {
       </div>
     </div>
   `;
+  
+  // Update operator rail
+  renderOperatorRail();
 }
 
 function renderOverview(snapshot) {
