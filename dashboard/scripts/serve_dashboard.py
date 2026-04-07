@@ -363,6 +363,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_underlying_history()
         elif self.path == '/api/refresh-status':
             return self._handle_refresh_status()
+        elif self.path.startswith('/api/narrative'):
+            return self._handle_narrative()
         return super().do_GET()
     
     def _handle_underlying_history(self):
@@ -838,6 +840,47 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json_response(200, {'ok': True, 'path': path})
             else:
                 return self.json_response(500, {'ok': False, 'error': 'Export failed'})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_narrative(self):
+        """Generate trade narrative for selected symbol"""
+        from urllib.parse import parse_qs, urlparse
+        import json as json_mod
+        
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        symbol = (params.get('symbol', [''])[0] or '').strip().upper()
+        
+        if not symbol:
+            return self.json_response(400, {'ok': False, 'error': 'symbol required'})
+        
+        # Get leader data from current snapshot
+        leader = None
+        if currentSnapshot and currentSnapshot.get('tradier', {}).get('leaders'):
+            for l in currentSnapshot['tradier']['leaders']:
+                if l.get('symbol') == symbol:
+                    leader = l
+                    break
+        
+        if not leader:
+            # Return default narrative structure
+            return self.json_response(200, {
+                'ok': True,
+                'symbol': symbol,
+                'narrative': None,
+                'error': 'Leader not found in current snapshot'
+            })
+        
+        # Import and call narrative engine
+        try:
+            from narrative_engine import generate_narrative
+            narrative = generate_narrative(symbol, leader)
+            return self.json_response(200, {
+                'ok': True,
+                'symbol': symbol,
+                'narrative': narrative
+            })
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
