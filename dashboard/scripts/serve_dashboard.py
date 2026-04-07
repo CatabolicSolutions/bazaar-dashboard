@@ -365,6 +365,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_refresh_status()
         elif self.path.startswith('/api/narrative'):
             return self._handle_narrative()
+        elif self.path == '/api/account':
+            return self._handle_account()
         return super().do_GET()
     
     def _handle_underlying_history(self):
@@ -691,6 +693,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_operator_feedback(body)
         if self.path == '/api/session-event':
             return self._handle_session_event(body)
+        if self.path == '/api/order':
+            return self._handle_order_submit(body)
         self.send_response(404)
         self.end_headers()
     
@@ -883,6 +887,91 @@ class Handler(SimpleHTTPRequestHandler):
             })
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_account(self):
+        """Get account info (buying power)"""
+        import requests
+        
+        api_key = os.getenv('TRADIER_API_KEY')
+        account_id = os.getenv('TRADIER_ACCOUNT_ID')
+        
+        if not api_key or not account_id:
+            return self.json_response(500, {'ok': False, 'error': 'API credentials not configured'})
+        
+        try:
+            response = requests.get(
+                f'https://api.tradier.com/v1/accounts/{account_id}/balances',
+                headers={'Authorization': f'Bearer {api_key}', 'Accept': 'application/json'}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                balances = data.get('balances', {})
+                return self.json_response(200, {
+                    'ok': True,
+                    'buying_power': balances.get('option_buying_power', 0),
+                    'account_value': balances.get('total_equity', 0),
+                    'cash': balances.get('cash_available', 0)
+                })
+            else:
+                return self.json_response(500, {'ok': False, 'error': f'API error: {response.status_code}'})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_order_submit(self, body):
+        """Submit order to Tradier"""
+        import json as json_mod
+        from order_entry import OrderRequest, OrderValidator, OrderManager
+        
+        try:
+            payload = json_mod.loads(body.decode() or '{}')
+        except Exception:
+            return self.json_response(400, {'ok': False, 'error': 'Invalid JSON'})
+        
+        # Build order request
+        try:
+            order = OrderRequest(
+                symbol=payload.get('symbol', ''),
+                option_type=payload.get('option_type', 'call'),
+                strike=float(payload.get('strike', 0)),
+                expiration=payload.get('expiration', ''),
+                side=payload.get('side', 'buy_to_open'),
+                quantity=int(payload.get('quantity', 0)),
+                order_type=payload.get('order_type', 'market'),
+                limit_price=float(payload.get('limit_price')) if payload.get('limit_price') else None,
+                stop_price=float(payload.get('stop_price')) if payload.get('stop_price') else None,
+                time_in_force=payload.get('time_in_force', 'day')
+            )
+        except Exception as e:
+            return self.json_response(400, {'ok': False, 'error': f'Invalid order data: {str(e)}'})
+        
+        # Get current price for validation
+        current_price = float(payload.get('current_price', 0))
+        
+        # Validate
+        validator = OrderValidator()
+        validation = validator.validate(order, current_price)
+        
+        if not validation['valid']:
+            return self.json_response(400, {
+                'ok': False,
+                'error': 'Validation failed',
+                'validation_errors': validation['errors']
+            })
+        
+        # Submit order
+        manager = OrderManager()
+        result = manager.submit_order(order)
+        
+        if result['ok']:
+            return self.json_response(200, {
+                'ok': True,
+                'order_id': result.get('order_id'),
+                'status': result.get('status'),
+                'position_value': validation['position_value']
+            })
+        else:
+            return self.json_response(500, result)
 
 
 def parse_args():
