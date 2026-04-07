@@ -3,49 +3,49 @@
     {
       "setupClass": "premium_credit",
       "preference": "favored",
-      "score": 108,
-      "sample": 515,
+      "score": 110,
+      "sample": 525,
       "evidenceNote": "Observed pattern currently leans constructive",
       "counts": {
-        "unfavorable": 196,
-        "favorable": 304,
+        "unfavorable": 200,
+        "favorable": 310,
         "unresolved": 15
       },
       "confidenceBands": {
         "high": {
-          "unfavorable": 170,
-          "favorable": 296,
-          "unresolved": 13
+          "unfavorable": 173,
+          "favorable": 302,
+          "unresolved": 12
         },
         "medium": {
-          "unfavorable": 26,
+          "unfavorable": 27,
           "favorable": 8,
-          "unresolved": 2
+          "unresolved": 3
         }
       }
     },
     {
       "setupClass": "directional_momentum",
       "preference": "de-emphasized",
-      "score": -689,
-      "sample": 1339,
+      "score": -701,
+      "sample": 1365,
       "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "favorable": 196,
-        "unresolved": 255,
-        "worsened": 581,
-        "unfavorable": 304,
+        "favorable": 201,
+        "unresolved": 259,
+        "worsened": 593,
+        "unfavorable": 309,
         "mixed": 3
       },
       "confidenceBands": {
         "medium": {
-          "favorable": 196,
-          "unfavorable": 304,
+          "favorable": 201,
+          "unfavorable": 309,
           "unresolved": 15
         },
         "high": {
-          "unresolved": 240,
-          "worsened": 581,
+          "unresolved": 244,
+          "worsened": 593,
           "mixed": 3
         }
       }
@@ -55,24 +55,24 @@
     {
       "setupClass": "premium_credit",
       "preference": "favored",
-      "score": 108,
-      "sample": 515,
+      "score": 110,
+      "sample": 525,
       "evidenceNote": "Observed pattern currently leans constructive",
       "counts": {
-        "unfavorable": 196,
-        "favorable": 304,
+        "unfavorable": 200,
+        "favorable": 310,
         "unresolved": 15
       },
       "confidenceBands": {
         "high": {
-          "unfavorable": 170,
-          "favorable": 296,
-          "unresolved": 13
+          "unfavorable": 173,
+          "favorable": 302,
+          "unresolved": 12
         },
         "medium": {
-          "unfavorable": 26,
+          "unfavorable": 27,
           "favorable": 8,
-          "unresolved": 2
+          "unresolved": 3
         }
       }
     }
@@ -82,25 +82,25 @@
     {
       "setupClass": "directional_momentum",
       "preference": "de-emphasized",
-      "score": -689,
-      "sample": 1339,
+      "score": -701,
+      "sample": 1365,
       "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "favorable": 196,
-        "unresolved": 255,
-        "worsened": 581,
-        "unfavorable": 304,
+        "favorable": 201,
+        "unresolved": 259,
+        "worsened": 593,
+        "unfavorable": 309,
         "mixed": 3
       },
       "confidenceBands": {
         "medium": {
-          "favorable": 196,
-          "unfavorable": 304,
+          "favorable": 201,
+          "unfavorable": 309,
           "unresolved": 15
         },
         "high": {
-          "unresolved": 240,
-          "worsened": 581,
+          "unresolved": 244,
+          "worsened": 593,
           "mixed": 3
         }
       }
@@ -109,29 +109,37 @@
   "qualificationReasonSignals": [
     {
       "reason": "OTM delta (~0.14) for defined-risk premium",
-      "score": 108,
+      "score": 110,
       "counts": {
-        "unfavorable": 196,
-        "favorable": 304,
+        "unfavorable": 200,
+        "favorable": 310,
         "unresolved": 15
       }
     },
     {
       "reason": "Spread structure limits max loss",
-      "score": 108,
+      "score": 110,
       "counts": {
-        "unfavorable": 196,
-        "favorable": 304,
+        "unfavorable": 200,
+        "favorable": 310,
         "unresolved": 15
       }
     },
     {
       "reason": "Time decay working in your favor",
-      "score": 108,
+      "score": 110,
       "counts": {
-        "unfavorable": 196,
-        "favorable": 304,
+        "unfavorable": 200,
+        "favorable": 310,
         "unresolved": 15
+      }
+    },
+    {
+      "reason": "Tight bid-ask spread (3.8%)",
+      "score": 13,
+      "counts": {
+        "unfavorable": 3,
+        "favorable": 16
       }
     },
     {
@@ -139,7 +147,8 @@
       "score": 11,
       "counts": {
         "unfavorable": 5,
-        "favorable": 16
+        "favorable": 16,
+        "unresolved": 1
       }
     },
     {
@@ -149,24 +158,15 @@
         "favorable": 13,
         "unfavorable": 2
       }
-    },
-    {
-      "reason": "Tight bid-ask spread (2.0%)",
-      "score": 10,
-      "counts": {
-        "favorable": 12,
-        "unfavorable": 2,
-        "unresolved": 1
-      }
     }
   ],
   "rejectionReasonSignals": [
     {
       "reason": "reward/risk / distance outside scalping tolerance",
-      "score": -581,
+      "score": -593,
       "counts": {
-        "unresolved": 240,
-        "worsened": 581,
+        "unresolved": 244,
+        "worsened": 593,
         "mixed": 3
       }
     }

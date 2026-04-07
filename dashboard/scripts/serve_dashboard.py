@@ -377,6 +377,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_eth_scalper_signals()
         elif self.path == '/api/eth-scalper/wallet':
             return self._handle_eth_scalper_wallet()
+        elif self.path.startswith('/eth-scalper/logs'):
+            return self._serve_eth_scalper_logs()
         return super().do_GET()
     
     def _handle_underlying_history(self):
