@@ -23,8 +23,10 @@ if env_file.exists():
     with open(env_file) as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#') and line.startswith('export '):
-                line = line[7:]  # Remove 'export '
+            if line and not line.startswith('#'):
+                # Handle both formats: export KEY=value and KEY=value
+                if line.startswith('export '):
+                    line = line[7:]  # Remove 'export ' prefix if present
                 if '=' in line:
                     key, value = line.split('=', 1)
                     key = key.strip()
