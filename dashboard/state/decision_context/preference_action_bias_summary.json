@@ -2,161 +2,171 @@
   "preferences": [
     {
       "setupClass": "premium_credit",
-      "preference": "de-emphasized",
-      "score": -37,
-      "sample": 355,
-      "evidenceNote": "Observed pattern currently leans weak",
+      "preference": "favored",
+      "score": 108,
+      "sample": 510,
+      "evidenceNote": "Observed pattern currently leans constructive",
       "counts": {
-        "favorable": 149,
-        "unfavorable": 186,
-        "unresolved": 20
+        "unfavorable": 196,
+        "favorable": 304,
+        "unresolved": 10
       },
       "confidenceBands": {
         "high": {
-          "favorable": 149,
-          "unfavorable": 175,
-          "unresolved": 20
+          "unfavorable": 170,
+          "favorable": 296,
+          "unresolved": 9
         },
         "medium": {
-          "unfavorable": 11
+          "unfavorable": 26,
+          "favorable": 8,
+          "unresolved": 1
         }
       }
     },
     {
       "setupClass": "directional_momentum",
       "preference": "de-emphasized",
-      "score": -333,
-      "sample": 923,
+      "score": -689,
+      "sample": 1326,
       "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "unfavorable": 150,
-        "favorable": 185,
-        "unresolved": 220,
-        "worsened": 368
+        "favorable": 196,
+        "unresolved": 242,
+        "worsened": 581,
+        "unfavorable": 304,
+        "mixed": 3
       },
       "confidenceBands": {
         "medium": {
-          "unfavorable": 150,
-          "favorable": 185,
-          "unresolved": 20
+          "favorable": 196,
+          "unfavorable": 304,
+          "unresolved": 10
         },
         "high": {
-          "unresolved": 200,
-          "worsened": 368
+          "unresolved": 232,
+          "worsened": 581,
+          "mixed": 3
         }
       }
     }
   ],
-  "favored": [],
+  "favored": [
+    {
+      "setupClass": "premium_credit",
+      "preference": "favored",
+      "score": 108,
+      "sample": 510,
+      "evidenceNote": "Observed pattern currently leans constructive",
+      "counts": {
+        "unfavorable": 196,
+        "favorable": 304,
+        "unresolved": 10
+      },
+      "confidenceBands": {
+        "high": {
+          "unfavorable": 170,
+          "favorable": 296,
+          "unresolved": 9
+        },
+        "medium": {
+          "unfavorable": 26,
+          "favorable": 8,
+          "unresolved": 1
+        }
+      }
+    }
+  ],
   "cautious": [],
   "deEmphasized": [
     {
-      "setupClass": "premium_credit",
-      "preference": "de-emphasized",
-      "score": -37,
-      "sample": 355,
-      "evidenceNote": "Observed pattern currently leans weak",
-      "counts": {
-        "favorable": 149,
-        "unfavorable": 186,
-        "unresolved": 20
-      },
-      "confidenceBands": {
-        "high": {
-          "favorable": 149,
-          "unfavorable": 175,
-          "unresolved": 20
-        },
-        "medium": {
-          "unfavorable": 11
-        }
-      }
-    },
-    {
       "setupClass": "directional_momentum",
       "preference": "de-emphasized",
-      "score": -333,
-      "sample": 923,
+      "score": -689,
+      "sample": 1326,
       "evidenceNote": "Observed pattern currently leans weak",
       "counts": {
-        "unfavorable": 150,
-        "favorable": 185,
-        "unresolved": 220,
-        "worsened": 368
+        "favorable": 196,
+        "unresolved": 242,
+        "worsened": 581,
+        "unfavorable": 304,
+        "mixed": 3
       },
       "confidenceBands": {
         "medium": {
-          "unfavorable": 150,
-          "favorable": 185,
-          "unresolved": 20
+          "favorable": 196,
+          "unfavorable": 304,
+          "unresolved": 10
         },
         "high": {
-          "unresolved": 200,
-          "worsened": 368
+          "unresolved": 232,
+          "worsened": 581,
+          "mixed": 3
         }
       }
     }
   ],
   "qualificationReasonSignals": [
     {
-      "reason": "Near-ATM delta (0.35-0.80) for directional exposure",
-      "score": 35,
+      "reason": "OTM delta (~0.14) for defined-risk premium",
+      "score": 108,
       "counts": {
-        "unfavorable": 150,
-        "favorable": 185,
-        "unresolved": 20
+        "unfavorable": 196,
+        "favorable": 304,
+        "unresolved": 10
       }
     },
     {
-      "reason": "7-14 DTE for optimal gamma/theta balance",
-      "score": 35,
+      "reason": "Spread structure limits max loss",
+      "score": 108,
       "counts": {
-        "unfavorable": 150,
-        "favorable": 185,
-        "unresolved": 20
+        "unfavorable": 196,
+        "favorable": 304,
+        "unresolved": 10
       }
     },
     {
-      "reason": "Tight bid-ask spread for clean entry/exit",
-      "score": 35,
+      "reason": "Time decay working in your favor",
+      "score": 108,
       "counts": {
-        "unfavorable": 150,
-        "favorable": 185,
-        "unresolved": 20
+        "unfavorable": 196,
+        "favorable": 304,
+        "unresolved": 10
       }
     },
     {
-      "reason": "Tight bid-ask spread (1.2%)",
+      "reason": "Tight bid-ask spread (2.4%)",
       "score": 11,
       "counts": {
+        "unfavorable": 5,
+        "favorable": 16
+      }
+    },
+    {
+      "reason": "Tight bid-ask spread (2.7%)",
+      "score": 11,
+      "counts": {
+        "favorable": 13,
+        "unfavorable": 2
+      }
+    },
+    {
+      "reason": "Tight bid-ask spread (2.0%)",
+      "score": 10,
+      "counts": {
         "favorable": 12,
-        "unfavorable": 1
-      }
-    },
-    {
-      "reason": "Tight bid-ask spread (2.3%)",
-      "score": 10,
-      "counts": {
-        "favorable": 14,
-        "unfavorable": 4
-      }
-    },
-    {
-      "reason": "Tight bid-ask spread (3.4%)",
-      "score": 10,
-      "counts": {
-        "favorable": 11,
-        "unfavorable": 1
+        "unfavorable": 2
       }
     }
   ],
   "rejectionReasonSignals": [
     {
       "reason": "reward/risk / distance outside scalping tolerance",
-      "score": -368,
+      "score": -581,
       "counts": {
-        "unresolved": 200,
-        "worsened": 368
+        "unresolved": 232,
+        "worsened": 581,
+        "mixed": 3
       }
     }
   ],

@@ -1,29 +1,29 @@
 **BAZAAR OF FORTUNES — DAILY MACRO MARKET ANALYSIS**
-**Generated:** 2026-04-06 06:30 MDT
+**Generated:** 2026-04-07 06:31 MDT
 
 **1. Overnight Drivers**
+- Sector & Industry Performance - Bloomberg.com
+- Check out S&P 500 INDEX's stock price (.SPX) in real time - CNBC
 - Asia-Pacific markets close mixed as oil gains and Iran war keeps investors on edge - CNBC
-- European stocks jump 2% as sliding oil prices buoy sentiment - CNBC
-- CNBC Daily Open: Oil markets: Nice try on the reserve release - CNBC
 
 **2. US Economic Calendar (Today / Tomorrow)**
-- Mon 02:00 PM ET — ISM Services PMI (High)
+- Wed 06:00 PM ET — FOMC Meeting Minutes (High)
 - Tue 12:15 PM ET — ADP Weekly Employment Change (Low)
 - Tue 02:10 PM ET — RCM/TIPP Economic Optimism (Low)
 - Tue 04:35 PM ET — FOMC Member Goolsbee Speaks (Low)
 
 **3. VIX Context**
-- VIX: 25.08 vs yesterday 23.87 (+5.07%)
-- 5-session average: 27.06 | recent range: 23.87–31.05
+- VIX: 25.96 vs yesterday 24.17 (+7.41%)
+- 5-session average: 25.69 | recent range: 23.87–30.61
 - Read: trending up / fear expanding
 
 **4. Futures / Pre-Market Proxy**
-- SPX / S&P 500 proxy: up +3.36% vs previous close (regular)
-- NDX / Nasdaq 100 proxy: up +3.95% vs previous close (regular)
+- SPX / S&P 500 proxy: up +4.23% vs previous close (regular)
+- NDX / Nasdaq 100 proxy: up +5.40% vs previous close (regular)
 
 **5. Key Levels**
-- SPY: prev H/L/C 658.52/653.00/655.24 | pivot 655.59 | S1 652.65 | R1 658.17
-- QQQ: prev H/L/C 587.74/580.42/584.31 | pivot 584.16 | S1 580.57 | R1 587.89
+- SPY: prev H/L/C 658.20/645.11/655.83 | pivot 653.05 | S1 647.89 | R1 660.98
+- QQQ: prev H/L/C 586.05/571.92/584.98 | pivot 580.98 | S1 575.92 | R1 590.05
 
 **Desk Read / Synopsis**
 - event risk elevated; do not overtrust early directional moves before scheduled data/speakers

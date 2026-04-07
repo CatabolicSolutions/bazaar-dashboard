@@ -34,13 +34,15 @@ class PriceFeed:
                 timeout=10
             )
             
-            # Also fetch from Binance as reference
-            binance_price = self._get_binance_eth_price()
+            # Try Binance first, then Coinbase as backup
+            price = self._get_binance_eth_price()
+            if not price:
+                price = self._get_coinbase_eth_price()
             
-            if binance_price:
-                self._record_price(binance_price)
+            if price:
+                self._record_price(price)
                 self.last_alchemy_call = now
-                return binance_price
+                return price
             
             return None
             
@@ -55,13 +57,30 @@ class PriceFeed:
         """Get ETH price from Binance (no API key needed)"""
         try:
             response = requests.get(
-                'https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDC',
+                'https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT',
                 timeout=5
             )
             data = response.json()
-            return float(data['price'])
+            if 'price' in data:
+                return float(data['price'])
+            else:
+                print(f"Binance response missing price: {data}")
+                return None
         except Exception as e:
             print(f"Error fetching Binance price: {e}")
+            return None
+    
+    def _get_coinbase_eth_price(self) -> Optional[float]:
+        """Get ETH price from Coinbase (backup)"""
+        try:
+            response = requests.get(
+                'https://api.coinbase.com/v2/exchange-rates?currency=ETH',
+                timeout=5
+            )
+            data = response.json()
+            return float(data['data']['rates']['USD'])
+        except Exception as e:
+            print(f"Error fetching Coinbase price: {e}")
             return None
     
     def _record_price(self, price: float):
