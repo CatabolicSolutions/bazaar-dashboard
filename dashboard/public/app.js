@@ -870,11 +870,27 @@ async function fetchRefreshStatus() {
 
 async function waitForRefreshTerminalState(timeoutMs = 210000) {
   const started = Date.now();
+  
+  // Update UI to show polling state
+  const refreshResultEl = document.getElementById('refreshResult');
+  const refreshStageEl = document.getElementById('refreshStage');
+  const refreshMessageEl = document.getElementById('refreshMessage');
+  
   while ((Date.now() - started) < timeoutMs) {
     const status = await fetchRefreshStatus();
+    
+    // Update UI during polling
+    if (status && refreshResultEl && refreshStageEl && refreshMessageEl) {
+      refreshResultEl.textContent = status.ok ? 'In Progress' : 'Running';
+      refreshResultEl.className = 'status-value warn';
+      refreshStageEl.textContent = status.stage || 'polling';
+      refreshMessageEl.textContent = status.message || 'Refresh in progress...';
+    }
+    
     if (status && isTerminalRefreshStage(status.stage)) return status;
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
+  
   refreshStatusData = {
     ok: false,
     stage: 'timeout',
@@ -1016,6 +1032,18 @@ async function forceRefresh() {
     btn.disabled = true;
   }
 
+  // Immediately update UI to show starting state
+  const refreshResultEl = document.getElementById('refreshResult');
+  const refreshStageEl = document.getElementById('refreshStage');
+  const refreshMessageEl = document.getElementById('refreshMessage');
+  
+  if (refreshResultEl && refreshStageEl && refreshMessageEl) {
+    refreshResultEl.textContent = 'Starting';
+    refreshResultEl.className = 'status-value warn';
+    refreshStageEl.textContent = 'starting';
+    refreshMessageEl.textContent = 'Manual refresh starting…';
+  }
+
   refreshStatusData = {
     ok: false,
     stage: 'starting',
@@ -1030,7 +1058,7 @@ async function forceRefresh() {
       throw new Error(`Refresh request failed: ${res.status}`);
     }
     
-    // Wait for terminal state
+    // Wait for terminal state (this will update UI during polling)
     const terminal = await waitForRefreshTerminalState();
     await refresh();
     if (btn) btn.textContent = terminal.ok ? '✓ Refreshed' : '✗ Failed';
@@ -1041,6 +1069,15 @@ async function forceRefresh() {
       message: err.message,
       updatedAt: new Date().toISOString(),
     };
+    
+    // Update UI on error
+    if (refreshResultEl && refreshStageEl && refreshMessageEl) {
+      refreshResultEl.textContent = 'Failed';
+      refreshResultEl.className = 'status-value error';
+      refreshStageEl.textContent = 'failed';
+      refreshMessageEl.textContent = err.message;
+    }
+    
     if (btn) btn.textContent = '✗ Failed';
   } finally {
     if (btn) {
