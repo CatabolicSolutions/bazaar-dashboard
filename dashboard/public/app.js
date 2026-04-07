@@ -123,6 +123,94 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+// Order Entry Functions
+function showOrderEntry() {
+  const panel = document.getElementById('orderEntryPanel');
+  if (panel) {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    updateOrderValue();
+  }
+}
+
+function updateOrderValue() {
+  const leader = getSelectedLeader();
+  if (!leader) return;
+  
+  const qty = parseInt(document.getElementById('orderQty')?.value || 1);
+  const price = parseFloat(leader.ask || leader.bid || 0);
+  const value = qty * price * 100;
+  
+  const valueEl = document.getElementById('orderValue');
+  if (valueEl) {
+    valueEl.textContent = `$${value.toFixed(0)}`;
+    valueEl.style.color = value > 200 ? 'var(--bad)' : 'var(--good)';
+  }
+}
+
+async function submitOrder() {
+  const leader = getSelectedLeader();
+  if (!leader) {
+    alert('No leader selected');
+    return;
+  }
+  
+  const qty = parseInt(document.getElementById('orderQty')?.value || 1);
+  const orderType = document.getElementById('orderType')?.value || 'market';
+  const limitPrice = document.getElementById('limitPrice')?.value;
+  const tif = document.getElementById('orderTIF')?.value || 'day';
+  
+  const order = {
+    symbol: leader.symbol,
+    option_type: leader.option_type?.toLowerCase() || 'call',
+    strike: parseFloat(leader.strike),
+    expiration: leader.exp,
+    side: 'buy_to_open',
+    quantity: qty,
+    order_type: orderType,
+    limit_price: limitPrice ? parseFloat(limitPrice) : null,
+    time_in_force: tif,
+    current_price: parseFloat(leader.ask || leader.bid || 0)
+  };
+  
+  try {
+    const res = await fetch('/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    
+    const data = await res.json();
+    if (data.ok) {
+      alert(`✅ Order submitted! ID: ${data.order_id}`);
+      document.getElementById('orderEntryPanel').style.display = 'none';
+    } else {
+      alert(`❌ Order failed: ${data.error || data.validation_errors?.join(', ')}`);
+    }
+  } catch (err) {
+    alert(`❌ Error: ${err.message}`);
+  }
+}
+
+// Watch list function
+async function quickWatchFromScanner(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) return;
+  
+  try {
+    const res = await fetch('/api/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'watch_selected_leader', leader })
+    });
+    
+    if (res.ok) {
+      await refresh();
+    }
+  } catch (err) {
+    console.error('Watch failed:', err);
+  }
+}
+
 function manualRefreshControlHtml(label = '↻ Run Now') {
   return `<form method="POST" action="/api/manual-refresh" target="manualRefreshSink" class="manual-refresh-form" data-manual-refresh-form="true">
     <button class="btn-action" type="submit" data-refresh-action="run-now">${escapeHtml(label)}</button>
@@ -1764,30 +1852,47 @@ async function renderDetail(leader, stateMeta = null) {
         <div class="muted small">${escapeHtml(feedback.action)} · ${escapeHtml(feedback.updatedAt || 'unknown time')}</div>
       </div>
     ` : ''}
-    <div class="detail-grid">
-      ${detailField('Symbol', leader.symbol)}
-      ${detailField('Option Type', leader.option_type)}
-      ${detailField('Strike', leader.strike)}
-      ${detailField('Expiry', leader.exp)}
-      ${detailField('DTE Label', leader.label)}
-      ${detailField('Underlying', leader.underlying)}
-      ${detailField('Delta', leader.delta)}
-      ${detailField('Bid / Ask', `${leader.bid || '—'} / ${leader.ask || '—'}`)}
-      ${detailField('Section', formatSection(leader.section))}
-      ${detailField('Fallback Expiry', leader.fallback ? 'Yes' : 'No')}
-      ${detailField('Queue Status', state.queued ? 'Queued in local execution queue' : 'Not queued locally')}
-      ${detailField('Watch Status', state.watched ? 'Tracked in local watch state' : 'Not watched locally')}
-      ${state.queueItem ? detailField('Queued Trigger', state.queueItem.trigger || '—', true) : ''}
-      ${state.watchItem ? detailField('Watch Invalidation', state.watchItem.invalidation || '—', true) : ''}
-      ${detailField('Selected Key', leaderKey(leader), true)}
-      ${detailField('Thesis', leader.thesis, true)}
-      ${detailField('Entry', leader.entry, true)}
-      ${detailField('Invalidation', leader.invalidation, true)}
-      ${detailField('Targets', leader.targets, true)}
-      ${detailField('Risk', leader.risk, true)}
-      ${detailField('Confidence', leader.confidence, true)}
-      ${leader.note ? detailField('Note', leader.note, true) : ''}
-      ${detailField('Source Headline', leader.headline, true)}
+    <div class="detail-actions">
+      <button class="btn-primary" onclick="showOrderEntry()">📋 Enter Order</button>
+      ${state.queued ? 
+        '<button class="btn-secondary" disabled>✓ Queued</button>' : 
+        '<button class="btn-secondary" onclick="quickQueueFromScanner(selectedLeaderIndex)">+ Queue</button>'}
+      ${state.watched ? 
+        '<button class="btn-secondary" disabled>👁 Watching</button>' : 
+        '<button class="btn-secondary" onclick="quickWatchFromScanner(selectedLeaderIndex)">👁 Watch</button>'}
+    </div>
+    
+    <div id="orderEntryPanel" class="order-entry-panel" style="display:none;">
+      <div class="order-form">
+        <h4>Order Entry</h4>
+        <div class="form-row">
+          <label>Contracts</label>
+          <input type="number" id="orderQty" value="1" min="1" max="5" />
+        </div>
+        <div class="form-row">
+          <label>Order Type</label>
+          <select id="orderType">
+            <option value="market">Market</option>
+            <option value="limit">Limit</option>
+          </select>
+        </div>
+        <div class="form-row" id="limitPriceRow" style="display:none;">
+          <label>Limit Price</label>
+          <input type="number" id="limitPrice" step="0.01" />
+        </div>
+        <div class="form-row">
+          <label>Time in Force</label>
+          <select id="orderTIF">
+            <option value="day">Day</option>
+            <option value="gtc">GTC</option>
+          </select>
+        </div>
+        <div class="order-summary">
+          <span>Est. Value: <strong id="orderValue">$0</strong></span>
+          <span>Max Risk: <strong>$150</strong></span>
+        </div>
+        <button class="btn-execute" onclick="submitOrder()">⚡ Execute Trade</button>
+      </div>
     </div>
   `;
   renderUnderlyingChart(leader);
