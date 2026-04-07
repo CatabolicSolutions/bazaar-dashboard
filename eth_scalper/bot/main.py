@@ -7,10 +7,11 @@ import os
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.settings import validate_config, PAPER_TRADING_MODE
+from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT
 from signals.price_feed import price_feed
 from signals.momentum import momentum_detector
 from execution.oneinch import inch_client
+from execution.trade_manager import trade_manager
 from risk.limits import risk_manager
 from bot.telegram_bot import trading_bot
 
@@ -20,6 +21,7 @@ class ETHScalper:
         self.check_interval = 10  # Check for signals every 10 seconds
         self.last_stats_time = 0
         self.stats_interval = 300  # Print stats every 5 minutes
+        self.last_gas_alert = 0
     
     async def run(self):
         """Main event loop"""
@@ -56,8 +58,15 @@ class ETHScalper:
     
     async def _tick(self):
         """Single iteration of the main loop"""
+        # Check if bot is paused
+        if trading_bot.bot_paused:
+            return
+        
         # Update price feed
         price_feed.get_eth_price()
+        
+        # Check gas price for alerts
+        await self._check_gas_alert()
         
         # Check for momentum signals
         signal = momentum_detector.detect_momentum()
@@ -70,6 +79,18 @@ class ETHScalper:
         if now - self.last_stats_time > self.stats_interval:
             self._print_stats()
             self.last_stats_time = now
+    
+    async def _check_gas_alert(self):
+        """Alert if gas is too high"""
+        gas = price_feed.get_gas_price_gwei()
+        if not gas:
+            return
+        
+        if gas > 50:
+            now = time.time()
+            if now - self.last_gas_alert > 3600:  # Alert once per hour
+                await trading_bot.send_alert(f"⚠️ Gas spike: {gas:.1f} gwei (>50)")
+                self.last_gas_alert = now
     
     async def _handle_signal(self, signal: dict):
         """Handle a detected signal"""
@@ -87,7 +108,6 @@ class ETHScalper:
             return
         
         # Get 1inch quote for profit calculation
-        # For ETH scalping, we check if the move is profitable after gas
         from_token = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'  # ETH
         to_token = '0xA0b86a33E6441e0A421e56E4773C3C4b0Db7E5b0'  # USDC
         
@@ -103,50 +123,66 @@ class ETHScalper:
             print(f"   💰 Profit potential: {profit['net_profit_pct']:+.2f}%")
             
             # Only trade if profitable after gas
-            if profit['net_profit_pct'] < 0.5:
+            if profit['net_profit_pct'] < MIN_PROFIT_AFTER_GAS_PERCENT:
                 print(f"   ❌ Not profitable enough after gas")
                 return
+        
+        # Create position
+        position = trade_manager.create_position(signal, 50, paper=PAPER_TRADING_MODE)
         
         # Send alert
         await trading_bot.send_signal_alert(signal, paper=PAPER_TRADING_MODE)
         
-        if PAPER_TRADING_MODE:
-            # Paper trade - just log it
-            position = risk_manager.record_trade(signal, 50, paper=True)
-            print(f"   📝 Paper trade recorded")
+        # Open position
+        success = await trade_manager.open_position(position)
+        
+        if success:
+            # Record in risk manager
+            risk_manager.record_trade(signal, 50, paper=PAPER_TRADING_MODE)
             
-            # Simulate exit after 5 minutes for paper trading
-            asyncio.create_task(self._simulate_paper_exit(position, 300))
+            # Start monitoring
+            trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
+            
+            print(f"   ✅ Position opened: {position.id}")
+            
+            # For paper trading, auto-execute (since user already approved via button)
+            if PAPER_TRADING_MODE:
+                asyncio.create_task(self._monitor_paper_position(position.id))
         else:
-            # Live trading - would execute here
-            # TODO: Implement actual execution
-            print(f"   💰 Live execution would happen here")
+            print(f"   ❌ Failed to open position")
     
-    async def _simulate_paper_exit(self, position: dict, delay: int):
-        """Simulate paper trade exit after delay"""
-        await asyncio.sleep(delay)
+    async def _monitor_paper_position(self, position_id: str):
+        """Monitor paper position and report result"""
+        # Wait for position to close
+        while True:
+            position = trade_manager.get_position(position_id)
+            if not position or position.status.value == 'closed':
+                break
+            await asyncio.sleep(5)
         
-        # Get current price
-        current_price = price_feed.get_eth_price()
-        if not current_price:
-            return
-        
-        # Close position
-        result = risk_manager.close_position(
-            pair=risk_manager._get_pair_key(position['signal']),
-            exit_price=current_price,
-            paper=True
-        )
-        
-        if result:
-            print(f"\n📝 Paper trade closed: ${result['pnl_usd']:+.2f}")
-            await trading_bot.send_trade_result(result)
+        # Find in history
+        for hist_pos in trade_manager.trade_history:
+            if hist_pos.id == position_id:
+                result = {
+                    'position': {
+                        'entry_price': hist_pos.entry_price,
+                        'size_usd': hist_pos.size_usd
+                    },
+                    'exit_price': hist_pos.exit_price,
+                    'pnl_usd': hist_pos.pnl_usd,
+                    'pnl_pct': hist_pos.pnl_pct,
+                    'gas_cost_usd': hist_pos.gas_cost_usd,
+                    'paper': hist_pos.paper
+                }
+                await trading_bot.send_trade_result(result)
+                break
     
     def _print_stats(self):
         """Print current statistics"""
         risk = risk_manager.get_status()
         momentum = momentum_detector.get_stats()
         rate = inch_client.get_rate_limit_status()
+        trades = trade_manager.get_stats()
         
         print("\n" + "=" * 60)
         print("📊 STATS")
@@ -157,6 +193,8 @@ class ETHScalper:
         print(f"Available Capital: ${risk['available_capital']:.2f}")
         print(f"Recent Win Rate: {momentum['recent_win_rate']:.1%}")
         print(f"1inch Requests: {rate['inch_requests_today']}/{rate['inch_limit']}")
+        print(f"Total Trades: {trades['total_trades']}")
+        print(f"Trade Win Rate: {trades['win_rate']:.1%}")
         print("=" * 60)
 
 def main():

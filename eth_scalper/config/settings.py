@@ -30,7 +30,16 @@ MAX_INCH_REQUESTS_PER_DAY = 900  # Buffer below 1000 limit
 MIN_PRICE_MOVEMENT_PCT = 0.4  # 0.4% in 60 seconds
 MAX_GAS_GWEI = 30
 MIN_PROFIT_PCT = 0.5  # After gas costs
+MIN_PROFIT_AFTER_GAS_PERCENT = 0.3  # Minimum viable trade
 MIN_SIGNAL_SCORE = 7  # Out of 10
+
+# Execution Parameters
+MAX_SLIPPAGE_PERCENT = 0.5
+COOLDOWN_AFTER_LOSS_SECONDS = 300  # 5 min pause after losses
+MAX_DAILY_TRADES = 20
+MAX_OPEN_POSITIONS = 2
+HOLD_TIME_MIN_SECONDS = 30
+HOLD_TIME_MAX_SECONDS = 300  # 5 minutes
 
 # Tokens
 ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
