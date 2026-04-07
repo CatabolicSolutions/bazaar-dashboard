@@ -8,11 +8,14 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT
+from config.logger import logger, log_signal, log_trade
 from signals.price_feed import price_feed
 from signals.momentum import momentum_detector
 from execution.oneinch import inch_client
 from execution.trade_manager import trade_manager
+from execution.live_executor import live_executor
 from risk.limits import risk_manager
+from risk.safety_checks import safety_checker, EmergencyStopError
 from bot.telegram_bot import trading_bot
 
 class ETHScalper:
@@ -43,6 +46,13 @@ class ETHScalper:
         mode = "PAPER TRADING" if PAPER_TRADING_MODE else "LIVE TRADING"
         print(f"📝 Mode: {mode}")
         print(f"⏱️  Check interval: {self.check_interval}s")
+        
+        if not PAPER_TRADING_MODE:
+            print("⚠️  LIVE TRADING MODE - REAL MONEY AT RISK")
+            print("   Safety checks: ENABLED")
+            print("   Emergency stop: ARMED")
+            live_executor.enable()
+        
         print("-" * 60)
         
         self.running = True
@@ -100,11 +110,28 @@ class ETHScalper:
         print(f"   Change: {signal['change_60s_pct']:+.2f}%")
         print(f"   Score: {signal['score']}/10")
         
+        # CRITICAL: Safety check first
+        open_positions = len(trade_manager.get_open_positions())
+        risk_status = risk_manager.get_status()
+        
+        can_trade, reason = safety_checker.pre_trade_check(
+            signal=signal,
+            open_positions=open_positions,
+            daily_pnl=risk_status['daily_pnl'],
+            daily_trades=risk_status['daily_trades']
+        )
+        
+        if not can_trade:
+            print(f"   ❌ SAFETY CHECK FAILED: {reason}")
+            log_signal(signal, executed=False, reason=f"SAFETY: {reason}")
+            return
+        
         # Check risk limits
         can_trade, reason = risk_manager.can_trade(signal)
         
         if not can_trade:
             print(f"   ❌ Risk check failed: {reason}")
+            log_signal(signal, executed=False, reason=reason)
             return
         
         # Get 1inch quote for profit calculation
@@ -125,7 +152,11 @@ class ETHScalper:
             # Only trade if profitable after gas
             if profit['net_profit_pct'] < MIN_PROFIT_AFTER_GAS_PERCENT:
                 print(f"   ❌ Not profitable enough after gas")
+                log_signal(signal, executed=False, reason="profit_too_low")
                 return
+        
+        # Log the signal
+        log_signal(signal, executed=True)
         
         # Create position
         position = trade_manager.create_position(signal, 50, paper=PAPER_TRADING_MODE)
@@ -145,11 +176,41 @@ class ETHScalper:
             
             print(f"   ✅ Position opened: {position.id}")
             
-            # For paper trading, auto-execute (since user already approved via button)
+            # For paper trading, auto-execute
             if PAPER_TRADING_MODE:
                 asyncio.create_task(self._monitor_paper_position(position.id))
+            else:
+                # Live trading - prepare swap
+                asyncio.create_task(self._prepare_live_swap(position))
         else:
             print(f"   ❌ Failed to open position")
+    
+    async def _prepare_live_swap(self, position):
+        """Prepare swap data for live execution"""
+        from_token = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'  # ETH
+        to_token = '0xA0b86a33E6441e0A421e56E4773C3C4b0Db7E5b0'  # USDC
+        
+        # Calculate amount (0.03 ETH ~ $75 at $2500/ETH)
+        amount_eth = 0.03
+        amount_wei = int(amount_eth * 1e18)
+        
+        swap_data = live_executor.get_swap_data(
+            from_token=from_token,
+            to_token=to_token,
+            amount=amount_wei
+        )
+        
+        if swap_data:
+            tx_hash = live_executor.execute_swap(swap_data)
+            if tx_hash:
+                position.tx_hash = tx_hash
+                print(f"   💰 Swap ready: {tx_hash}")
+                await trading_bot.send_alert(
+                    f"🎯 SWAP READY\n"
+                    f"Position: {position.id}\n"
+                    f"Amount: {amount_eth} ETH\n"
+                    f"Check logs for tx data"
+                )
     
     async def _monitor_paper_position(self, position_id: str):
         """Monitor paper position and report result"""
