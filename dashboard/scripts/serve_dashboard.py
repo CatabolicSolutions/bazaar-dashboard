@@ -1083,6 +1083,23 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
+    def _serve_eth_scalper_logs(self):
+        """Serve ETH scalper logs"""
+        try:
+            # Get the last 100 lines from journalctl
+            result = subprocess.run(
+                ['journalctl', '-u', 'eth-scalper', '-n', '100', '--no-pager'],
+                capture_output=True,
+                text=True
+            )
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(result.stdout.encode())
+        except Exception as e:
+            self.json_response(500, {'ok': False, 'error': str(e)})
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Serve the Tradier local dashboard.')

@@ -171,7 +171,7 @@ class EthScalperTab {
           <button class="eth-btn secondary" onclick="ethScalperTab.toggleMode()">
             📝 PAPER MODE
           </button>
-          <button class="eth-btn secondary" onclick="window.open('/logs/eth-scalper.log', '_blank')">
+          <button class="eth-btn secondary" onclick="ethScalperTab.viewLogs()">
             📄 VIEW LOGS
           </button>
         </div>
@@ -352,6 +352,80 @@ class EthScalperTab {
     // Toggle between paper and live mode
     const newMode = this.data.status === 'paper' ? 'LIVE' : 'PAPER';
     this.sendCommand(newMode);
+  }
+
+  viewLogs() {
+    // Fetch and display logs
+    fetch('/eth-scalper/logs/')
+      .then(res => res.text())
+      .then(logs => {
+        // Create a modal to show logs
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        `;
+        modal.innerHTML = `
+          <div style="
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 1200px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          ">
+            <div style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 16px 20px;
+              border-bottom: 1px solid #30363d;
+            ">
+              <h3 style="margin: 0; color: #e6edf3;">ETH Scalper Logs</h3>
+              <button onclick="this.closest('.modal').remove()" style="
+                background: transparent;
+                border: none;
+                color: #7d8590;
+                font-size: 20px;
+                cursor: pointer;
+              ">✕</button>
+            </div>
+            <pre style="
+              flex: 1;
+              margin: 0;
+              padding: 20px;
+              overflow: auto;
+              color: #e6edf3;
+              font-family: 'SF Mono', Monaco, monospace;
+              font-size: 12px;
+              line-height: 1.5;
+              background: #0d1117;
+            ">${logs.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+          </div>
+        `;
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.remove();
+        });
+      })
+      .catch(err => {
+        alert('Failed to load logs: ' + err.message);
+      });
   }
 }
 
