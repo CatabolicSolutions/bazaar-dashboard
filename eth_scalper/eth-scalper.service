@@ -1,0 +1,18 @@
+[Unit]
+Description=ETH Scalper Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/bazaar/eth_scalper
+Environment=PYTHONPATH=/var/www/bazaar/eth_scalper
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m bot.main
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
