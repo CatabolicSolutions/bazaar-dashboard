@@ -1322,64 +1322,106 @@ function renderLeaderCard(leader, index) {
 }
 
 function renderExpandedCardContent(leader, state) {
+  // Parse confidence for spectrum
+  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
+  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
+  const spectrumWidth = confidenceScore * 10;
+  
   return `
     <div class="card-expanded-panel">
-      <div class="expanded-section">
-        <h4>✓ Why This Passed Filters</h4>
-        <ul>
-          ${leader.section === 'directional' ? `
-            <li>Near-ATM delta (${leader.delta}) for directional exposure</li>
-            <li>7-14 DTE for optimal gamma/theta balance</li>
-            <li>Tight bid-ask spread for clean entry/exit</li>
-          ` : `
-            <li>OTM delta (~0.14) for defined-risk premium</li>
-            <li>Spread structure limits max loss</li>
-            <li>Time decay working in your favor</li>
-          `}
-        </ul>
-      </div>
-      
-      <div class="expanded-section">
-        <h4>⚠ Key Risk Factors</h4>
-        <ul class="risk-list">
-          <li>Momentum confirmation required - do not blind enter</li>
-          <li>Hard stop discipline essential</li>
-          <li>${leader.section === 'directional' ? 'Directional risk - wrong way move = loss' : 'Assignment risk if ITM at expiry'}</li>
-        </ul>
-      </div>
-      
-      <div class="expanded-actions">
-        <button class="btn-execute" onclick="event.stopPropagation(); showOrderEntryForCard(${selectedLeaderIndex})">📋 Enter Order</button>
-        ${state.queued ? 
-          '<button class="btn-secondary" disabled>✓ Queued</button>' : 
-          '<button class="btn-secondary" onclick="event.stopPropagation(); quickQueueFromScanner(selectedLeaderIndex)">+ Queue</button>'}
-        ${state.watched ? 
-          '<button class="btn-secondary" disabled>👁 Watching</button>' : 
-          '<button class="btn-secondary" onclick="event.stopPropagation(); quickWatchFromScanner(selectedLeaderIndex)">👁 Watch</button>'}
-      </div>
-      
-      <div id="cardOrderEntry-${selectedLeaderIndex}" class="card-order-entry" style="display:none;">
-        <div class="order-form-compact">
-          <div class="form-row">
-            <label>Contracts</label>
-            <input type="number" id="cardOrderQty-${selectedLeaderIndex}" value="1" min="1" max="5" onchange="updateCardOrderValue(${selectedLeaderIndex})" />
+      <div class="expanded-grid">
+        <!-- Left: Chart & Visuals -->
+        <div class="expanded-visuals">
+          <div class="chart-container" id="cardChart-${selectedLeaderIndex}">
+            <div class="chart-loading">Loading chart...</div>
           </div>
-          <div class="form-row">
-            <label>Order Type</label>
-            <select id="cardOrderType-${selectedLeaderIndex}" onchange="updateCardOrderValue(${selectedLeaderIndex})">
-              <option value="market">Market</option>
-              <option value="limit">Limit</option>
-            </select>
+          
+          <div class="trade-levels-visual">
+            <div class="level-bar">
+              <div class="level-marker stop">Stop<br/>$${leader.invalidation || '--'}</div>
+              <div class="level-marker entry">Entry<br/>$${leader.underlying || '--'}</div>
+              <div class="level-marker target">Target<br/>$${leader.targets || '--'}</div>
+            </div>
           </div>
-          <div class="form-row" id="cardLimitPriceRow-${selectedLeaderIndex}" style="display:none;">
-            <label>Limit Price</label>
-            <input type="number" id="cardLimitPrice-${selectedLeaderIndex}" step="0.01" value="${leader.ask || leader.bid || ''}" />
+          
+          <div class="spectrum-container">
+            <div class="spectrum-label">Trade Quality</div>
+            <div class="spectrum-bar">
+              <div class="spectrum-fill" style="width: ${spectrumWidth}%; background: ${confidenceScore >= 7 ? 'var(--good)' : confidenceScore >= 5 ? 'var(--accent)' : 'var(--bad)'}"></div>
+            </div>
+            <div class="spectrum-labels">
+              <span>Weak</span>
+              <span>${confidenceScore}/10</span>
+              <span>Strong</span>
+            </div>
           </div>
-          <div class="order-value-display">
-            Est. Value: <strong id="cardOrderValue-${selectedLeaderIndex}">$0</strong>
-            <span class="risk-limit">(Max $200)</span>
+        </div>
+        
+        <!-- Right: Info & Actions -->
+        <div class="expanded-info">
+          <div class="expanded-section">
+            <h4>✓ Why This Passed Filters</h4>
+            <ul>
+              ${leader.section === 'directional' ? `
+                <li>Near-ATM delta (${leader.delta}) for directional exposure</li>
+                <li>7-14 DTE for optimal gamma/theta balance</li>
+                <li>Tight bid-ask spread for clean entry/exit</li>
+              ` : `
+                <li>OTM delta (~0.14) for defined-risk premium</li>
+                <li>Spread structure limits max loss</li>
+                <li>Time decay working in your favor</li>
+              `}
+            </ul>
           </div>
-          <button class="btn-execute-full" onclick="event.stopPropagation(); submitCardOrder(${selectedLeaderIndex})">⚡ Execute Trade</button>
+          
+          <div class="expanded-section">
+            <h4>⚠ Key Risk Factors</h4>
+            <ul class="risk-list">
+              <li>Momentum confirmation required - do not blind enter</li>
+              <li>Hard stop discipline essential</li>
+              <li>${leader.section === 'directional' ? 'Directional risk - wrong way move = loss' : 'Assignment risk if ITM at expiry'}</li>
+            </ul>
+          </div>
+          
+          <div class="expanded-section">
+            <h4>🎯 Setup Thesis</h4>
+            <p class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</p>
+          </div>
+          
+          <div class="expanded-actions">
+            <button class="btn-execute" onclick="event.stopPropagation(); showOrderEntryForCard(${selectedLeaderIndex})">📋 Enter Order</button>
+            ${state.queued ? 
+              '<button class="btn-secondary" disabled>✓ Queued</button>' : 
+              '<button class="btn-secondary" onclick="event.stopPropagation(); quickQueueFromScanner(selectedLeaderIndex)">+ Queue</button>'}
+            ${state.watched ? 
+              '<button class="btn-secondary" disabled>👁 Watching</button>' : 
+              '<button class="btn-secondary" onclick="event.stopPropagation(); quickWatchFromScanner(selectedLeaderIndex)">👁 Watch</button>'}
+          </div>
+          
+          <div id="cardOrderEntry-${selectedLeaderIndex}" class="card-order-entry" style="display:none;">
+            <div class="order-form-compact">
+              <div class="form-row">
+                <label>Contracts</label>
+                <input type="number" id="cardOrderQty-${selectedLeaderIndex}" value="1" min="1" max="5" onchange="updateCardOrderValue(${selectedLeaderIndex})" />
+              </div>
+              <div class="form-row">
+                <label>Order Type</label>
+                <select id="cardOrderType-${selectedLeaderIndex}" onchange="updateCardOrderValue(${selectedLeaderIndex})">
+                  <option value="market">Market</option>
+                  <option value="limit">Limit</option>
+                </select>
+              </div>
+              <div class="form-row" id="cardLimitPriceRow-${selectedLeaderIndex}" style="display:none;">
+                <label>Limit Price</label>
+                <input type="number" id="cardLimitPrice-${selectedLeaderIndex}" step="0.01" value="${leader.ask || leader.bid || ''}" />
+              </div>
+              <div class="order-value-display">
+                Est. Value: <strong id="cardOrderValue-${selectedLeaderIndex}">$0</strong>
+                <span class="risk-limit">(Max $200)</span>
+              </div>
+              <button class="btn-execute-full" onclick="event.stopPropagation(); submitCardOrder(${selectedLeaderIndex})">⚡ Execute Trade</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1394,6 +1436,100 @@ function toggleCardExpand(index) {
     setSelectedLeader(index, currentSnapshot?.tradier?.leaders || []);
   }
   renderLeaders(currentSnapshot?.tradier?.leaders || []);
+  
+  // Load chart after render if expanded
+  if (expandedCardIndex === index) {
+    setTimeout(() => loadCardChart(index), 100);
+  }
+}
+
+async function loadCardChart(index) {
+  const leader = currentSnapshot?.tradier?.leaders?.[index];
+  if (!leader) return;
+  
+  const container = document.getElementById(`cardChart-${index}`);
+  if (!container) return;
+  
+  try {
+    const res = await fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`);
+    const data = await res.json();
+    
+    if (data.ok && data.points && data.points.length > 0) {
+      container.innerHTML = '';
+      drawMiniChart(container, data.points, leader);
+    } else {
+      container.innerHTML = '<div class="chart-loading">No chart data available</div>';
+    }
+  } catch (err) {
+    container.innerHTML = '<div class="chart-loading">Failed to load chart</div>';
+  }
+}
+
+function drawMiniChart(container, points, leader) {
+  const width = container.clientWidth || 400;
+  const height = 180;
+  const padding = { top: 10, right: 10, bottom: 30, left: 50 };
+  
+  const prices = points.map(p => p.close).filter(c => c !== null);
+  if (prices.length === 0) return;
+  
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const priceRange = maxPrice - minPrice || 1;
+  
+  // Create SVG
+  const svg = d3.select(container).append('svg')
+    .attr('width', width)
+    .attr('height', height);
+  
+  // Scales
+  const xScale = d3.scaleLinear()
+    .domain([0, prices.length - 1])
+    .range([padding.left, width - padding.right]);
+  
+  const yScale = d3.scaleLinear()
+    .domain([minPrice - priceRange * 0.1, maxPrice + priceRange * 0.1])
+    .range([height - padding.bottom, padding.top]);
+  
+  // Grid lines
+  svg.append('g')
+    .attr('class', 'grid')
+    .attr('transform', `translate(0,${height - padding.bottom})`)
+    .call(d3.axisBottom(xScale).tickSize(-(height - padding.top - padding.bottom)).tickFormat(''))
+    .call(g => g.select('.domain').remove())
+    .call(g => g.selectAll('line').attr('stroke', 'var(--border-color)').attr('stroke-opacity', 0.3));
+  
+  // Y axis
+  svg.append('g')
+    .attr('transform', `translate(${padding.left},0)`)
+    .call(d3.axisLeft(yScale).ticks(4).tickFormat(d => `$${d.toFixed(0)}`))
+    .call(g => g.select('.domain').attr('stroke', 'var(--text-secondary)'))
+    .call(g => g.selectAll('text').attr('fill', 'var(--text-secondary)').style('font-size', '9px'));
+  
+  // Line
+  const line = d3.line()
+    .x((d, i) => xScale(i))
+    .y(d => yScale(d.close))
+    .curve(d3.curveMonotoneX);
+  
+  svg.append('path')
+    .datum(points.filter(p => p.close !== null))
+    .attr('fill', 'none')
+    .attr('stroke', 'var(--accent-color)')
+    .attr('stroke-width', 2)
+    .attr('d', line);
+  
+  // Current price dot
+  const lastPoint = points[points.length - 1];
+  if (lastPoint && lastPoint.close) {
+    svg.append('circle')
+      .attr('cx', xScale(prices.length - 1))
+      .attr('cy', yScale(lastPoint.close))
+      .attr('r', 4)
+      .attr('fill', 'var(--accent-color)')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2);
+  }
 }
 
 function showOrderEntryForCard(index) {
