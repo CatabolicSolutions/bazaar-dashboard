@@ -1635,8 +1635,6 @@ async function submitCardOrder(index) {
 
 function renderLeaders(leaders) {
   const wrap = document.getElementById('leadersWrap');
-  const detailPanel = document.querySelector('.panel-detail');
-  const leadersPanel = document.querySelector('.panel-leaders');
   
   if (!wrap) return;
   
@@ -1656,20 +1654,6 @@ function renderLeaders(leaders) {
   // Check if any card is expanded
   const hasExpandedCard = expandedCardIndex !== null && expandedCardIndex >= 0 && expandedCardIndex < leaders.length;
 
-  // Show/hide opportunity panel and adjust layout
-  if (detailPanel) {
-    detailPanel.style.display = hasExpandedCard ? 'none' : 'flex';
-  }
-  if (leadersPanel) {
-    if (hasExpandedCard) {
-      leadersPanel.style.gridColumn = 'span 12';
-      leadersPanel.classList.add('expanded-mode');
-    } else {
-      leadersPanel.style.gridColumn = '';
-      leadersPanel.classList.remove('expanded-mode');
-    }
-  }
-
   if (hasExpandedCard) {
     // Full-width layout when card is expanded
     wrap.innerHTML = `
@@ -1687,7 +1671,7 @@ function renderLeaders(leaders) {
     `;
   }
 
-  // Only render summary strip, not full detail panel
+  // Only render summary strip
   const { leader: selectedLeader } = syncSelectedLeader(leaders);
   renderSummaryStrip(selectedLeader, null);
 }
