@@ -1,6 +1,5 @@
 """Live trade execution via 1inch"""
 import requests
-import time
 from typing import Optional, Dict
 from config.settings import INCH_API_KEY, WALLET_ADDRESS, PRIVATE_KEY, MAX_SLIPPAGE_PERCENT, BASE_RPC_URL, CHAIN_ID
 from config.logger import logger
@@ -99,51 +98,47 @@ class LiveExecutor:
         return True
     
     def execute_swap(self, swap_data: Dict) -> Optional[str]:
-        """
-        Execute a swap transaction - FULLY AUTOMATED
-        
-        Signs the transaction with private key and broadcasts via Alchemy
-        """
+        """Execute a swap transaction by sanitizing 1inch tx data for Base/Web3."""
         if not self.validate_swap(swap_data):
             return None
-        
+
         tx = swap_data['tx']
-        
+
         try:
             from eth_account import Account
             from web3 import Web3
-            
-            # Initialize Web3 with Base RPC
+
             w3 = Web3(Web3.HTTPProvider(BASE_RPC_URL))
-            
             if not w3.is_connected():
-                logger.error("Failed to connect to Ethereum node")
+                logger.error("Failed to connect to Base RPC")
                 return None
-            
-            # Create account from private key
+
             account = Account.from_key(PRIVATE_KEY)
-            
-            # Verify address matches
             if account.address.lower() != WALLET_ADDRESS.lower():
                 logger.error(f"Private key address mismatch: {account.address} != {WALLET_ADDRESS}")
                 return None
-            
-            # Build transaction
+
+            nonce = w3.eth.get_transaction_count(WALLET_ADDRESS)
+            latest_block = w3.eth.get_block('latest')
+            base_fee = latest_block.get('baseFeePerGas', w3.eth.gas_price)
+            priority_fee = w3.to_wei(0.001, 'gwei')
+            max_fee = max(int(base_fee * 2 + priority_fee), int(tx.get('gasPrice', w3.eth.gas_price)))
+
             transaction = {
-                'to': tx['to'],
+                'chainId': CHAIN_ID,
+                'nonce': nonce,
+                'to': Web3.to_checksum_address(tx['to']),
                 'data': tx['data'],
-                'value': int(tx['value']),
-                'gas': int(tx['gas']),
-                'gasPrice': int(tx.get('gasPrice', w3.eth.gas_price)),
-                'nonce': w3.eth.get_transaction_count(WALLET_ADDRESS),
-                'chainId': CHAIN_ID
+                'value': int(tx.get('value', 0)),
+                'gas': int(tx.get('gas', 300000)),
+                'maxPriorityFeePerGas': priority_fee,
+                'maxFeePerGas': max_fee,
+                'type': 2,
             }
-            
-            # Sign transaction
+
             signed_tx = account.sign_transaction(transaction)
-            
-            # Send transaction
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            raw_tx = getattr(signed_tx, 'raw_transaction', None) or getattr(signed_tx, 'rawTransaction')
+            tx_hash = w3.eth.send_raw_transaction(raw_tx)
             tx_hash_hex = tx_hash.hex()
             
             logger.info(
@@ -162,7 +157,7 @@ class LiveExecutor:
             return tx_hash_hex
             
         except Exception as e:
-            logger.error(f"Transaction execution failed: {e}")
+            logger.error(f"Transaction execution failed: {e}; tx={tx}")
             return None
     
     def check_transaction_status(self, tx_hash: str) -> Optional[Dict]:
