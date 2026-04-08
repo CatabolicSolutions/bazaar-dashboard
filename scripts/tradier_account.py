@@ -64,10 +64,13 @@ def readiness_snapshot():
     p = profile()['profile']
     b = balances()['balances']
     margin = b.get('margin') or {}
+    cash_block = b.get('cash') or {}
     option_bp = float(margin.get('option_buying_power') or 0.0)
     stock_bp = float(margin.get('stock_buying_power') or 0.0)
     uncleared = float(b.get('uncleared_funds') or 0.0)
     total_cash = float(b.get('total_cash') or 0.0)
+    cash_available = float(cash_block.get('cash_available') or total_cash or 0.0)
+    account_type = (b.get('account_type') or '').lower()
     option_level = p['account'].get('option_level')
     status = (p['account'].get('status') or '').lower()
 
@@ -81,9 +84,16 @@ def readiness_snapshot():
     if option_level is None or int(option_level) < 1:
         ready = False
         blockers.append('option approval level missing/inadequate')
-    if option_bp <= 0:
-        ready = False
-        blockers.append('option buying power is zero')
+
+    if account_type == 'cash':
+        if cash_available <= 0:
+            ready = False
+            blockers.append('cash available is zero for cash-account options trading')
+    else:
+        if option_bp <= 0:
+            ready = False
+            blockers.append('option buying power is zero')
+
     if uncleared > 0:
         warnings.append(f'uncleared funds present: {uncleared:.2f}')
 
@@ -91,12 +101,15 @@ def readiness_snapshot():
         'checked_at': datetime.now().astimezone().isoformat(),
         'account_id': ACCOUNT_ID,
         'account_status': status,
+        'account_type': account_type,
         'option_level': option_level,
         'total_cash': total_cash,
+        'cash_available': cash_available,
         'uncleared_funds': uncleared,
         'option_buying_power': option_bp,
         'stock_buying_power': stock_bp,
         'ready_for_options_execution': ready,
+        'cash_account_day_trading_mode': account_type == 'cash',
         'blockers': blockers,
         'warnings': warnings,
     }
