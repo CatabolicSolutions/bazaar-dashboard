@@ -7,6 +7,19 @@ from urllib.parse import urlencode
 
 import requests
 
+ROOT = Path(__file__).resolve().parent.parent
+ENV_FILE = ROOT / '.bazaar.env'
+if ENV_FILE.exists():
+    for line in ENV_FILE.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line.startswith('export '):
+            line = line[7:]
+        if '=' in line:
+            key, value = line.split('=', 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"\''))
+
 API_BASE = os.getenv('TRADIER_BASE_URL', 'https://api.tradier.com/v1')
 API_TOKEN = os.getenv('TRADIER_API_KEY')
 ACCOUNT_ID = os.getenv('TRADIER_ACCOUNT_ID') or os.getenv('TRADIER_LIVE_ACCOUNT_ID')
