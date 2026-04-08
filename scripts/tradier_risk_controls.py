@@ -56,6 +56,27 @@ def validate_limit_drift(intent: ExecutionIntent, mark_price: float | None, poli
     return True, None, checks
 
 
+def _build_decision_card(intent: ExecutionIntent, checks: dict[str, Any], reasons: list[str]) -> dict[str, Any]:
+    disposition = 'accepted for execution' if not reasons else ('surfaced for review' if checks.get('review_only') else 'rejected')
+    return {
+        'symbol': intent.symbol,
+        'direction': intent.side,
+        'contract': intent.contract,
+        'setup_type': intent.strategy_type.replace('_', ' '),
+        'entry_logic': checks.get('entry_logic', 'leader-driven entry'),
+        'trigger_condition': checks.get('trigger_condition', 'candidate selected by automation'),
+        'invalidation_logic': checks.get('invalidation_logic', 'premium stop / thesis break'),
+        'target_exit_logic': checks.get('target_exit_logic', 'intraday target or timeout exit'),
+        'market_regime': checks.get('market_regime', 'unclassified'),
+        'confidence': checks.get('confidence_score', 0),
+        'risk_classification': checks.get('risk_classification', 'smallest_size_cash_account'),
+        'why_now': '' if reasons else checks.get('why_now', 'candidate passed pre-trade gates'),
+        'why_not': reasons,
+        'rejection_reason': reasons[0] if reasons else '',
+        'disposition': disposition,
+    }
+
+
 def evaluate_intent(intent: ExecutionIntent, account_snapshot: dict[str, Any], mark_price: float | None = None, open_positions: list[dict[str, Any]] | None = None) -> RiskDecision:
     policy = DEFAULT_POLICY[intent.mode]
     reasons: list[str] = []
@@ -68,6 +89,15 @@ def evaluate_intent(intent: ExecutionIntent, account_snapshot: dict[str, Any], m
         'account_type': account_snapshot.get('account_type'),
         'cash_account_day_trading_mode': bool(account_snapshot.get('cash_account_day_trading_mode', False)),
         'open_positions_count': len(open_positions or []),
+        'market_regime': 'unclassified',
+        'confidence_score': 0,
+        'entry_logic': 'leader-driven entry',
+        'trigger_condition': 'candidate selected by automation',
+        'invalidation_logic': 'premium stop / thesis break',
+        'target_exit_logic': 'intraday target or timeout exit',
+        'risk_classification': 'smallest_size_cash_account',
+        'why_now': 'candidate passed pre-trade gates',
+        'review_only': False,
     }
 
     if not checks['strategy_allowed']:
@@ -99,10 +129,13 @@ def evaluate_intent(intent: ExecutionIntent, account_snapshot: dict[str, Any], m
     if not ok and reason:
         reasons.append(reason)
 
+    decision_card = _build_decision_card(intent, checks, reasons)
     return RiskDecision(
         intent_id=intent.intent_id,
         mode=intent.mode,
         allowed=not reasons,
         reasons=reasons,
         checks=checks,
+        decision_card=decision_card,
+        disposition=decision_card['disposition'],
     )

@@ -116,10 +116,15 @@ class TradierExecutionService:
         account = readiness_snapshot()
         state = load_state()
         decision = evaluate_intent(intent, account, mark_price=mark_price, open_positions=state.get('positions', []))
-        state['riskDecisions'] = upsert_by_key(state.get('riskDecisions', []), 'intent_id', intent.intent_id, decision.to_dict())
+        decision_dict = decision.to_dict()
+        state['riskDecisions'] = upsert_by_key(state.get('riskDecisions', []), 'intent_id', intent.intent_id, decision_dict)
+        state['decisionCards'] = upsert_by_key(state.get('decisionCards', []), 'intent_id', intent.intent_id, {
+            'intent_id': intent.intent_id,
+            **decision.decision_card,
+        })
         save_state(state)
-        append_audit('risk_evaluated', 'alfred', intent.intent_id, 'Risk evaluation completed', {'allowed': decision.allowed})
-        return decision.to_dict()
+        append_audit('risk_evaluated', 'alfred', intent.intent_id, f"Risk evaluation completed: {decision.disposition}", {'allowed': decision.allowed, 'disposition': decision.disposition, 'reasons': decision.reasons, 'decision_card': decision.decision_card})
+        return decision_dict
 
     def preview_intent(self, intent_dict: dict[str, Any], *, expiry: str, option_type: str, strike: float) -> dict[str, Any]:
         intent = self._materialize_intent(intent_dict)

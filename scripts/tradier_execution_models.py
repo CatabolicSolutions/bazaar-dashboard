@@ -180,6 +180,8 @@ class RiskDecision:
     allowed: bool
     reasons: list[str]
     checks: dict[str, Any]
+    decision_card: dict[str, Any] = field(default_factory=dict)
+    disposition: str = 'rejected'
     timestamp: str = field(default_factory=now_iso)
 
     def to_dict(self) -> dict[str, Any]:
