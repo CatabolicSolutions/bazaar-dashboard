@@ -8,6 +8,7 @@ from typing import Any
 
 from tradier_board_utils import parse_raw_tickets, top_leaders_by_strategy
 from tradier_execution_service import TradierExecutionService
+from tradier_execution import post_order
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BOARD = ROOT / 'out' / 'tradier_leaders_board.txt'
@@ -72,8 +73,24 @@ def main() -> int:
         print(json.dumps({'ok': True, 'status': 'preview_only', 'intent': ready, 'decision': decision, 'preview': preview}, indent=2), flush=True)
         return 0
 
-    committed = service.record_commit(ready, note='Auto-submitted by tradier_auto_trade')
-    print(json.dumps({'ok': True, 'status': 'submitted', 'intent': committed, 'decision': decision, 'preview': preview}, indent=2), flush=True)
+    expiry = candidate.get('expiration') or candidate.get('exp')
+    option_type = (candidate.get('option_type') or '').lower()
+    strike = float(candidate.get('strike'))
+    option_symbol = f"{candidate['symbol']}{expiry.replace('-', '')[2:]}{'C' if option_type.startswith('c') else 'P'}{int(strike * 1000):08d}"
+    payload = {
+        'class': 'option',
+        'symbol': candidate['symbol'].upper(),
+        'option_symbol': option_symbol,
+        'side': 'buy_to_open',
+        'quantity': args.qty,
+        'type': 'limit',
+        'duration': 'day',
+        'tag': f"auto-{ready['intent_id']}",
+        'price': float(limit_price),
+    }
+    broker_response = post_order(payload, preview=False)
+    committed = service.record_commit(ready, broker_response)
+    print(json.dumps({'ok': True, 'status': 'submitted', 'intent': committed, 'decision': decision, 'preview': preview, 'broker_response': broker_response}, indent=2), flush=True)
     return 0
 
 

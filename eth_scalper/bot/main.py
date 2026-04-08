@@ -263,11 +263,12 @@ class ETHScalper:
         if not PAPER_TRADING_MODE:
             eth_balance_usd = wallet.get('eth', 0.0) * signal['price']
             usdc_balance = wallet.get('usdc', 0.0)
-            funded_side = 'ETH' if eth_balance_usd >= size_usd else ('USDC' if usdc_balance >= size_usd else None)
+            funded_side = 'ETH' if eth_balance_usd >= 25.0 else ('USDC' if usdc_balance >= 25.0 else None)
             if funded_side is None:
-                print(f"   ❌ Live wallet underfunded for entry: need ${size_usd:.2f}, have ~${eth_balance_usd:.2f} ETH and ${usdc_balance:.2f} USDC")
+                print(f"   ❌ Live wallet underfunded for entry: need at least $25 deployable, have ~${eth_balance_usd:.2f} ETH and ${usdc_balance:.2f} USDC")
                 state_manager.log_signal(signal, executed=False, reason="wallet_underfunded")
                 return
+            size_usd = min(size_usd, eth_balance_usd if funded_side == 'ETH' else usdc_balance)
             signal['funded_side'] = funded_side
 
         # Log the signal as executed
