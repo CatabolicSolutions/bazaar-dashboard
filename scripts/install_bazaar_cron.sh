@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKDIR="$HOME/.openclaw/workspace"
-CRON_LINE='*/15 6-14 * * 1-5 /bin/bash -lc "cd $HOME/.openclaw/workspace && ./scripts/bazaar_refresh_cycle.sh"'
+WORKDIR="${1:-$HOME/.openclaw/workspace}"
+CRON_LINE="*/15 6-14 * * 1-5 /bin/bash -lc 'cd $WORKDIR && ./scripts/bazaar_refresh_cycle.sh'"
 
-tmp=$(mktemp)
-crontab -l 2>/dev/null | grep -v 'bazaar_refresh_cycle.sh' > "$tmp" || true
+EXISTING=$(crontab -l 2>/dev/null || true)
+UPDATED=$(printf '%s
+' "$EXISTING" | grep -v 'bazaar_refresh_cycle.sh' || true)
 printf '%s
-' "$CRON_LINE" >> "$tmp"
-crontab "$tmp"
-rm -f "$tmp"
-echo "Installed Bazaar refresh cron:" 
+%s
+' "$UPDATED" "$CRON_LINE" | crontab -
+
+echo "Installed Bazaar refresh cron:"
 crontab -l | grep 'bazaar_refresh_cycle.sh'
+printf 'Workspace: %s\n' "$WORKDIR"

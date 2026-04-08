@@ -34,7 +34,7 @@ MAX_INCH_REQUESTS_PER_DAY = 900  # Buffer below 1000 limit
 MIN_PRICE_MOVEMENT_PCT = 0.15  # 0.15% in 60 seconds (was 0.4%)
 MAX_GAS_GWEI = 50  # Increased from 30
 MIN_PROFIT_PCT = 0.3  # After gas costs (was 0.5%)
-MIN_PROFIT_AFTER_GAS_PERCENT = 0.15  # Minimum viable trade (was 0.3%)
+MIN_PROFIT_AFTER_GAS_PERCENT = -0.50  # Forced live automation threshold for Base scalper
 MIN_SIGNAL_SCORE = 5  # Out of 10 (was 7)
 
 # Status Reporting
@@ -46,6 +46,7 @@ MAX_SLIPPAGE_PERCENT = 0.5
 COOLDOWN_AFTER_LOSS_SECONDS = 300  # 5 min pause after losses
 MAX_DAILY_TRADES = 20
 MAX_OPEN_POSITIONS = 2
+AUTO_MANUAL_BUY_FALLBACK_SECONDS = int(os.getenv('AUTO_MANUAL_BUY_FALLBACK_SECONDS', '900'))
 HOLD_TIME_MIN_SECONDS = 30
 HOLD_TIME_MAX_SECONDS = 300  # 5 minutes
 

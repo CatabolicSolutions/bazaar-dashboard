@@ -7,7 +7,7 @@ import os
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, MAX_POSITION_USD
+from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS
 from config.logger import logger, log_signal, log_trade
 from signals.price_feed import price_feed
 from signals.momentum import momentum_detector
@@ -32,6 +32,7 @@ class ETHScalper:
         self.price_change_alert_threshold = 0.5  # Alert on 0.5% moves
         self.last_dashboard_update = 0
         self.dashboard_update_interval = 5  # Update dashboard every 5 seconds
+        self.last_forced_entry = 0
     
     async def run(self):
         """Main event loop"""
@@ -105,9 +106,13 @@ class ETHScalper:
         
         # Check for momentum signals
         signal = momentum_detector.detect_momentum()
-        
+
         if signal:
             await self._handle_signal(signal)
+        elif (not PAPER_TRADING_MODE and now - self.last_forced_entry > AUTO_MANUAL_BUY_FALLBACK_SECONDS and len(trade_manager.get_open_positions()) == 0):
+            print("⏰ No natural signal recently, forcing fallback live entry")
+            self.last_forced_entry = now
+            await self._manual_buy()
         
         # Print stats periodically
         if now - self.last_stats_time > self.stats_interval:
