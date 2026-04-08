@@ -24,6 +24,17 @@ DEFAULT_POLICY = {
 
 
 def _extract_option_buying_power(account_snapshot: dict[str, Any]) -> float:
+    account_type = str(account_snapshot.get('account_type') or '').lower()
+    if account_type == 'cash':
+        for key in ('cash_available', 'total_cash', 'stock_buying_power', 'option_buying_power'):
+            value = account_snapshot.get(key)
+            if value is not None:
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    continue
+        return 0.0
+
     for key in ('option_buying_power', 'stock_buying_power', 'total_cash'):
         value = account_snapshot.get(key)
         if value is not None:
@@ -54,6 +65,8 @@ def evaluate_intent(intent: ExecutionIntent, account_snapshot: dict[str, Any], m
         'qty_within_cap': intent.qty <= policy['max_qty'],
         'time_in_force_day_only': intent.time_in_force == 'day',
         'account_ready_flag': bool(account_snapshot.get('ready_for_options_execution', True)),
+        'account_type': account_snapshot.get('account_type'),
+        'cash_account_day_trading_mode': bool(account_snapshot.get('cash_account_day_trading_mode', False)),
         'open_positions_count': len(open_positions or []),
     }
 
@@ -72,6 +85,9 @@ def evaluate_intent(intent: ExecutionIntent, account_snapshot: dict[str, Any], m
         checks['estimated_notional'] = notional
         if notional > policy['max_notional']:
             reasons.append(f'estimated notional {notional:.2f} exceeds max {policy["max_notional"]:.2f} for mode {intent.mode}')
+
+    if checks['cash_account_day_trading_mode'] and intent.strategy_type not in {'long_call', 'long_put'}:
+        reasons.append('cash-account automation only allows long single-leg options')
 
     buying_power = _extract_option_buying_power(account_snapshot)
     checks['buying_power_reference'] = buying_power
