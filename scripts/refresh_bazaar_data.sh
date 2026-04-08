@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bazaar Data Refresh Script
-# Runs Tradier board generation and snapshot build
+# Runs Tradier board generation, snapshot build, and autonomous entry trigger
 
 set -e
 
@@ -20,8 +20,14 @@ python3 scripts/tradier_ticket_formatter.py
 
 # Build snapshot (if build script exists)
 if [ -f "dashboard/scripts/build_snapshot.py" ]; then
-    echo "[3/3] Building snapshot..."
+    echo "[3/4] Building snapshot..."
     python3 dashboard/scripts/build_snapshot.py
+fi
+
+# Attempt autonomous Tradier entry
+if [ -f "scripts/tradier_auto_trade.py" ]; then
+    echo "[4/4] Running autonomous Tradier entry..."
+    python3 scripts/tradier_auto_trade.py --mode cash_day_trade --live || true
 fi
 
 echo "=== REFRESH COMPLETE ==="
