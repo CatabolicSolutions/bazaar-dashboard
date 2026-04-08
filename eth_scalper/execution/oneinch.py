@@ -2,11 +2,11 @@
 import requests
 import time
 from typing import Optional, Dict
-from config.settings import INCH_API_KEY, rate_limiter, WALLET_ADDRESS
+from config.settings import INCH_API_KEY, rate_limiter, WALLET_ADDRESS, CHAIN_ID
 
 class OneInchClient:
     def __init__(self):
-        self.base_url = 'https://api.1inch.dev/swap/v5.2/1'
+        self.base_url = f'https://api.1inch.dev/swap/v5.2/{CHAIN_ID}'
         self.headers = {
             'Authorization': f'Bearer {INCH_API_KEY}',
             'Content-Type': 'application/json'
@@ -148,8 +148,8 @@ class OneInchClient:
         """Estimate gas cost in ETH"""
         try:
             gas = int(quote.get('estimatedGas', 150000))
-            # Assume 20 gwei for estimation
-            gas_cost_eth = (gas * 20 * 1e9) / 1e18
+            # Base gas is much lower than mainnet, use 0.1 gwei default estimate
+            gas_cost_eth = (gas * 0.1 * 1e9) / 1e18
             return gas_cost_eth
         except:
             return None

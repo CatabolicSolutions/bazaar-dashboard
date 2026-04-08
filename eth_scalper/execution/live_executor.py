@@ -2,14 +2,14 @@
 import requests
 import time
 from typing import Optional, Dict
-from config.settings import INCH_API_KEY, WALLET_ADDRESS, MAX_SLIPPAGE_PERCENT
+from config.settings import INCH_API_KEY, WALLET_ADDRESS, PRIVATE_KEY, MAX_SLIPPAGE_PERCENT, BASE_RPC_URL, CHAIN_ID
 from config.logger import logger
 
 class LiveExecutor:
     """Execute real trades on 1inch"""
     
     def __init__(self):
-        self.base_url = 'https://api.1inch.dev/swap/v5.2/1'
+        self.base_url = f'https://api.1inch.dev/swap/v5.2/{CHAIN_ID}'
         self.headers = {
             'Authorization': f'Bearer {INCH_API_KEY}',
             'Content-Type': 'application/json'
@@ -92,7 +92,6 @@ class LiveExecutor:
             return False
         
         # Validate destination is 1inch router
-        # This is a safety check
         if not tx['to'].startswith('0x'):
             logger.error(f"Invalid to address: {tx['to']}")
             return False
@@ -101,45 +100,92 @@ class LiveExecutor:
     
     def execute_swap(self, swap_data: Dict) -> Optional[str]:
         """
-        Execute a swap transaction
+        Execute a swap transaction - FULLY AUTOMATED
         
-        NOTE: This requires a private key which we don't have.
-        In production, this would:
-        1. Sign the transaction with private key
-        2. Send via Alchemy/eth_sendRawTransaction
-        3. Return tx hash
-        
-        For now, we return the tx data for manual execution
+        Signs the transaction with private key and broadcasts via Alchemy
         """
         if not self.validate_swap(swap_data):
             return None
         
         tx = swap_data['tx']
         
-        # Log the transaction for manual execution
-        logger.info(
-            "SWAP READY FOR EXECUTION",
-            extra={
-                'type': 'swap_ready',
-                'data': {
-                    'to': tx['to'],
-                    'value': tx['value'],
-                    'gas': tx['gas'],
-                    'data': tx['data'][:100] + '...'  # Truncate for log
-                }
+        try:
+            from eth_account import Account
+            from web3 import Web3
+            
+            # Initialize Web3 with Base RPC
+            w3 = Web3(Web3.HTTPProvider(BASE_RPC_URL))
+            
+            if not w3.is_connected():
+                logger.error("Failed to connect to Ethereum node")
+                return None
+            
+            # Create account from private key
+            account = Account.from_key(PRIVATE_KEY)
+            
+            # Verify address matches
+            if account.address.lower() != WALLET_ADDRESS.lower():
+                logger.error(f"Private key address mismatch: {account.address} != {WALLET_ADDRESS}")
+                return None
+            
+            # Build transaction
+            transaction = {
+                'to': tx['to'],
+                'data': tx['data'],
+                'value': int(tx['value']),
+                'gas': int(tx['gas']),
+                'gasPrice': int(tx.get('gasPrice', w3.eth.gas_price)),
+                'nonce': w3.eth.get_transaction_count(WALLET_ADDRESS),
+                'chainId': CHAIN_ID
             }
-        )
-        
-        # Return tx hash would go here after signing
-        # For now return placeholder
-        return f"pending_{int(time.time())}"
+            
+            # Sign transaction
+            signed_tx = account.sign_transaction(transaction)
+            
+            # Send transaction
+            tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            tx_hash_hex = tx_hash.hex()
+            
+            logger.info(
+                "SWAP EXECUTED",
+                extra={
+                    'type': 'swap_executed',
+                    'data': {
+                        'tx_hash': tx_hash_hex,
+                        'to': tx['to'],
+                        'value': tx['value'],
+                        'gas': tx['gas']
+                    }
+                }
+            )
+            
+            return tx_hash_hex
+            
+        except Exception as e:
+            logger.error(f"Transaction execution failed: {e}")
+            return None
     
-    def check_allowance(self, token: str) -> Optional[int]:
-        """Check token allowance for 1inch router"""
-        # This would check if token is approved for spending
-        # For ETH (native), no approval needed
-        # For USDC, would need to check allowance
-        pass
+    def check_transaction_status(self, tx_hash: str) -> Optional[Dict]:
+        """Check if a transaction has been confirmed"""
+        try:
+            from web3 import Web3
+            w3 = Web3(Web3.HTTPProvider(BASE_RPC_URL))
+            
+            receipt = w3.eth.get_transaction_receipt(tx_hash)
+            
+            if receipt:
+                return {
+                    'confirmed': True,
+                    'status': 'success' if receipt['status'] == 1 else 'failed',
+                    'block_number': receipt['blockNumber'],
+                    'gas_used': receipt['gasUsed']
+                }
+            else:
+                return {'confirmed': False}
+                
+        except Exception as e:
+            logger.error(f"Failed to check transaction status: {e}")
+            return None
 
 # Global instance
 live_executor = LiveExecutor()

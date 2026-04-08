@@ -1,7 +1,7 @@
 """Wallet monitor - fetches wallet balances from configured RPC providers"""
 import requests
 from typing import Optional, Dict, List
-from config.settings import ALCHEMY_URL, WALLET_ADDRESS, USDC_ADDRESS
+from config.settings import ALCHEMY_URL, BASE_RPC_URL, WALLET_ADDRESS, USDC_ADDRESS
 
 class WalletMonitor:
     """Monitor wallet balances via one or more Ethereum RPC providers"""
@@ -9,9 +9,9 @@ class WalletMonitor:
     def __init__(self):
         self.wallet_address = WALLET_ADDRESS
         self.rpc_urls: List[str] = [url for url in [
+            BASE_RPC_URL,
             ALCHEMY_URL,
-            'https://ethereum-rpc.publicnode.com',
-            'https://rpc.flashbots.net',
+            'https://base-rpc.publicnode.com',
         ] if url]
 
     def _rpc_call(self, method: str, params: list) -> Optional[dict]:

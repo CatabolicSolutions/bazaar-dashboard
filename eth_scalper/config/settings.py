@@ -5,10 +5,13 @@ from dotenv import load_dotenv
 # Load .env file
 load_dotenv()
 
-# API Keys
+# RPC / API
 INCH_API_KEY = os.getenv('1INCH_API_KEY')
 ALCHEMY_API_KEY = os.getenv('ALCHEMY_API_KEY')
 ALCHEMY_URL = os.getenv('ALCHEMY_URL')
+BASE_RPC_URL = os.getenv('BASE_RPC_URL', 'https://mainnet.base.org')
+CHAIN_ID = int(os.getenv('CHAIN_ID', '8453'))
+CHAIN_NAME = os.getenv('CHAIN_NAME', 'base')
 
 # Wallet
 WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
@@ -48,8 +51,8 @@ HOLD_TIME_MAX_SECONDS = 300  # 5 minutes
 
 # Tokens
 ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
-USDC_ADDRESS = '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+WETH_ADDRESS = os.getenv('WETH_ADDRESS', '0x4200000000000000000000000000000000000006')
+USDC_ADDRESS = os.getenv('USDC_ADDRESS', '0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913')
 
 # Validate required config
 def validate_config():
@@ -58,6 +61,7 @@ def validate_config():
         '1INCH_API_KEY': INCH_API_KEY,
         'ALCHEMY_API_KEY': ALCHEMY_API_KEY,
         'ALCHEMY_URL': ALCHEMY_URL,
+        'BASE_RPC_URL': BASE_RPC_URL,
         'WALLET_ADDRESS': WALLET_ADDRESS,
         'PRIVATE_KEY': PRIVATE_KEY,
     }

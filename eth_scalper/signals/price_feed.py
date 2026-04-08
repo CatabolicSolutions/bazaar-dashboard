@@ -1,8 +1,8 @@
-"""Price feed from Alchemy and other sources"""
+"""Price feed from market APIs and Base RPC gas data"""
 import requests
 import time
 from typing import Optional, Dict
-from config.settings import ALCHEMY_URL, rate_limiter
+from config.settings import BASE_RPC_URL, rate_limiter
 
 class PriceFeed:
     def __init__(self):
@@ -75,7 +75,8 @@ class PriceFeed:
             if 'price' in data:
                 return float(data['price'])
             else:
-                print(f"Binance response missing price: {data}")
+                # Suppress restricted location noise
+                # print(f"Binance response missing price: {data}")
                 return None
         except Exception as e:
             print(f"Error fetching Binance price: {e}")
@@ -158,7 +159,7 @@ class PriceFeed:
         """Get current gas price in gwei"""
         try:
             response = requests.post(
-                ALCHEMY_URL,
+                BASE_RPC_URL,
                 json={
                     'jsonrpc': '2.0',
                     'method': 'eth_gasPrice',
