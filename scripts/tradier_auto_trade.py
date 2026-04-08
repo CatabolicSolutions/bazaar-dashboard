@@ -45,35 +45,35 @@ def main() -> int:
 
     tickets = load_tickets()
     if not tickets:
-        print(json.dumps({'ok': False, 'status': 'no_trade', 'reason': 'NO TRADE — no parsed ticket candidates available'}))
+        print(json.dumps({'ok': False, 'status': 'no_trade', 'reason': 'NO TRADE — no parsed ticket candidates available'}), flush=True)
         return 1
 
     candidate = select_candidate(tickets)
     if not candidate:
-        print(json.dumps({'ok': False, 'status': 'no_trade', 'reason': 'NO TRADE — no candidate selected'}))
+        print(json.dumps({'ok': False, 'status': 'no_trade', 'reason': 'NO TRADE — no candidate selected'}), flush=True)
         return 1
 
     service = TradierExecutionService()
     limit_price = candidate.get('mid_price') or candidate.get('ask') or candidate.get('last_price')
     if limit_price is None:
-        print(json.dumps({'ok': False, 'status': 'no_trade', 'reason': 'NO TRADE — stale or degraded data'}))
+        print(json.dumps({'ok': False, 'status': 'no_trade', 'reason': 'NO TRADE — stale or degraded data'}), flush=True)
         return 1
 
     intent = service.create_intent_from_leader(candidate, mode=args.mode, qty=args.qty, limit_price=float(limit_price), notes='auto-trade runner')
     decision = service.evaluate_risk(intent, mark_price=float(limit_price))
     if not decision.get('allowed'):
-        print(json.dumps({'ok': False, 'status': 'rejected', 'decision': decision}, indent=2))
+        print(json.dumps({'ok': False, 'status': 'rejected', 'decision': decision}, indent=2), flush=True)
         return 2
 
     ready = service.mark_intent_ready(intent, readiness_reason='Passed autonomous decision gates')
     preview = service.preview_intent(ready)
 
     if not args.live:
-        print(json.dumps({'ok': True, 'status': 'preview_only', 'intent': ready, 'decision': decision, 'preview': preview}, indent=2))
+        print(json.dumps({'ok': True, 'status': 'preview_only', 'intent': ready, 'decision': decision, 'preview': preview}, indent=2), flush=True)
         return 0
 
     committed = service.record_commit(ready, note='Auto-submitted by tradier_auto_trade')
-    print(json.dumps({'ok': True, 'status': 'submitted', 'intent': committed, 'decision': decision, 'preview': preview}, indent=2))
+    print(json.dumps({'ok': True, 'status': 'submitted', 'intent': committed, 'decision': decision, 'preview': preview}, indent=2), flush=True)
     return 0
 
 

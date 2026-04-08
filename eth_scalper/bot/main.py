@@ -261,11 +261,14 @@ class ETHScalper:
         size_usd = min(MAX_POSITION_USD, max(25.0, wallet.get('estimated_total_usd', 0.0) * 0.4))
 
         if not PAPER_TRADING_MODE:
-            estimated_eth_needed = size_usd / signal['price']
-            if wallet.get('eth', 0.0) < estimated_eth_needed:
-                print(f"   ❌ Live wallet underfunded for entry: need ~{estimated_eth_needed:.4f} ETH, have {wallet.get('eth', 0.0):.4f} ETH")
+            eth_balance_usd = wallet.get('eth', 0.0) * signal['price']
+            usdc_balance = wallet.get('usdc', 0.0)
+            funded_side = 'ETH' if eth_balance_usd >= size_usd else ('USDC' if usdc_balance >= size_usd else None)
+            if funded_side is None:
+                print(f"   ❌ Live wallet underfunded for entry: need ${size_usd:.2f}, have ~${eth_balance_usd:.2f} ETH and ${usdc_balance:.2f} USDC")
                 state_manager.log_signal(signal, executed=False, reason="wallet_underfunded")
                 return
+            signal['funded_side'] = funded_side
 
         # Log the signal as executed
         state_manager.log_signal(signal, executed=True, reason="passed_all_checks")
@@ -298,13 +301,18 @@ class ETHScalper:
     
     async def _execute_live_trade(self, position):
         """Execute live trade on-chain"""
-        from_token = ETH_ADDRESS
-        to_token = USDC_ADDRESS
-
-        amount_eth = position.size_usd / max(position.entry_price, 1)
-        amount_wei = int(amount_eth * 1e18)
-
-        print(f"   🔄 Getting swap quote for {amount_eth:.6f} ETH...")
+        funded_side = position.signal.get('funded_side', 'ETH')
+        if funded_side == 'USDC':
+            from_token = USDC_ADDRESS
+            to_token = ETH_ADDRESS
+            amount_wei = int(position.size_usd * 1e6)
+            print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC...")
+        else:
+            from_token = ETH_ADDRESS
+            to_token = USDC_ADDRESS
+            amount_eth = position.size_usd / max(position.entry_price, 1)
+            amount_wei = int(amount_eth * 1e18)
+            print(f"   🔄 Getting swap quote for {amount_eth:.6f} ETH...")
         
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
