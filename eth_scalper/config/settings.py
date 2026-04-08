@@ -12,6 +12,7 @@ ALCHEMY_URL = os.getenv('ALCHEMY_URL')
 
 # Wallet
 WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
+PRIVATE_KEY = os.getenv('PRIVATE_KEY')
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -26,12 +27,16 @@ PAPER_TRADING_MODE = os.getenv('PAPER_TRADING_MODE', 'true').lower() == 'true'
 # Rate Limits
 MAX_INCH_REQUESTS_PER_DAY = 900  # Buffer below 1000 limit
 
-# Signal Thresholds
-MIN_PRICE_MOVEMENT_PCT = 0.4  # 0.4% in 60 seconds
-MAX_GAS_GWEI = 30
-MIN_PROFIT_PCT = 0.5  # After gas costs
-MIN_PROFIT_AFTER_GAS_PERCENT = 0.3  # Minimum viable trade
-MIN_SIGNAL_SCORE = 7  # Out of 10
+# Signal Thresholds - ADJUSTED FOR MORE FREQUENT TRADES
+MIN_PRICE_MOVEMENT_PCT = 0.15  # 0.15% in 60 seconds (was 0.4%)
+MAX_GAS_GWEI = 50  # Increased from 30
+MIN_PROFIT_PCT = 0.3  # After gas costs (was 0.5%)
+MIN_PROFIT_AFTER_GAS_PERCENT = 0.15  # Minimum viable trade (was 0.3%)
+MIN_SIGNAL_SCORE = 5  # Out of 10 (was 7)
+
+# Status Reporting
+STATUS_HEARTBEAT_MINUTES = 5  # Send status update every N minutes
+PRICE_ALERT_THRESHOLD = 0.5  # Alert on 0.5% moves even if not trading
 
 # Execution Parameters
 MAX_SLIPPAGE_PERCENT = 0.5
@@ -43,7 +48,8 @@ HOLD_TIME_MAX_SECONDS = 300  # 5 minutes
 
 # Tokens
 ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-USDC_ADDRESS = '0xA0b86a33E6441e0A421e56E4773C3C4b0Db7E5b0'
+WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+USDC_ADDRESS = '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
 
 # Validate required config
 def validate_config():
@@ -53,6 +59,7 @@ def validate_config():
         'ALCHEMY_API_KEY': ALCHEMY_API_KEY,
         'ALCHEMY_URL': ALCHEMY_URL,
         'WALLET_ADDRESS': WALLET_ADDRESS,
+        'PRIVATE_KEY': PRIVATE_KEY,
     }
     
     missing = [k for k, v in required.items() if not v]
