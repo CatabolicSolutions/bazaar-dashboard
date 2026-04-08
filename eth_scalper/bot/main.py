@@ -318,7 +318,7 @@ class ETHScalper:
         if tx_hash:
             position.tx_hash = tx_hash
             print(f"   ✅ SWAP EXECUTED: {tx_hash}")
-            print(f"   🔗 View on Etherscan: https://etherscan.io/tx/{tx_hash}")
+            print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
             
             # Monitor the trade
             asyncio.create_task(self._monitor_live_position(position))

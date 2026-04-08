@@ -101,6 +101,7 @@ class StateManager:
                 'target_price': pos.target_price,
                 'stop_price': pos.stop_price,
                 'size_usd': pos.size_usd,
+                'size': pos.size_usd,
                 'status': pos.status.value,
                 'entry_time': pos.entry_time,
                 'tx_hash': pos.tx_hash,
