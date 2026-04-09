@@ -37,7 +37,7 @@ class RiskManager:
             return False, f"Open position exists: {pair}"
         
         # Check capital availability
-        used_capital = sum(p['size'] for p in self.open_positions.values())
+        used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
         available = INITIAL_CAPITAL_USD - used_capital
         
         if available < MAX_POSITION_USD:
@@ -127,7 +127,7 @@ class RiskManager:
     
     def get_status(self) -> Dict:
         """Get current risk status"""
-        used_capital = sum(p['size'] for p in self.open_positions.values())
+        used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
         
         return {
             'daily_pnl': self.daily_pnl,

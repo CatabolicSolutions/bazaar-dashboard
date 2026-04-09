@@ -18,16 +18,60 @@ DEFAULT_RAW_DIR = ROOT / 'out' / 'tradier_runs'
 def latest_raw_run() -> Path | None:
     if not DEFAULT_RAW_DIR.exists():
         return None
-    files = sorted(DEFAULT_RAW_DIR.glob('*_raw.txt'))
+    patterns = ['*_raw.txt', '*.raw.txt', '*raw*.txt']
+    files = []
+    for pattern in patterns:
+        files.extend(DEFAULT_RAW_DIR.glob(pattern))
+    files = sorted(set(files))
     return files[-1] if files else None
 
 
 def load_tickets() -> list[dict[str, Any]]:
     raw_path = latest_raw_run()
     if raw_path and raw_path.exists():
-        return parse_raw_tickets(raw_path.read_text(encoding='utf-8'))
+        tickets = parse_raw_tickets(raw_path.read_text(encoding='utf-8'))
+        if tickets:
+            return tickets
     if DEFAULT_BOARD.exists():
-        return []
+        board_text = DEFAULT_BOARD.read_text(encoding='utf-8')
+        try:
+            lines = [line.strip() for line in board_text.splitlines() if line.strip()]
+            tickets = []
+            current_strategy = 'Scalping Buy'
+            for line in lines:
+                if 'Premium / Credit Leaders' in line:
+                    current_strategy = 'Credit'
+                    continue
+                if not line[:2].isdigit() and not (line[0].isdigit() and line[1] == '.'):
+                    continue
+                parts = [p.strip() for p in line.split('|')]
+                if len(parts) < 6:
+                    continue
+                rank_symbol = parts[0]
+                symbol_bits = rank_symbol.split('.', 1)[-1].strip().split()
+                symbol = symbol_bits[0]
+                option_type = symbol_bits[1] if len(symbol_bits) > 1 else 'CALL'
+                underlying = float(parts[1].replace('Underlying', '').strip())
+                strike = float(parts[2].replace('Strike', '').strip())
+                expiration = parts[3].replace('Exp', '').strip()
+                bid_ask = parts[5].replace('Bid/Ask', '').strip().split('/')
+                bid = float(bid_ask[0])
+                ask = float(bid_ask[1])
+                tickets.append({
+                    'symbol': symbol,
+                    'option_type': option_type.lower(),
+                    'underlying_price': underlying,
+                    'strike': strike,
+                    'expiration': expiration,
+                    'bid': bid,
+                    'ask': ask,
+                    'mid_price': round((bid + ask) / 2, 2),
+                    'strategy': 'Scalping Buy' if current_strategy != 'Credit' else 'Credit',
+                    'contract': f"{symbol} {strike} {option_type.upper()} {expiration}",
+                })
+            return tickets
+        except Exception:
+            return []
     return []
 
 
