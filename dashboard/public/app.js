@@ -3233,6 +3233,47 @@ function renderGapCard(gap) {
   `;
 }
 
+function renderBotMonitorFromSnapshot() {
+  const container = document.getElementById('analyticsSummary');
+  const snapshot = currentSnapshot || {};
+  const bloc = snapshot.blocStatus || {};
+  const desk = snapshot.tradingDeskStatus || {};
+  const autonomy = snapshot.autonomyMonitor || {};
+  if (!container) return;
+  container.innerHTML = `
+    <div class="analytics-grid bot-monitor-grid">
+      <div class="analytics-item bot-monitor-card wide">
+        <div class="analytics-label">Bloc Status</div>
+        <div class="bot-monitor-line"><strong>Mode:</strong> ${escapeHtml(bloc.mode || '--')}</div>
+        <div class="bot-monitor-line"><strong>Funded Side:</strong> ${escapeHtml(bloc.fundedSide || '--')}</div>
+        <div class="bot-monitor-line"><strong>Wallet:</strong> ${Number(bloc.wallet?.eth || 0).toFixed(4)} ETH / $${Number(bloc.wallet?.usdc || 0).toFixed(2)} USDC</div>
+        <div class="bot-monitor-line"><strong>Last Action:</strong> ${escapeHtml(bloc.lastAction?.reason || bloc.lastAction?.type || '--')}</div>
+        <div class="bot-monitor-line"><strong>Active Position:</strong> ${escapeHtml(bloc.activePosition?.id || 'none')}</div>
+        <div class="bot-monitor-line"><strong>Next:</strong> ${escapeHtml(bloc.nextExpectedAction || '--')}</div>
+      </div>
+      <div class="analytics-item bot-monitor-card wide">
+        <div class="analytics-label">Trading Desk Status</div>
+        <div class="bot-monitor-line"><strong>Candidate:</strong> ${escapeHtml(desk.lastEvaluatedCandidate?.symbol || '--')}</div>
+        <div class="bot-monitor-line"><strong>Decision:</strong> ${escapeHtml(desk.decisionResult || '--')}</div>
+        <div class="bot-monitor-line"><strong>Contract:</strong> ${escapeHtml(desk.decisionCard?.contract || '--')}</div>
+        <div class="bot-monitor-line"><strong>Confidence:</strong> ${escapeHtml(String(desk.decisionCard?.confidence ?? '--'))}</div>
+        <div class="bot-monitor-line"><strong>Rejection:</strong> ${escapeHtml(desk.rejectionReason || '--')}</div>
+        <div class="bot-monitor-line"><strong>Preview:</strong> ${escapeHtml(desk.previewState?.response?.order?.status || '--')}</div>
+        <div class="bot-monitor-line"><strong>Live:</strong> ${escapeHtml(desk.liveOrderState?.response?.order?.status || '--')}</div>
+      </div>
+      <div class="analytics-item bot-monitor-card wide">
+        <div class="analytics-label">Autonomy Monitor</div>
+        <div class="bot-monitor-line"><strong>Last Cycle:</strong> ${escapeHtml(autonomy.lastCycleRun || '--')}</div>
+        <div class="bot-monitor-line"><strong>Next Cycle:</strong> ${escapeHtml(autonomy.nextCycle || '--')}</div>
+        <div class="bot-monitor-line"><strong>Heartbeat:</strong> Bloc ${escapeHtml(autonomy.heartbeat?.bloc || '--')} / Desk ${escapeHtml(autonomy.heartbeat?.tradingDesk || '--')}</div>
+        <div class="bot-monitor-line"><strong>Last Success:</strong> ${escapeHtml(typeof autonomy.lastSuccessfulAction === 'string' ? autonomy.lastSuccessfulAction : JSON.stringify(autonomy.lastSuccessfulAction || '--'))}</div>
+        <div class="bot-monitor-line"><strong>Last Failure:</strong> ${escapeHtml(typeof autonomy.lastFailure === 'string' ? autonomy.lastFailure : JSON.stringify(autonomy.lastFailure || '--'))}</div>
+        <div class="bot-monitor-line"><strong>Automation:</strong> Bloc ${autonomy.automationEnabled?.bloc ? 'ON' : 'OFF'} / Desk ${autonomy.automationEnabled?.tradingDesk ? 'ON' : 'OFF'}</div>
+      </div>
+    </div>
+  `;
+}
+
 async function queueGap(symbol, direction) {
   // Add to execution queue for market open
   try {
@@ -3299,6 +3340,10 @@ async function updateAnalytics() {
   
   const container = document.getElementById('analyticsSummary');
   if (!container || !analytics) return;
+  if (currentSnapshot?.blocStatus || currentSnapshot?.tradingDeskStatus) {
+    renderBotMonitorFromSnapshot();
+    return;
+  }
   
   if (analytics.total_trades === 0) {
     container.innerHTML = '<div class="analytics-empty">No trades yet. Execute a trade to see analytics.</div>';
@@ -3358,7 +3403,29 @@ async function updateAnalytics() {
 // Render journal entries
 function renderJournalEntries() {
   const container = document.getElementById('journalEntries');
-  if (!container || !journalData) return;
+  const operatorJournal = currentSnapshot?.operatorJournal || [];
+  if (!container) return;
+  
+  if (operatorJournal.length > 0) {
+    container.innerHTML = `
+      <div class="journal-list">
+        ${operatorJournal.slice().reverse().map(entry => `
+          <div class="journal-item ${escapeHtml(entry.kind || 'event')}">
+            <div class="journal-main">
+              <span class="journal-symbol">${escapeHtml(entry.system || '--')}</span>
+              <span class="journal-contract">${escapeHtml(entry.kind || 'event')}</span>
+              <span class="journal-pnl muted">${escapeHtml(entry.ts || '--')}</span>
+            </div>
+            <div class="journal-details">
+              <span>${escapeHtml(entry.summary || '--')}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    return;
+  }
+  if (!journalData) return;
   
   if (journalData.length === 0) {
     container.innerHTML = '<div class="journal-empty">No trades recorded yet.</div>';
