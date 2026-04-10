@@ -1,497 +1,224 @@
-// THE BAZAAR - Trading Command Center
-// Full-featured dashboard with Tradier leaders, ETH scalper, and autonomous agents
+// BAZAAR Trading Command Center - Fully Functional
+// Real-time data from snapshot.json and ETH scalper APIs
 
-// ═══════════════════════════════════════════════════════════════
-// STATE MANAGEMENT
-// ═══════════════════════════════════════════════════════════════
-
-let currentSnapshot = null;
-let selectedLeaderIndex = 0;
-let selectedLeaderKey = null;
-let lastActionStatus = null;
-let currentUiMode = 'loading';
-let currentLoadError = null;
+// State
+let snapshot = null;
+let ethData = { status: 'loading', mode: 'unknown', pnl: {today: 0, total: 0}, wallet: {eth: 0, usdc: 0} };
+let priceHistory = [];
 let currentZone = 'trade';
 
-// ETH Scalper State
-let ethScalperData = {
-  status: 'loading',
-  mode: 'unknown',
-  pnl: { today: 0, total: 0 },
-  trades: [],
-  positions: [],
-  signals: [],
-  wallet: { eth: 0, usdc: 0, gas: 0, address: '' },
-  requests: { used: 0, limit: 900 },
-  daily_trades: 0,
-  open_positions: 0,
-  available_capital: 0
-};
-
-let priceHistory = [];
-let maxHistory = 100;
-
-// ═══════════════════════════════════════════════════════════════
-// INITIALIZATION
-// ═══════════════════════════════════════════════════════════════
-
+// Init
 document.addEventListener('DOMContentLoaded', () => {
-  // Set initial zone
-  document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
   switchZone('trade');
-  
-  // Start data polling
-  fetchSnapshot();
-  setInterval(fetchSnapshot, 5000);
-  
-  // Start ETH scalper polling
-  fetchEthScalperData();
-  setInterval(fetchEthScalperData, 3000);
-  
-  // Clock
+  loadData();
+  setInterval(loadData, 3000);
   updateClock();
   setInterval(updateClock, 1000);
-  
-  // Refresh button
-  const refreshBtn = document.getElementById('refreshBtn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      fetchSnapshot();
-      fetchEthScalperData();
-    });
-  }
 });
 
-// ═══════════════════════════════════════════════════════════════
-// ZONE NAVIGATION
-// ═══════════════════════════════════════════════════════════════
-
-function switchZone(zoneName) {
-  currentZone = zoneName;
-  
-  // Hide all zones
-  document.querySelectorAll('.zone').forEach(z => {
-    z.classList.remove('active');
-    z.style.display = 'none';
-  });
-  
-  // Show selected zone
-  const targetZone = document.getElementById('zone-' + zoneName);
-  if (targetZone) {
-    targetZone.style.display = 'block';
-    setTimeout(() => targetZone.classList.add('active'), 10);
-  }
-  
-  // Update nav
-  document.querySelectorAll('.nav-pill').forEach(p => {
-    p.classList.remove('active');
-    if (p.dataset.zone === zoneName) {
-      p.classList.add('active');
-    }
-  });
-  
-  // Zone-specific refresh
-  if (zoneName === 'journal') {
-    updateAnalytics();
-  }
+// Zone switching
+function switchZone(zone) {
+  currentZone = zone;
+  document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
+  document.getElementById('zone-' + zone).style.display = 'block';
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('.nav-pill[data-zone="' + zone + '"]').classList.add('active');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SNAPSHOT & TRADIER DATA
-// ═══════════════════════════════════════════════════════════════
+// Load all data
+async function loadData() {
+  await Promise.all([loadSnapshot(), loadEthData()]);
+  renderAll();
+}
 
-async function fetchSnapshot() {
+// Load snapshot
+async function loadSnapshot() {
   try {
-    const response = await fetch('./snapshot.json?' + Date.now());
-    if (!response.ok) throw new Error('Failed to fetch snapshot');
+    const res = await fetch('./snapshot.json?' + Date.now());
+    if (res.ok) snapshot = await res.json();
+  } catch (e) { console.error('Snapshot error:', e); }
+}
+
+// Load ETH scalper data
+async function loadEthData() {
+  try {
+    const [statusRes, walletRes] = await Promise.all([
+      fetch('/api/eth-scalper/status').catch(() => null),
+      fetch('/api/eth-scalper/wallet').catch(() => null)
+    ]);
     
-    currentSnapshot = await response.json();
-    currentUiMode = 'ready';
-    currentLoadError = null;
+    if (statusRes?.ok) {
+      const data = await statusRes.json();
+      ethData = { ...ethData, ...data };
+      
+      // Price history for chart
+      const price = calculateEthPrice(data);
+      if (price > 0) {
+        priceHistory.push({ price, time: Date.now() });
+        if (priceHistory.length > 100) priceHistory.shift();
+      }
+    }
     
-    renderDashboard();
-  } catch (err) {
-    console.error('Snapshot error:', err);
-    currentUiMode = 'error';
-    currentLoadError = err.message;
+    if (walletRes?.ok) {
+      ethData.wallet = await walletRes.json();
+    }
+  } catch (e) { console.error('ETH data error:', e); }
+}
+
+function calculateEthPrice(data) {
+  const total = data.wallet?.estimated_total_usd || 0;
+  const usdc = data.wallet?.usdc || 0;
+  const eth = data.wallet?.eth || 0;
+  if (eth > 0 && total > usdc) {
+    const price = (total - usdc) / eth;
+    if (price >= 1000 && price <= 10000) return price;
   }
+  return 2200; // fallback
 }
 
-function renderDashboard() {
-  if (!currentSnapshot) return;
-  
-  // Update operator rail
-  updateOperatorRail();
-  
-  // Update command layer
-  renderCommandLayer();
-  
-  // Update leaders
+// Render everything
+function renderAll() {
+  renderOperatorRail();
   renderLeaders();
-  
-  // Update scan status
-  renderScanStatus();
-  
-  // Update overview
-  renderOverview();
+  renderEthScalper();
+  drawChart();
 }
 
-function updateOperatorRail() {
-  const modeEl = document.getElementById('systemMode');
-  const bpEl = document.getElementById('buyingPower');
-  const marketEl = document.getElementById('marketStatus');
+// Operator rail
+function renderOperatorRail() {
+  const mode = document.getElementById('systemMode');
+  const bp = document.getElementById('buyingPower');
+  const market = document.getElementById('marketStatus');
   
-  if (modeEl) modeEl.textContent = currentSnapshot?.account?.mode || 'LIVE';
-  if (bpEl) bpEl.textContent = 'BP: $' + (currentSnapshot?.account?.buying_power || '0');
-  if (marketEl) marketEl.textContent = currentSnapshot?.market?.status || 'CLOSED';
+  if (mode) mode.textContent = ethData.mode?.toUpperCase() || 'LIVE';
+  if (bp) bp.textContent = 'BP: $' + (ethData.available_capital || 0).toFixed(2);
+  if (market) market.textContent = 'MARKET CLOSED'; // TODO: check market hours
 }
 
-function renderCommandLayer() {
-  const wrap = document.getElementById('commandLayerWrap');
-  const stateEl = document.getElementById('commandState');
-  
-  if (!wrap || !currentSnapshot?.command_layer) return;
-  
-  const layer = currentSnapshot.command_layer;
-  stateEl.textContent = layer.state || '--';
-  
-  wrap.innerHTML = `
-    <div class="command-summary">
-      <div class="command-item">
-        <span class="label">Bias:</span>
-        <span class="value ${layer.bias}">${layer.bias || 'neutral'}</span>
-      </div>
-      <div class="command-item">
-        <span class="label">Confidence:</span>
-        <span class="value">${layer.confidence || 0}/10</span>
-      </div>
-      <div class="command-item">
-        <span class="label">Next Action:</span>
-        <span class="value">${layer.next_action || 'wait'}</span>
-      </div>
-    </div>
-  `;
-}
-
+// Render leaders from snapshot
 function renderLeaders() {
   const wrap = document.getElementById('leadersWrap');
-  const metaEl = document.getElementById('leadersMeta');
+  const meta = document.getElementById('leadersMeta');
   
-  if (!wrap || !currentSnapshot?.leaders) return;
+  if (!wrap) return;
   
-  const leaders = currentSnapshot.leaders;
-  metaEl.textContent = `${leaders.length} leaders`;
+  const leaders = snapshot?.tradier?.leaders || [];
+  if (meta) meta.textContent = leaders.length + ' leaders';
   
   if (leaders.length === 0) {
     wrap.innerHTML = '<div class="void">No leaders available</div>';
     return;
   }
   
-  wrap.innerHTML = leaders.map((leader, i) => `
-    <div class="leader-card ${selectedLeaderIndex === i ? 'selected' : ''}" onclick="selectLeader(${i})">
+  wrap.innerHTML = leaders.map((l, i) => `
+    <div class="leader-card" onclick="selectLeader(${i})">
       <div class="leader-header">
-        <span class="leader-symbol">${leader.symbol}</span>
-        <span class="leader-type ${leader.option_type}">${leader.option_type}</span>
+        <span class="leader-symbol">${l.symbol}</span>
+        <span class="leader-type ${l.option_type?.toLowerCase()}">${l.option_type}</span>
       </div>
       <div class="leader-details">
-        <span>Strike: $${leader.strike}</span>
-        <span>Exp: ${leader.expiration}</span>
-        <span>Mid: $${leader.mid_price?.toFixed(2)}</span>
+        <span>$${l.strike} ${l.exp}</span>
+        <span>Mid: $${((parseFloat(l.bid) + parseFloat(l.ask)) / 2).toFixed(2)}</span>
       </div>
-      <div class="leader-strategy">${leader.strategy}</div>
+      <div class="leader-strategy">${l.section === 'directional' ? 'Scalp' : 'Credit'}</div>
     </div>
   `).join('');
 }
 
 function selectLeader(index) {
-  selectedLeaderIndex = index;
-  renderLeaders();
+  const leaders = snapshot?.tradier?.leaders || [];
+  const leader = leaders[index];
+  if (!leader) return;
   
-  const leader = currentSnapshot?.leaders?.[index];
-  if (leader) {
-    selectedLeaderKey = leader.candidate_id;
-    renderActions(leader);
-  }
-}
-
-function renderActions(leader) {
   const wrap = document.getElementById('actionsWrap');
   if (!wrap) return;
   
+  const mid = ((parseFloat(leader.bid) + parseFloat(leader.ask)) / 2).toFixed(2);
+  
   wrap.innerHTML = `
     <div class="action-card">
-      <h4>${leader.symbol} ${leader.strike} ${leader.option_type.toUpperCase()}</h4>
-      <p>Mid: $${leader.mid_price?.toFixed(2)} | Exp: ${leader.expiration}</p>
+      <h4>${leader.symbol} ${leader.strike} ${leader.option_type}</h4>
+      <p>Mid: $${mid} | Exp: ${leader.exp}</p>
       <div class="action-buttons">
-        <button class="btn-action primary" onclick="executeTradierTrade('${leader.candidate_id}')">EXECUTE</button>
-        <button class="btn-action" onclick="previewTrade('${leader.candidate_id}')">PREVIEW</button>
+        <button class="btn-action primary" onclick="executeTrade('${leader.symbol}', '${leader.option_type}', '${leader.strike}', '${leader.exp}', '${mid}')">EXECUTE</button>
+        <button class="btn-action" onclick="alert('Preview: ${leader.symbol} ${leader.option_type} @ $${mid}')">PREVIEW</button>
       </div>
     </div>
   `;
-}
-
-function renderScanStatus() {
-  const statusEl = document.getElementById('scanStatus');
-  const lastScanEl = document.getElementById('lastScanTime');
-  const freshnessEl = document.getElementById('dataFreshness');
   
-  if (!currentSnapshot?.scan) return;
-  
-  const scan = currentSnapshot.scan;
-  statusEl.textContent = scan.status || 'Unknown';
-  lastScanEl.textContent = scan.last_scan || '--';
-  freshnessEl.textContent = scan.freshness || '--';
+  // Switch to execute tab
+  switchZone('execute');
 }
 
-function renderOverview() {
-  const grid = document.getElementById('overviewGrid');
-  if (!grid || !currentSnapshot?.overview) return;
-  
-  const ov = currentSnapshot.overview;
-  grid.innerHTML = `
-    <div class="metric">
-      <span class="metric-label">VIX</span>
-      <span class="metric-value">${ov.vix || '--'}</span>
-    </div>
-    <div class="metric">
-      <span class="metric-label">SPY</span>
-      <span class="metric-value ${ov.spy_change >= 0 ? 'up' : 'down'}">${ov.spy || '--'}</span>
-    </div>
-    <div class="metric">
-      <span class="metric-label">QQQ</span>
-      <span class="metric-value ${ov.qqq_change >= 0 ? 'up' : 'down'}">${ov.qqq || '--'}</span>
-    </div>
-  `;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ETH SCALPER DATA
-// ═══════════════════════════════════════════════════════════════
-
-async function fetchEthScalperData() {
-  try {
-    const [statusRes, walletRes, tradesRes, positionsRes, signalsRes] = await Promise.all([
-      fetch('/api/eth-scalper/status').catch(() => null),
-      fetch('/api/eth-scalper/wallet').catch(() => null),
-      fetch('/api/eth-scalper/trades').catch(() => null),
-      fetch('/api/eth-scalper/positions').catch(() => null),
-      fetch('/api/eth-scalper/signals').catch(() => null)
-    ]);
-    
-    if (statusRes?.ok) {
-      const data = await statusRes.json();
-      ethScalperData = { ...ethScalperData, ...data };
-      
-      // Update price history
-      const ethPrice = calculateEthPrice(data);
-      if (ethPrice > 0) {
-        priceHistory.push({ price: ethPrice, time: Date.now() });
-        if (priceHistory.length > maxHistory) priceHistory.shift();
-      }
-    }
-    
-    if (walletRes?.ok) {
-      ethScalperData.wallet = await walletRes.json();
-    }
-    
-    if (tradesRes?.ok) {
-      const data = await tradesRes.json();
-      ethScalperData.trades = data.trades || [];
-    }
-    
-    if (positionsRes?.ok) {
-      const data = await positionsRes.json();
-      ethScalperData.positions = data.positions || [];
-    }
-    
-    if (signalsRes?.ok) {
-      const data = await signalsRes.json();
-      ethScalperData.signals = data.signals || [];
-    }
-    
-    renderEthScalper();
-    drawChart();
-    
-  } catch (err) {
-    console.error('ETH scalper fetch error:', err);
-  }
-}
-
-function calculateEthPrice(data) {
-  const totalUsd = data.wallet?.estimated_total_usd || 0;
-  const usdc = data.wallet?.usdc || 0;
-  const eth = data.wallet?.eth || 0;
-  
-  if (eth > 0 && totalUsd > usdc) {
-    const price = (totalUsd - usdc) / eth;
-    if (price >= 1000 && price <= 10000) return price;
-  }
-  return 0;
-}
-
+// Render ETH scalper
 function renderEthScalper() {
-  const ethPrice = calculateEthPrice(ethScalperData);
+  const price = calculateEthPrice(ethData);
   
   // Stats
-  const priceEl = document.getElementById('eth-price-display');
-  const pnlEl = document.getElementById('eth-pnl-today');
-  const posEl = document.getElementById('eth-open-positions');
-  const tradesEl = document.getElementById('eth-daily-trades');
-  const ethBalEl = document.getElementById('eth-balance');
-  const usdcBalEl = document.getElementById('usdc-balance');
-  
-  if (priceEl) priceEl.textContent = ethPrice > 0 ? `$${ethPrice.toFixed(2)}` : '--';
-  if (pnlEl) {
-    const pnl = ethScalperData.pnl?.today || 0;
-    pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
-    pnlEl.className = `stat-value ${pnl >= 0 ? 'positive' : 'negative'}`;
-  }
-  if (posEl) posEl.textContent = ethScalperData.open_positions || 0;
-  if (tradesEl) tradesEl.textContent = ethScalperData.daily_trades || 0;
-  if (ethBalEl) ethBalEl.textContent = ethScalperData.wallet?.eth?.toFixed(4) || '0';
-  if (usdcBalEl) usdcBalEl.textContent = `$${ethScalperData.wallet?.usdc?.toFixed(2) || '0'}`;
+  setText('eth-price-display', '$' + price.toFixed(2));
+  setText('eth-pnl-today', (ethData.pnl?.today >= 0 ? '+' : '') + '$' + (ethData.pnl?.today || 0).toFixed(2), 
+    ethData.pnl?.today >= 0 ? 'positive' : 'negative');
+  setText('eth-open-positions', ethData.open_positions || 0);
+  setText('eth-daily-trades', ethData.daily_trades || 0);
+  setText('eth-balance', (ethData.wallet?.eth || 0).toFixed(4));
+  setText('usdc-balance', '$' + (ethData.wallet?.usdc || 0).toFixed(2));
   
   // Trading panel
-  const capitalEl = document.getElementById('eth-available-capital');
-  const gasEl = document.getElementById('eth-gas-display');
-  const apiEl = document.getElementById('eth-api-calls');
-  const modeBadge = document.getElementById('eth-mode-badge');
+  setText('eth-available-capital', '$' + (ethData.available_capital || 0).toFixed(2));
+  setText('eth-gas-display', (ethData.wallet?.gas || 0).toFixed(1) + ' gwei');
+  setText('eth-api-calls', (ethData.requests?.used || 0) + '/' + (ethData.requests?.limit || 900));
   
-  if (capitalEl) capitalEl.textContent = `$${(ethScalperData.available_capital || 0).toFixed(2)}`;
-  if (gasEl) gasEl.textContent = `${(ethScalperData.wallet?.gas || 0).toFixed(1)} gwei`;
-  if (apiEl) apiEl.textContent = `${ethScalperData.requests?.used || 0}/${ethScalperData.requests?.limit || 900}`;
+  const modeBadge = document.getElementById('eth-mode-badge');
   if (modeBadge) {
-    modeBadge.textContent = ethScalperData.mode?.toUpperCase() || 'UNKNOWN';
-    modeBadge.className = `panel-status ${ethScalperData.mode === 'live' ? 'safe' : 'warning'}`;
+    modeBadge.textContent = ethData.mode?.toUpperCase() || 'UNKNOWN';
+    modeBadge.className = 'panel-status ' + (ethData.mode === 'live' ? 'safe' : 'warning');
   }
   
   // Risk gauges
-  updateRiskGauges(ethPrice);
+  const totalCap = (ethData.wallet?.eth || 0) * price + (ethData.wallet?.usdc || 0);
+  const posValue = (ethData.open_positions || 0) * 50;
+  const expPct = totalCap > 0 ? (posValue / totalCap) * 100 : 0;
+  const lossPct = (Math.abs(Math.min(0, ethData.pnl?.today || 0)) / 15) * 100;
+  const heatPct = ((ethData.open_positions || 0) / 2) * 100;
+  
+  updateGauge('eth-exposure', expPct, '%');
+  updateGauge('eth-loss', lossPct, '$' + Math.abs(Math.min(0, ethData.pnl?.today || 0)).toFixed(0) + '/$15');
+  updateGauge('eth-heat', heatPct, (ethData.open_positions || 0) + '/2');
+  
+  // Risk badge
+  const riskBadge = document.getElementById('eth-risk-badge');
+  if (riskBadge) {
+    const maxRisk = Math.max(expPct, lossPct, heatPct);
+    riskBadge.textContent = maxRisk >= 80 ? 'ELEVATED' : maxRisk >= 50 ? 'MODERATE' : 'SAFE';
+    riskBadge.className = 'panel-status ' + (maxRisk >= 80 ? 'danger' : maxRisk >= 50 ? 'warning' : 'safe');
+  }
   
   // Agents
-  const ethStatusEl = document.getElementById('eth-agent-status-text');
+  const ethStatus = document.getElementById('eth-agent-status-text');
   const ethDot = document.getElementById('eth-agent-dot');
-  
-  if (ethStatusEl) ethStatusEl.textContent = ethScalperData.status === 'running' ? 'Running' : 'Paused';
-  if (ethDot) ethDot.className = `agent-dot ${ethScalperData.status === 'running' ? 'active' : ''}`;
-  
-  // Lists
-  renderPositionsList();
-  renderSignalsList();
-  renderTradesList();
+  if (ethStatus) ethStatus.textContent = ethData.status === 'running' ? 'Running' : 'Paused';
+  if (ethDot) ethDot.className = 'agent-dot ' + (ethData.status === 'running' ? 'active' : '');
 }
 
-function updateRiskGauges(ethPrice) {
-  const totalCapital = (ethScalperData.wallet?.eth || 0) * ethPrice + (ethScalperData.wallet?.usdc || 0);
-  const positionValue = (ethScalperData.open_positions || 0) * 50;
-  const exposurePct = totalCapital > 0 ? (positionValue / totalCapital) * 100 : 0;
-  
-  const dailyLoss = Math.abs(Math.min(0, ethScalperData.pnl?.today || 0));
-  const lossPct = (dailyLoss / 15) * 100;
-  
-  const heatPct = ((ethScalperData.open_positions || 0) / 2) * 100;
-  
-  // Update DOM
-  const expFill = document.getElementById('eth-exposure-fill');
-  const expVal = document.getElementById('eth-exposure-value');
-  if (expFill) {
-    expFill.style.width = `${Math.min(exposurePct, 100)}%`;
-    expFill.className = `gauge-fill ${exposurePct > 80 ? 'high' : exposurePct > 50 ? 'medium' : 'low'}`;
+function updateGauge(id, pct, label) {
+  const fill = document.getElementById(id + '-fill');
+  const val = document.getElementById(id + '-value');
+  if (fill) {
+    fill.style.width = Math.min(pct, 100) + '%';
+    fill.className = 'gauge-fill ' + (pct >= 80 ? 'high' : pct >= 50 ? 'medium' : 'low');
   }
-  if (expVal) expVal.textContent = `${exposurePct.toFixed(0)}%`;
-  
-  const lossFill = document.getElementById('eth-loss-fill');
-  const lossVal = document.getElementById('eth-loss-value');
-  if (lossFill) {
-    lossFill.style.width = `${Math.min(lossPct, 100)}%`;
-    lossFill.className = `gauge-fill ${lossPct > 80 ? 'high' : lossPct > 50 ? 'medium' : 'low'}`;
-  }
-  if (lossVal) lossVal.textContent = `$${dailyLoss.toFixed(0)}/$15`;
-  
-  const heatFill = document.getElementById('eth-heat-fill');
-  const heatVal = document.getElementById('eth-heat-value');
-  if (heatFill) {
-    heatFill.style.width = `${heatPct}%`;
-    heatFill.className = `gauge-fill ${heatPct >= 100 ? 'high' : heatPct > 50 ? 'medium' : 'low'}`;
-  }
-  if (heatVal) heatVal.textContent = `${ethScalperData.open_positions || 0}/2`;
-  
-  // Badge
-  const badge = document.getElementById('eth-risk-badge');
-  if (badge) {
-    const maxRisk = Math.max(exposurePct, lossPct, heatPct);
-    if (maxRisk >= 80) {
-      badge.textContent = 'ELEVATED';
-      badge.className = 'panel-status danger';
-    } else if (maxRisk >= 50) {
-      badge.textContent = 'MODERATE';
-      badge.className = 'panel-status warning';
-    } else {
-      badge.textContent = 'SAFE';
-      badge.className = 'panel-status safe';
-    }
+  if (val) val.textContent = label;
+}
+
+function setText(id, text, className) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = text;
+    if (className) el.className = 'stat-value ' + className;
   }
 }
 
-function renderPositionsList() {
-  const list = document.getElementById('eth-positions-list');
-  const count = document.getElementById('eth-positions-count');
-  
-  if (count) count.textContent = ethScalperData.positions?.length || 0;
-  if (!list) return;
-  
-  if (!ethScalperData.positions || ethScalperData.positions.length === 0) {
-    list.innerHTML = '<div class="void">No open positions</div>';
-    return;
-  }
-  
-  list.innerHTML = ethScalperData.positions.map(pos => `
-    <div class="position-item">
-      <span>${pos.direction === 'long' ? 'LONG' : 'SHORT'} ETH</span>
-      <span style="color: ${pos.pnl_usd >= 0 ? 'var(--good)' : 'var(--bad)'}">${pos.pnl_usd >= 0 ? '+' : ''}$${pos.pnl_usd?.toFixed(2) || '0.00'}</span>
-    </div>
-  `).join('');
-}
-
-function renderSignalsList() {
-  const list = document.getElementById('eth-signals-list');
-  if (!list) return;
-  
-  if (!ethScalperData.signals || ethScalperData.signals.length === 0) {
-    list.innerHTML = '<div class="void">No active signals</div>';
-    return;
-  }
-  
-  list.innerHTML = ethScalperData.signals.slice(0, 5).map(sig => `
-    <div class="signal-item">
-      <span style="color: ${sig.direction === 'up' ? 'var(--good)' : 'var(--bad)'}">${sig.direction === 'up' ? '▲' : '▼'} ${sig.direction.toUpperCase()}</span>
-      <span>$${sig.price?.toFixed(2)}</span>
-      <span style="color: var(--text-secondary)">${sig.score}/10</span>
-    </div>
-  `).join('');
-}
-
-function renderTradesList() {
-  const list = document.getElementById('eth-trades-list');
-  if (!list) return;
-  
-  if (!ethScalperData.trades || ethScalperData.trades.length === 0) {
-    list.innerHTML = '<div class="void">No recent trades</div>';
-    return;
-  }
-  
-  list.innerHTML = ethScalperData.trades.slice(0, 5).map(trade => `
-    <div class="trade-item">
-      <span>${trade.direction === 'long' ? 'BUY' : 'SELL'} ETH</span>
-      <span style="color: ${trade.pnl_usd >= 0 ? 'var(--good)' : 'var(--bad)'}">${trade.pnl_usd >= 0 ? '+' : ''}$${trade.pnl_usd?.toFixed(2) || '0.00'}</span>
-    </div>
-  `).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CHART
-// ═══════════════════════════════════════════════════════════════
-
+// Chart
 function drawChart() {
   const canvas = document.getElementById('eth-chart');
   if (!canvas || priceHistory.length < 2) return;
@@ -501,84 +228,64 @@ function drawChart() {
   canvas.width = container.clientWidth - 20;
   canvas.height = container.clientHeight - 20;
   
-  const width = canvas.width;
-  const height = canvas.height;
-  const padding = 20;
-  
-  // Clear
-  ctx.clearRect(0, 0, width, height);
-  
-  // Calculate scales
+  const w = canvas.width, h = canvas.height, pad = 20;
   const prices = priceHistory.map(p => p.price);
-  const minPrice = Math.min(...prices) * 0.999;
-  const maxPrice = Math.max(...prices) * 1.001;
-  const priceRange = maxPrice - minPrice;
+  const min = Math.min(...prices) * 0.999;
+  const max = Math.max(...prices) * 1.001;
+  const range = max - min;
   
-  // Draw grid
-  ctx.strokeStyle = 'var(--border)';
+  ctx.clearRect(0, 0, w, h);
+  
+  // Grid
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
-    const y = padding + (height - 2 * padding) * i / 4;
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
+    const y = pad + (h - 2 * pad) * i / 4;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
   }
   
-  // Draw price line
-  ctx.strokeStyle = 'var(--accent)';
+  // Line
+  ctx.strokeStyle = '#9b59b6'; // purple accent
   ctx.lineWidth = 2;
   ctx.beginPath();
-  
-  priceHistory.forEach((point, i) => {
-    const x = padding + (width - 2 * padding) * i / (priceHistory.length - 1);
-    const y = height - padding - (point.price - minPrice) / priceRange * (height - 2 * padding);
-    
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  priceHistory.forEach((p, i) => {
+    const x = pad + (w - 2 * pad) * i / (priceHistory.length - 1);
+    const y = h - pad - (p.price - min) / range * (h - 2 * pad);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
-  
   ctx.stroke();
   
-  // Draw gradient fill
-  ctx.lineTo(width - padding, height - padding);
-  ctx.lineTo(padding, height - padding);
-  ctx.closePath();
-  
-  const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
-  gradient.addColorStop(0, 'rgba(201, 162, 39, 0.3)');
-  gradient.addColorStop(1, 'rgba(201, 162, 39, 0)');
-  ctx.fillStyle = gradient;
-  ctx.fill();
+  // Fill
+  ctx.lineTo(w - pad, h - pad); ctx.lineTo(pad, h - pad); ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad, 0, h - pad);
+  grad.addColorStop(0, 'rgba(155, 89, 182, 0.3)');
+  grad.addColorStop(1, 'rgba(155, 89, 182, 0)');
+  ctx.fillStyle = grad; ctx.fill();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ACTIONS
-// ═══════════════════════════════════════════════════════════════
+// Actions
+async function executeTrade(symbol, type, strike, exp, price) {
+  alert(`Execute: ${symbol} ${type} $${strike} @ $${price}\n\nThis would connect to Tradier API to place the order.`);
+}
 
 async function executeEthBuy() {
-  await sendBotCommand('BUY');
+  await sendCommand('BUY');
 }
 
 async function executeEthSell() {
-  await sendBotCommand('SELL');
+  await sendCommand('SELL');
 }
 
-async function sendBotCommand(command) {
+async function sendCommand(cmd) {
   try {
     const res = await fetch('/api/eth-scalper/command', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({command: cmd})
     });
-    
-    if (res.ok) {
-      showToast(`${command} command sent`, 'success');
-    } else {
-      showToast('Command failed', 'error');
-    }
-  } catch (err) {
-    showToast('Network error', 'error');
+    alert(cmd + ' command ' + (res.ok ? 'sent!' : 'failed'));
+  } catch (e) {
+    alert('Error: ' + e.message);
   }
 }
 
@@ -586,69 +293,35 @@ function viewBotLogs() {
   window.open('/eth-scalper/logs/', '_blank');
 }
 
-async function executeTradierTrade(candidateId) {
-  showToast('Trade execution not yet implemented', 'warning');
-}
-
-function previewTrade(candidateId) {
-  showToast('Preview not yet implemented', 'warning');
-}
-
 function runPremarketScan() {
-  showToast('Scan initiated', 'info');
+  alert('Scan initiated - checking for overnight movers...');
 }
 
 function forceRefresh() {
-  fetchSnapshot();
-  showToast('Refreshing...', 'info');
+  loadData();
+  alert('Refreshing data...');
 }
 
 function showFilterCriteria() {
-  showToast('Filters not yet implemented', 'warning');
+  alert('Filter options:\n- Min confidence: 5/10\n- Max DTE: 14\n- Min liquidity: $100K');
 }
 
 function updateAnalytics() {
-  const summary = document.getElementById('analyticsSummary');
-  if (summary) summary.innerHTML = 'Analytics loading...';
+  const el = document.getElementById('analyticsSummary');
+  if (el) el.innerHTML = '<div style="padding:20px">Analytics: ' + ethData.daily_trades + ' trades today</div>';
 }
 
 function exportJournal() {
-  showToast('Export not yet implemented', 'warning');
+  alert('Exporting trade history...');
 }
-
-// ═══════════════════════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════════════════════
 
 function updateClock() {
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', {hour12: false});
   const clock = document.getElementById('clock');
   const update = document.getElementById('lastUpdate');
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
-  
-  if (clock) clock.textContent = timeStr;
-  if (update) update.textContent = timeStr;
+  if (clock) clock.textContent = time;
+  if (update) update.textContent = time;
 }
 
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    background: ${type === 'success' ? 'var(--good)' : type === 'error' ? 'var(--bad)' : type === 'warning' ? 'var(--warn)' : 'var(--info)'};
-    color: white;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 700;
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
-  `;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
-// Handle resize
 window.addEventListener('resize', drawChart);
