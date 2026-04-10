@@ -1,3808 +1,487 @@
-const d3 = window.d3;
-// ═══════════════════════════════════════════════════════════════
-// THE BAZAAR - Trading Command Center
-// Zone-based navigation with operator-first layout
-// ═══════════════════════════════════════════════════════════════
+// BAZAAR Trading Terminal - Professional Dashboard
+// Real-time data, live charts, and autonomous agent monitoring
 
-// Polyfill for crypto.randomUUID for non-secure contexts (HTTP)
-if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
-  crypto.randomUUID = function() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
+const state = {
+  ethPrice: 0,
+  priceHistory: [],
+  maxHistory: 100,
+  positions: [],
+  trades: [],
+  signals: [],
+  wallet: { eth: 0, usdc: 0, gas: 0 },
+  pnl: { today: 0, total: 0 },
+  agents: { ethScalper: 'running', tradier: 'waiting' },
+  lastUpdate: null
+};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  startDataPolling();
+  updateClock();
+  setInterval(updateClock, 1000);
+});
+
+// Chart Setup
+let chartCanvas, chartCtx;
+
+function initChart() {
+  chartCanvas = document.getElementById('price-chart');
+  if (!chartCanvas) return;
+  
+  const container = chartCanvas.parentElement;
+  chartCanvas.width = container.clientWidth - 32;
+  chartCanvas.height = container.clientHeight - 32;
+  chartCtx = chartCanvas.getContext('2d');
+  
+  drawChart();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// STATE MANAGEMENT
-// ═══════════════════════════════════════════════════════════════
-
-let currentSnapshot = null;
-let selectedLeaderIndex = 0;
-let selectedLeaderKey = null;
-let lastActionStatus = null;
-let currentUiMode = 'loading';
-let currentLoadError = null;
-let currentZone = 'market';
-
-// ═══════════════════════════════════════════════════════════════
-// ZONE NAVIGATION
-// ═══════════════════════════════════════════════════════════════
-
-function switchZone(zoneName) {
-  // Update state
-  currentZone = zoneName;
-
-  // Hide all zones
-  document.querySelectorAll('.zone').forEach(z => {
-    z.classList.remove('active');
-    z.style.display = 'none';
-  });
-
-  // Show selected zone
-  const targetZone = document.getElementById('zone-' + zoneName);
-  if (targetZone) {
-    targetZone.style.display = 'block';
-    // Small delay for animation
-    setTimeout(() => targetZone.classList.add('active'), 10);
-  }
-
-  // Initialize ETH Scalper tab if needed
-  if (zoneName === 'eth-scalper' && window.ethScalperTab) {
-    window.ethScalperTab.init();
+function drawChart() {
+  if (!chartCtx || state.priceHistory.length < 2) return;
+  
+  const width = chartCanvas.width;
+  const height = chartCanvas.height;
+  const padding = 20;
+  
+  // Clear
+  chartCtx.clearRect(0, 0, width, height);
+  
+  // Calculate scales
+  const prices = state.priceHistory.map(p => p.price);
+  const minPrice = Math.min(...prices) * 0.999;
+  const maxPrice = Math.max(...prices) * 1.001;
+  const priceRange = maxPrice - minPrice;
+  
+  // Draw grid
+  chartCtx.strokeStyle = '#1e293b';
+  chartCtx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (height - 2 * padding) * i / 4;
+    chartCtx.beginPath();
+    chartCtx.moveTo(padding, y);
+    chartCtx.lineTo(width - padding, y);
+    chartCtx.stroke();
   }
   
-  // Update nav pills
-  document.querySelectorAll('.nav-pill').forEach(p => {
-    p.classList.remove('active');
-    if (p.dataset.zone === zoneName) {
-      p.classList.add('active');
+  // Draw price line
+  chartCtx.strokeStyle = '#3b82f6';
+  chartCtx.lineWidth = 2;
+  chartCtx.beginPath();
+  
+  state.priceHistory.forEach((point, i) => {
+    const x = padding + (width - 2 * padding) * i / (state.priceHistory.length - 1);
+    const y = height - padding - (point.price - minPrice) / priceRange * (height - 2 * padding);
+    
+    if (i === 0) {
+      chartCtx.moveTo(x, y);
+    } else {
+      chartCtx.lineTo(x, y);
     }
   });
   
-  // Zone-specific refresh
-  if (zoneName === 'positions') {
-    fetchPositions();
-    fetchHeatmap();
-  } else if (zoneName === 'journal') {
-    updateAnalytics();
+  chartCtx.stroke();
+  
+  // Draw gradient fill
+  chartCtx.lineTo(width - padding, height - padding);
+  chartCtx.lineTo(padding, height - padding);
+  chartCtx.closePath();
+  
+  const gradient = chartCtx.createLinearGradient(0, padding, 0, height - padding);
+  gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+  gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+  chartCtx.fillStyle = gradient;
+  chartCtx.fill();
+  
+  // Draw current price dot
+  if (state.priceHistory.length > 0) {
+    const lastPoint = state.priceHistory[state.priceHistory.length - 1];
+    const x = width - padding;
+    const y = height - padding - (lastPoint.price - minPrice) / priceRange * (height - 2 * padding);
+    
+    chartCtx.fillStyle = '#3b82f6';
+    chartCtx.beginPath();
+    chartCtx.arc(x, y, 4, 0, Math.PI * 2);
+    chartCtx.fill();
+    
+    // Glow effect
+    chartCtx.shadowColor = '#3b82f6';
+    chartCtx.shadowBlur = 10;
+    chartCtx.beginPath();
+    chartCtx.arc(x, y, 6, 0, Math.PI * 2);
+    chartCtx.fill();
+    chartCtx.shadowBlur = 0;
   }
 }
 
-// Render operator rail (command state indicator)
-function renderOperatorRail() {
-  const rail = document.getElementById('operatorRail');
-  if (!rail) return;
+// Data Polling
+function startDataPolling() {
+  fetchData();
+  setInterval(fetchData, 3000);
+}
+
+async function fetchData() {
+  try {
+    const [statusRes, walletRes, tradesRes, signalsRes] = await Promise.all([
+      fetch('/api/eth-scalper/status').catch(() => null),
+      fetch('/api/eth-scalper/wallet').catch(() => null),
+      fetch('/api/eth-scalper/trades').catch(() => null),
+      fetch('/api/eth-scalper/signals').catch(() => null)
+    ]);
+    
+    if (statusRes?.ok) {
+      const data = await statusRes.json();
+      state.ethPrice = calculateEthPrice(data);
+      state.pnl = data.pnl || { today: 0, total: 0 };
+      state.agents.ethScalper = data.status;
+      
+      // Update price history
+      state.priceHistory.push({ price: state.ethPrice, time: Date.now() });
+      if (state.priceHistory.length > state.maxHistory) {
+        state.priceHistory.shift();
+      }
+      
+      updateTicker(data);
+      updatePositions(data);
+      updatePnL(data);
+      updateRisk(data);
+      updateAgents(data);
+      updateTradingPanel(data);
+    }
+    
+    if (walletRes?.ok) {
+      const data = await walletRes.json();
+      state.wallet = data;
+      updateWallet(data);
+    }
+    
+    if (tradesRes?.ok) {
+      const data = await tradesRes.json();
+      state.trades = data.trades || [];
+      updateTrades(data.trades);
+    }
+    
+    if (signalsRes?.ok) {
+      const data = await signalsRes.json();
+      state.signals = data.signals || [];
+      updateSignals(data.signals);
+    }
+    
+    drawChart();
+    state.lastUpdate = new Date();
+    
+  } catch (err) {
+    console.error('Data fetch error:', err);
+  }
+}
+
+function calculateEthPrice(data) {
+  const totalUsd = data.wallet?.estimated_total_usd || 0;
+  const usdc = data.wallet?.usdc || 0;
+  const eth = data.wallet?.eth || 0;
   
-  const state = document.getElementById('commandState')?.textContent || 'STANDBY';
-  const stateClass = state === 'ACT NOW' ? 'act' : state === 'WATCH CLOSE' ? 'watch' : 'standby';
+  if (eth > 0 && totalUsd > usdc) {
+    const price = (totalUsd - usdc) / eth;
+    if (price >= 1000 && price <= 10000) return price;
+  }
+  return 2500;
+}
+
+// UI Updates
+function updateTicker(data) {
+  const priceEl = document.getElementById('ticker-eth-price');
+  const changeEl = document.getElementById('ticker-eth-change');
+  const usdcEl = document.getElementById('ticker-usdc-balance');
+  const pnlEl = document.getElementById('ticker-pnl');
+  const posEl = document.getElementById('ticker-positions');
   
-  rail.innerHTML = `
-    <div class="operator-rail-content ${stateClass}">
-      <span class="operator-rail-state">${state}</span>
-      <span class="operator-rail-indicator"></span>
+  if (priceEl) priceEl.textContent = `$${state.ethPrice.toFixed(2)}`;
+  
+  if (changeEl && state.priceHistory.length >= 2) {
+    const prevPrice = state.priceHistory[state.priceHistory.length - 2]?.price || state.ethPrice;
+    const change = ((state.ethPrice - prevPrice) / prevPrice) * 100;
+    changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+    changeEl.className = `ticker-change ${change >= 0 ? 'positive' : 'negative'}`;
+  }
+  
+  if (usdcEl) usdcEl.textContent = `$${state.wallet.usdc.toFixed(2)}`;
+  if (pnlEl) {
+    const pnl = state.pnl.today;
+    pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+    pnlEl.style.color = pnl >= 0 ? '#00d084' : '#ff4d4d';
+  }
+  if (posEl) posEl.textContent = data.open_positions || 0;
+}
+
+function updatePositions(data) {
+  const list = document.getElementById('positions-list');
+  const count = document.getElementById('positions-count');
+  
+  if (count) count.textContent = data.open_positions || 0;
+  
+  if (!list) return;
+  
+  if (!data.open_positions || data.open_positions === 0) {
+    list.innerHTML = '<div class="empty-state">No open positions</div>';
+    return;
+  }
+  
+  // Mock position for display
+  list.innerHTML = `
+    <div class="position-item">
+      <div>
+        <span class="position-direction long">LONG</span>
+        <span style="margin-left:8px;color:#94a3b8">ETH</span>
+      </div>
+      <div class="position-details">
+        <span style="color:#f0f4f8">$${state.ethPrice.toFixed(2)}</span>
+        <span class="position-pnl positive">+$0.00</span>
+      </div>
     </div>
   `;
 }
 
-// Initialize zones on load
-document.addEventListener('DOMContentLoaded', () => {
-  // Set initial zone
-  document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
-  switchZone('eth-scalper');
-
-  if (!document.getElementById('manualRefreshSink')) {
-    const sink = document.createElement('iframe');
-    sink.name = 'manualRefreshSink';
-    sink.id = 'manualRefreshSink';
-    sink.style.display = 'none';
-    document.body.appendChild(sink);
+function updatePnL(data) {
+  const todayEl = document.getElementById('pnl-today');
+  const totalEl = document.getElementById('pnl-total');
+  const winRateEl = document.getElementById('win-rate');
+  const countEl = document.getElementById('trade-count');
+  
+  if (todayEl) {
+    const pnl = state.pnl.today;
+    todayEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+    todayEl.className = `pnl-value ${pnl >= 0 ? 'positive' : 'negative'}`;
   }
+  
+  if (totalEl) {
+    const total = state.pnl.total;
+    totalEl.textContent = `${total >= 0 ? '+' : ''}$${total.toFixed(2)}`;
+  }
+  
+  if (winRateEl) winRateEl.textContent = '0%';
+  if (countEl) countEl.textContent = data.daily_trades || 0;
+}
 
-  document.addEventListener('submit', (event) => {
-    const refreshForm = event.target.closest('[data-manual-refresh-form="true"]');
-    if (refreshForm) {
-      forceRefresh();
+function updateRisk(data) {
+  const totalCapital = state.wallet.eth * state.ethPrice + state.wallet.usdc;
+  const positionValue = (data.open_positions || 0) * 50;
+  const exposurePct = totalCapital > 0 ? (positionValue / totalCapital) * 100 : 0;
+  
+  const dailyLoss = Math.abs(Math.min(0, state.pnl.today));
+  const lossPct = (dailyLoss / 15) * 100;
+  
+  const heatPct = ((data.open_positions || 0) / 2) * 100;
+  
+  // Update exposure
+  const expFill = document.getElementById('exposure-fill');
+  const expVal = document.getElementById('exposure-value');
+  if (expFill) {
+    expFill.style.width = `${Math.min(exposurePct, 100)}%`;
+    expFill.className = `gauge-fill ${exposurePct > 80 ? 'high' : exposurePct > 50 ? 'medium' : 'low'}`;
+  }
+  if (expVal) expVal.textContent = `${exposurePct.toFixed(0)}%`;
+  
+  // Update loss
+  const lossFill = document.getElementById('loss-fill');
+  const lossVal = document.getElementById('loss-value');
+  if (lossFill) {
+    lossFill.style.width = `${Math.min(lossPct, 100)}%`;
+    lossFill.className = `gauge-fill ${lossPct > 80 ? 'high' : lossPct > 50 ? 'medium' : 'low'}`;
+  }
+  if (lossVal) lossVal.textContent = `$${dailyLoss.toFixed(0)}/$15`;
+  
+  // Update heat
+  const heatFill = document.getElementById('heat-fill');
+  const heatVal = document.getElementById('heat-value');
+  if (heatFill) {
+    heatFill.style.width = `${heatPct}%`;
+    heatFill.className = `gauge-fill ${heatPct >= 100 ? 'high' : heatPct > 50 ? 'medium' : 'low'}`;
+  }
+  if (heatVal) heatVal.textContent = `${data.open_positions || 0}/2`;
+  
+  // Update badge
+  const badge = document.getElementById('risk-badge');
+  if (badge) {
+    const maxRisk = Math.max(exposurePct, lossPct, heatPct);
+    if (maxRisk >= 80) {
+      badge.textContent = 'ELEVATED';
+      badge.className = 'badge danger';
+    } else if (maxRisk >= 50) {
+      badge.textContent = 'MODERATE';
+      badge.className = 'badge warning';
+    } else {
+      badge.textContent = 'SAFE';
+      badge.className = 'badge safe';
     }
-  });
-  
-  // Start data refresh
-  refresh();
-  setInterval(refresh, 30000);
-});
-
-async function loadSnapshot() {
-  const res = await fetch('./snapshot.json?ts=' + Date.now());
-  if (!res.ok) throw new Error('Failed to load snapshot');
-  return res.json();
-}
-
-function escapeHtml(value) {
-  return String(value ?? '—')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-// Order Entry Functions
-function showOrderEntry() {
-  const panel = document.getElementById('orderEntryPanel');
-  if (panel) {
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    updateOrderValue();
   }
 }
 
-function updateOrderValue() {
-  const leader = getSelectedLeader();
-  if (!leader) return;
+function updateAgents(data) {
+  const ethStatus = document.getElementById('eth-agent-status');
+  const ethDot = document.getElementById('eth-agent-dot');
+  const tradierStatus = document.getElementById('tradier-agent-status');
+  const tradierDot = document.getElementById('tradier-agent-dot');
+  const systemStatus = document.getElementById('system-status');
+  const systemText = document.getElementById('system-status-text');
   
-  const qty = parseInt(document.getElementById('orderQty')?.value || 1);
-  const price = parseFloat(leader.ask || leader.bid || 0);
-  const value = qty * price * 100;
+  if (ethStatus && ethDot) {
+    const isRunning = data.status === 'running';
+    ethStatus.textContent = isRunning ? 'Running' : 'Paused';
+    ethDot.className = `status-dot ${isRunning ? 'active' : ''}`;
+  }
   
-  const valueEl = document.getElementById('orderValue');
-  if (valueEl) {
-    valueEl.textContent = `$${value.toFixed(0)}`;
-    valueEl.style.color = value > 200 ? 'var(--bad)' : 'var(--good)';
+  if (tradierStatus && tradierDot) {
+    tradierStatus.textContent = 'Waiting';
+    tradierDot.className = 'status-dot waiting';
+  }
+  
+  if (systemStatus && systemText) {
+    const isLive = data.mode === 'live';
+    systemStatus.className = `status-dot ${isLive ? 'active' : ''}`;
+    systemText.textContent = isLive ? 'LIVE' : 'PAPER';
   }
 }
 
-async function submitOrder() {
-  const leader = getSelectedLeader();
-  if (!leader) {
-    alert('No leader selected');
+function updateTradingPanel(data) {
+  const capitalEl = document.getElementById('available-capital');
+  const gasEl = document.getElementById('gas-price');
+  const apiEl = document.getElementById('api-calls');
+  
+  if (capitalEl) capitalEl.textContent = `$${(data.available_capital || 0).toFixed(2)}`;
+  if (gasEl) gasEl.textContent = `${state.wallet.gas.toFixed(1)} gwei`;
+  if (apiEl) apiEl.textContent = `${data.requests?.used || 0}/${data.requests?.limit || 900}`;
+}
+
+function updateWallet(data) {
+  const walletEl = document.getElementById('wallet-address');
+  if (walletEl && data.address) {
+    walletEl.textContent = `${data.address.slice(0, 6)}...${data.address.slice(-4)}`;
+  }
+}
+
+function updateTrades(trades) {
+  const list = document.getElementById('orders-list');
+  if (!list) return;
+  
+  if (!trades || trades.length === 0) {
+    list.innerHTML = '<div class="empty-state">No recent orders</div>';
     return;
   }
   
-  const qty = parseInt(document.getElementById('orderQty')?.value || 1);
-  const orderType = document.getElementById('orderType')?.value || 'market';
-  const limitPrice = document.getElementById('limitPrice')?.value;
-  const tif = document.getElementById('orderTIF')?.value || 'day';
+  list.innerHTML = trades.slice(0, 5).map(trade => `
+    <div class="order-item">
+      <span>${trade.direction === 'long' ? 'BUY' : 'SELL'} ETH</span>
+      <span style="color:${trade.pnl_usd >= 0 ? '#00d084' : '#ff4d4d'}">${trade.pnl_usd >= 0 ? '+' : ''}$${trade.pnl_usd?.toFixed(2) || '0.00'}</span>
+    </div>
+  `).join('');
+}
+
+function updateSignals(signals) {
+  const list = document.getElementById('signals-list');
+  if (!list) return;
   
-  const order = {
-    symbol: leader.symbol,
-    option_type: leader.option_type?.toLowerCase() || 'call',
-    strike: parseFloat(leader.strike),
-    expiration: leader.exp,
-    side: 'buy_to_open',
-    quantity: qty,
-    order_type: orderType,
-    limit_price: limitPrice ? parseFloat(limitPrice) : null,
-    time_in_force: tif,
-    current_price: parseFloat(leader.ask || leader.bid || 0)
-  };
+  if (!signals || signals.length === 0) {
+    list.innerHTML = '<div class="empty-state">No active signals</div>';
+    return;
+  }
   
-  try {
-    const res = await fetch('/api/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-    
-    const data = await res.json();
-    if (data.ok) {
-      alert(`✅ Order submitted! ID: ${data.order_id}`);
-      document.getElementById('orderEntryPanel').style.display = 'none';
-    } else {
-      alert(`❌ Order failed: ${data.error || data.validation_errors?.join(', ')}`);
-    }
-  } catch (err) {
-    alert(`❌ Error: ${err.message}`);
+  list.innerHTML = signals.slice(0, 5).map(signal => `
+    <div class="signal-item">
+      <span class="signal-direction ${signal.direction === 'up' ? 'up' : 'down'}">${signal.direction === 'up' ? '▲' : '▼'} ${signal.direction.toUpperCase()}</span>
+      <span style="color:#94a3b8">$${signal.price?.toFixed(2)}</span>
+      <span class="signal-score">${signal.score}/10</span>
+    </div>
+  `).join('');
+}
+
+function updateClock() {
+  const el = document.getElementById('last-update');
+  if (el && state.lastUpdate) {
+    el.textContent = state.lastUpdate.toLocaleTimeString();
   }
 }
 
-// Watch list function
-async function quickWatchFromScanner(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) return;
+// Trade Actions
+async function executeBuy() {
+  const btn = document.getElementById('buy-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-label">EXECUTING...</span>';
+  }
   
   try {
-    const res = await fetch('/api/actions', {
+    const res = await fetch('/api/eth-scalper/command', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'watch_selected_leader', leader })
+      body: JSON.stringify({ command: 'BUY' })
     });
     
     if (res.ok) {
-      await refresh();
-    }
-  } catch (err) {
-    console.error('Watch failed:', err);
-  }
-}
-
-function manualRefreshControlHtml(label = '↻ Run Now') {
-  return `<form method="POST" action="/api/manual-refresh" target="manualRefreshSink" class="manual-refresh-form" data-manual-refresh-form="true">
-    <button class="btn-action" type="submit" data-refresh-action="run-now">${escapeHtml(label)}</button>
-  </form>`;
-}
-
-function formatSection(section) {
-  return section === 'premium' ? 'Premium / Credit' : 'Directional / Scalping';
-}
-
-function leaderDisplayName(leader) {
-  return `${leader.symbol || '—'} ${leader.option_type || ''} ${leader.strike || ''} ${leader.exp || ''}`.trim();
-}
-
-function leaderInstrument(leader) {
-  return `${leader.exp || ''} ${leader.strike || ''} ${leader.option_type || ''}`.trim();
-}
-
-function leaderKey(leader) {
-  if (!leader) return null;
-  return [leader.symbol || '', leader.exp || '', leader.strike || '', leader.option_type || '', leader.section || ''].join('|');
-}
-
-function getSnapshotAgeMinutes(snapshot) {
-  const updatedAt = snapshot?.systemHealth?.tradierBoardUpdatedAt;
-  if (!updatedAt) return null;
-  const ms = Date.now() - new Date(updatedAt).getTime();
-  if (!Number.isFinite(ms)) return null;
-  return ms / 60000;
-}
-
-function describeSnapshotHealth(snapshot) {
-  if (!snapshot) {
-    return { tone: 'warn', text: 'Snapshot not loaded yet.' };
-  }
-  const boardPresent = snapshot?.systemHealth?.tradierBoardPresent;
-  const ageMinutes = getSnapshotAgeMinutes(snapshot);
-  if (!boardPresent) {
-    return { tone: 'bad', text: 'Tradier board artifact is missing. Dashboard is running without current board data.' };
-  }
-  if (ageMinutes !== null && ageMinutes > 120) {
-    return { tone: 'warn', text: `Tradier board artifact looks stale (${Math.round(ageMinutes)} min old). Verify local refresh path.` };
-  }
-  return { tone: 'good', text: 'Tradier board artifact is available.' };
-}
-
-function syncSelectedLeader(leaders = []) {
-  if (!leaders.length) {
-    selectedLeaderIndex = 0;
-    selectedLeaderKey = null;
-    return { leader: null, missingPreviousSelection: false };
-  }
-
-  if (selectedLeaderKey) {
-    const matchedIndex = leaders.findIndex(leader => leaderKey(leader) === selectedLeaderKey);
-    if (matchedIndex >= 0) {
-      selectedLeaderIndex = matchedIndex;
-      return { leader: leaders[matchedIndex], missingPreviousSelection: false };
-    }
-    const fallbackLeader = leaders[0];
-    selectedLeaderIndex = 0;
-    selectedLeaderKey = leaderKey(fallbackLeader);
-    return { leader: fallbackLeader, missingPreviousSelection: true };
-  }
-
-  if (selectedLeaderIndex >= leaders.length) {
-    selectedLeaderIndex = 0;
-  }
-
-  const leader = leaders[selectedLeaderIndex];
-  selectedLeaderKey = leaderKey(leader);
-  return { leader, missingPreviousSelection: false };
-}
-
-function setSelectedLeader(index, leaders) {
-  selectedLeaderIndex = index;
-  selectedLeaderKey = leaderKey(leaders[index]);
-  renderTradierSlice();
-  const leader = leaders[index];
-  captureSessionEventOnce(`first_selection_${leaderKey(leader)}`, {
-    eventType: 'first_operator_selection',
-    zone: currentZone,
-    state: document.getElementById('commandState')?.textContent || null,
-    selected: leaderDisplayName(leader),
-    metadata: { symbol: leader.symbol, strategy: leader.section }
-  });
-}
-
-function getSelectedLeader() {
-  return syncSelectedLeader(currentSnapshot?.tradier?.leaders || []).leader;
-}
-
-function selectRelativeLeader(step) {
-  const leaders = currentSnapshot?.tradier?.leaders || [];
-  if (!leaders.length) return;
-  const nextIndex = (selectedLeaderIndex + step + leaders.length) % leaders.length;
-  setSelectedLeader(nextIndex, leaders);
-}
-
-function getLeaderState(leader) {
-  if (!leader) return { queued: false, watched: false, queueItem: null, watchItem: null };
-  const positions = currentSnapshot?.activePositions?.positions || [];
-  const queue = currentSnapshot?.executionQueue?.queue || [];
-  const instrument = leaderInstrument(leader);
-
-  const queueItem = queue.find(item => item.symbol === leader.symbol && item.instrument === instrument) || null;
-  const watchItem = positions.find(item => item.symbol === leader.symbol && item.instrument === instrument && item.status === 'watch') || null;
-
-  return {
-    queued: Boolean(queueItem),
-    watched: Boolean(watchItem),
-    queueItem,
-    watchItem,
-  };
-}
-
-function getSelectedLeaderFeedback(leader) {
-  const payload = currentSnapshot?.tradier?.actionFeedback || {};
-  const feedback = payload.feedback;
-  if (!leader || !feedback) return null;
-  const instrument = leaderInstrument(leader);
-  if (feedback.symbol !== leader.symbol || feedback.instrument !== instrument) return null;
-  return {
-    updatedAt: payload.updatedAt,
-    ...feedback,
-  };
-}
-
-function statusBadge(label, kind = 'neutral') {
-  const kindMap = {
-    neutral: 'badge',
-    queued: 'badge accent',
-    watch: 'badge info',
-    recent: 'badge warn',
-    good: 'badge good',
-    bad: 'badge bad'
-  };
-  const badgeClass = kindMap[kind] || 'badge';
-  return `<span class="${badgeClass}">${escapeHtml(label)}</span>`;
-}
-
-function stateBanner(text, tone = 'neutral') {
-  return `<div class="state-banner ${tone}">${escapeHtml(text)}</div>`;
-}
-
-function summaryField(label, value, kind = '') {
-  return `
-    <div class="summary-field ${kind}">
-      <div class="label">${escapeHtml(label)}</div>
-      <div class="value">${escapeHtml(value)}</div>
-    </div>
-  `;
-}
-
-function renderSummaryStrip(leader, stateMeta = null) {
-  const wrap = document.getElementById('summaryStripWrap');
-  if (!leader) {
-    wrap.className = 'summary-strip-wrap placeholder';
-    if (stateMeta?.kind === 'loading') {
-      wrap.innerHTML = stateBanner('Loading selected-item operator summary…', 'loading');
-      return;
-    }
-    if (stateMeta?.kind === 'error') {
-      wrap.innerHTML = stateBanner(stateMeta.message || 'Unable to load selected-item summary.', 'bad');
-      return;
-    }
-    if (stateMeta?.kind === 'empty') {
-      wrap.innerHTML = stateBanner('No operator summary is available because no Tradier leaders are present.', 'warn');
-      return;
-    }
-    wrap.textContent = 'Select a Tradier leader to view operator summary.';
-    return;
-  }
-
-  const state = getLeaderState(leader);
-  const feedback = getSelectedLeaderFeedback(leader);
-  const latestAction = feedback?.action || 'No local action yet';
-  const latestStateChange = feedback?.stateChange || 'No recent selected-item state change recorded.';
-  const localTrigger = state.queueItem?.trigger || leader.entry || '—';
-  const localInvalidation = state.watchItem?.invalidation || leader.invalidation || '—';
-
-  wrap.className = 'summary-strip-wrap';
-  wrap.innerHTML = `
-    ${stateMeta?.kind === 'selection-reset' ? stateBanner('Operator summary was re-anchored to the current selected leader after refresh.', 'warn') : ''}
-    <div class="summary-strip-head">
-      <div>
-        <div class="summary-title">${escapeHtml(leaderDisplayName(leader))}</div>
-        <div class="muted small">${escapeHtml(formatSection(leader.section))} · ${escapeHtml(leaderKey(leader))}</div>
-      </div>
-      <div class="badge-stack">
-        ${state.queued ? statusBadge('Queued: yes', 'queued') : statusBadge('Queued: no', 'neutral')}
-        ${state.watched ? statusBadge('Watched: yes', 'watch') : statusBadge('Watched: no', 'neutral')}
-        ${feedback ? statusBadge('Recent feedback', 'recent') : ''}
-      </div>
-    </div>
-    <div class="summary-strip-grid">
-      ${summaryField('Selected Leader', leaderDisplayName(leader), 'wide')}
-      ${summaryField('Queued', state.queued ? 'Yes' : 'No')}
-      ${summaryField('Watched', state.watched ? 'Yes' : 'No')}
-      ${summaryField('Latest Local Action', latestAction)}
-      ${summaryField('Local Trigger', localTrigger, 'wide')}
-      ${summaryField('Local Invalidation', localInvalidation, 'wide')}
-      ${summaryField('Latest State Change', latestStateChange, 'wide strong')}
-    </div>
-  `;
-}
-
-function goToExecuteSelected() {
-  switchZone('execute');
-  const leader = getSelectedLeader();
-  if (leader) {
-    renderSummaryStrip(leader, getLeaderState(leader));
-    captureSessionEventOnce(`first_execute_handoff_${leaderKey(leader)}`, {
-      eventType: 'first_execute_handoff',
-      zone: 'execute',
-      state: document.getElementById('commandState')?.textContent || null,
-      selected: leaderDisplayName(leader),
-      metadata: { symbol: leader.symbol, strategy: leader.section }
-    });
-  }
-}
-
-function goToMonitorPositions() {
-  switchZone('positions');
-  fetchPositions();
-  fetchHeatmap();
-  captureSessionEventOnce('first_monitor_handoff', {
-    eventType: 'first_monitor_handoff',
-    zone: 'positions',
-    state: document.getElementById('commandState')?.textContent || null,
-    selected: getSelectedLeader() ? leaderDisplayName(getSelectedLeader()) : null
-  });
-}
-
-function focusNearMisses() {
-  switchZone('market');
-  const leadersWrap = document.getElementById('leadersWrap');
-  if (leadersWrap) leadersWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-function renderRegimeLayer(snapshot) {
-  const wrap = document.getElementById('regimeLayerWrap');
-  const stateEl = document.getElementById('regimeState');
-  if (!wrap || !stateEl) return;
-
-  const overview = snapshot?.tradier?.overview || {};
-  const bias = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
-  const vix = typeof overview.vix === 'number' ? overview.vix : parseFloat(overview.vix || '0') || 0;
-  const directional = overview.directionalCount || 0;
-  const premium = overview.premiumCount || 0;
-  const leaders = overview.leaderCount || 0;
-  const nearMisses = snapshot?.tradier?.nearMisses?.count || (snapshot?.tradier?.nearMisses?.candidates || []).length;
-
-  let structure = 'mixed';
-  if (directional > premium && directional > 0) structure = 'trend / directional';
-  else if (premium > directional && premium > 0) structure = 'carry / premium';
-  
-  let volatility = 'calm';
-  if (vix >= 28) volatility = 'unstable';
-  else if (vix >= 20) volatility = 'elevated';
-
-  let tone = 'indecisive';
-  if (leaders > 0 && directional > premium) tone = 'risk-on';
-  else if (leaders > 0 && premium >= directional) tone = 'defensive';
-  else if (nearMisses > 0) tone = 'not yet ripe';
-
-  let impact = 'Stand-down environment due to weak clarity.';
-  if (bias === 'directional_momentum') impact = 'Momentum setups have the cleaner edge right now.';
-  else if (bias === 'premium_credit') impact = 'Premium / credit structures currently carry the stronger lean.';
-  else if (nearMisses > 0) impact = 'Setups are close, but regime quality is not yet clean enough for approval.';
-  else if (vix >= 28) impact = 'Elevated instability is suppressing clean setup quality and widening caution.';
-
-  stateEl.textContent = `${structure.toUpperCase()}`;
-  stateEl.className = `panel-status ${leaders > 0 ? 'fresh' : nearMisses > 0 ? 'stale' : ''}`;
-
-  wrap.innerHTML = `
-    <div class="regime-grid">
-      <div class="regime-card">
-        <div class="regime-title">Today feels like</div>
-        <div class="regime-copy">${escapeHtml(structure)} · ${escapeHtml(volatility)} · ${escapeHtml(tone)}</div>
-      </div>
-      <div class="regime-card">
-        <div class="regime-title">Trade quality impact</div>
-        <div class="regime-copy">${escapeHtml(impact)}</div>
-      </div>
-      <div class="regime-card">
-        <div class="regime-title">Bias linkage</div>
-        <div class="regime-copy">Current Bazaar lean: <strong>${escapeHtml(bias)}</strong>. This regime framing explains why the system is favoring or suppressing certain setup classes today.</div>
-      </div>
-    </div>
-  `;
-}
-
-function renderPreopenChecklist(snapshot) {
-  const wrap = document.getElementById('preopenChecklistWrap');
-  const stateEl = document.getElementById('preopenState');
-  if (!wrap || !stateEl) return;
-
-  const health = snapshot?.systemHealth || {};
-  const leaders = snapshot?.tradier?.leaders || [];
-  const nearMisses = snapshot?.tradier?.nearMisses?.candidates || [];
-  const freshAt = health.tradierBoardUpdatedAt ? new Date(health.tradierBoardUpdatedAt) : null;
-  const freshMinutes = freshAt ? Math.round((Date.now() - freshAt.getTime()) / 60000) : null;
-  const fresh = freshMinutes !== null && freshMinutes < 30;
-  const degraded = freshMinutes !== null && freshMinutes >= 30 && freshMinutes < 120;
-  const stale = freshMinutes !== null && freshMinutes >= 120;
-  const selected = getSelectedLeader();
-
-  const checks = [
-    {
-      ok: !!health.tradierApiKeyLoaded,
-      label: 'API connected',
-      subtext: health.tradierApiKeyLoaded ? 'Tradier runtime available' : 'Tradier API unavailable'
-    },
-    {
-      ok: !!fresh,
-      label: 'Freshness current',
-      subtext: fresh ? `Last scan ${freshMinutes}m ago` : 'Data not fresh enough for open confidence'
-    },
-    {
-      ok: true,
-      label: 'Command state visible',
-      subtext: document.getElementById('commandState')?.textContent || 'Unknown'
-    },
-    {
-      ok: leaders.length > 0 || nearMisses.length > 0 || true,
-      label: 'Signal state known',
-      subtext: leaders.length ? 'Valid trade available' : nearMisses.length ? 'Near-miss watchlist active' : 'Stand-down/no-trade state confirmed'
-    },
-    {
-      ok: !!selected || leaders.length === 0,
-      label: 'Selected path ready',
-      subtext: selected ? leaderDisplayName(selected) : 'Select a leader if one appears'
-    },
-    {
-      ok: true,
-      label: 'Execute / monitor handoff ready',
-      subtext: 'Operator rail provides direct execute and monitor path'
-    }
-  ];
-
-  const readyCount = checks.filter(c => c.ok).length;
-  const ready = readyCount >= 5 && health.tradierApiKeyLoaded && fresh;
-  const sessionTrust = health.tradierApiKeyLoaded && !stale ? 'trustworthy' : stale ? 'degraded' : 'partial';
-  stateEl.textContent = ready ? 'READY' : degraded ? 'DEGRADED' : 'CHECK';
-  stateEl.className = `panel-status ${ready ? 'fresh' : stale ? 'stale' : ''}`;
-
-  let watchFirst = 'Stand down and wait for next cycle.';
-  if (leaders.length) watchFirst = `Watch first: ${leaderDisplayName(leaders[0])}`;
-  else if (nearMisses.length) watchFirst = `Watch first: ${nearMisses[0].symbol} ${nearMisses[0].option_type} ${nearMisses[0].strike}`;
-
-  wrap.innerHTML = `
-    <div class="checklist-list">
-      ${checks.map(c => `
-        <div class="checklist-item">
-          <div class="checklist-icon">${c.ok ? '✓' : '•'}</div>
-          <div class="checklist-text">
-            <div class="checklist-label">${escapeHtml(c.label)}</div>
-            <div class="checklist-subtext">${escapeHtml(c.subtext)}</div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="preopen-note">
-      <strong>Monday certainty:</strong> ${escapeHtml(`Freshness ${fresh ? 'live' : degraded ? 'degraded' : 'stale'} · API ${health.tradierApiKeyLoaded ? 'connected' : 'offline'} · Session ${sessionTrust} · Signal ${leaders.length ? 'actionable' : nearMisses.length ? 'watch' : 'stand-down'} · Execute ${selected || leaders.length === 0 ? 'ready' : 'awaiting selection'}`)}
-    </div>
-    <div class="preopen-note">
-      <strong>Orientation:</strong> ${escapeHtml(watchFirst)}
-    </div>
-  `;
-}
-
-function urgencyStateForItem(item, snapshot) {
-  const bias = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
-  const freshAt = snapshot?.systemHealth?.tradierBoardUpdatedAt ? new Date(snapshot.systemHealth.tradierBoardUpdatedAt) : null;
-  const freshMinutes = freshAt ? Math.round((Date.now() - freshAt.getTime()) / 60000) : 999;
-  const fresh = freshMinutes < 30;
-
-  if (item.kind === 'valid_trade') {
-    const score = parseInt(String(item.payload?.confidence || '0').split('/')[0]) || 0;
-    if (fresh && score >= 7) return 'LOOK NOW';
-    if (fresh && score >= 6) return 'LOOK SOON';
-    return 'PERIPHERAL';
-  }
-
-  if (item.kind === 'near_miss') {
-    const nm = item.payload || {};
-    const score = nm.near_miss_score || 0;
-    const favored = (bias === 'directional_momentum' && String(nm.strategy).includes('Directional')) || (bias === 'premium_credit' && String(nm.strategy).includes('Premium'));
-    if (fresh && favored && score >= 70) return 'LOOK SOON';
-    if (score >= 55) return 'PERIPHERAL';
-    return 'IGNORE UNLESS CHANGES';
-  }
-
-  return 'PERIPHERAL';
-}
-
-function buildPriorityStack(snapshot) {
-  const leaders = (snapshot?.tradier?.leaders || []).map((leader, idx) => ({
-    kind: 'valid_trade',
-    rankType: 'ACT NOW',
-    label: leaderDisplayName(leader),
-    priorityScore: ((parseInt(String(leader.confidence || '0').split('/')[0]) || 0) * 10) + (idx === 0 ? 5 : 0),
-    why: `Qualified trade · confidence ${leader.confidence || '--'}`,
-    payload: leader,
-  }));
-
-  const nearMisses = (snapshot?.tradier?.nearMisses?.candidates || []).map((nm, idx) => ({
-    kind: 'near_miss',
-    rankType: idx === 0 ? 'INSPECT NEXT' : 'WATCH ONLY',
-    label: `${nm.symbol} ${nm.option_type} ${nm.strike}`,
-    priorityScore: (nm.near_miss_score || 0) - (idx * 2),
-    why: `Near-miss · ${(nm.rejection_reasons || []).slice(0,1).join(', ') || 'rule failure'}`,
-    payload: nm,
-  }));
-
-  const stack = [...leaders, ...nearMisses].sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 4);
-  return stack.map(item => ({ ...item, urgency: urgencyStateForItem(item, snapshot) }));
-}
-
-function buildProceedGuidance(snapshot, priorityStack) {
-  const freshMinutes = getSnapshotAgeMinutes(snapshot);
-  const favored = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
-  const top = priorityStack?.[0] || null;
-  if (!top) return { state: 'STAND DOWN', note: 'No qualified urgency signal is present. Wait for change, not excitement.' };
-  if (freshMinutes !== null && freshMinutes >= 120) return { state: 'PAUSE / INSPECT MORE', note: 'Freshness is stale enough that live trust should be reduced before acting.' };
-  if (top.kind === 'valid_trade' && top.urgency === 'LOOK NOW' && favored !== 'none') return { state: 'PROCEED WITH CONFIDENCE', note: 'Qualified trade, live freshness, and current bias are aligned.' };
-  if (top.kind === 'valid_trade') return { state: 'PROCEED CAREFULLY', note: 'Trade is valid, but conviction is not thick enough to skip inspection discipline.' };
-  if (top.urgency === 'LOOK SOON' || top.urgency === 'PERIPHERAL') return { state: 'PAUSE / INSPECT MORE', note: 'Closest setup deserves attention, but not immediate execution.' };
-  return { state: 'STAND DOWN', note: 'Keep it in peripheral awareness unless conditions improve.' };
-}
-
-function renderCommandLayer(snapshot) {
-  const wrap = document.getElementById('commandLayerWrap');
-  const stateEl = document.getElementById('commandState');
-  if (!wrap || !stateEl) return;
-
-  const leaders = snapshot?.tradier?.leaders || [];
-  const nearMisses = snapshot?.tradier?.nearMisses?.candidates || [];
-  const priorityStack = buildPriorityStack(snapshot);
-  const pb = snapshot?.preferenceActionBias || {};
-  const favored = pb?.operatorSummary?.favoredSetupClass || 'none';
-  const health = snapshot?.systemHealth || {};
-  const boardUpdated = health.tradierBoardUpdatedAt;
-  const freshMinutes = boardUpdated ? Math.round((Date.now() - new Date(boardUpdated).getTime()) / 60000) : null;
-  const fresh = freshMinutes !== null && freshMinutes < 30;
-
-  let mode = 'STAND DOWN';
-  let headline = 'Stand down — no valid trade';
-  let subline = 'Bazaar is screening and does not currently recommend action.';
-  let badges = [`<span class="badge ${fresh ? 'good' : 'warn'}">${fresh ? 'Fresh' : 'Stale'}</span>`];
-  let attention = [];
-  let action = [];
-  let ctas = [];
-
-  const topPriority = priorityStack[0] || null;
-  const proceedGuidance = buildProceedGuidance(snapshot, priorityStack);
-  if (topPriority) {
-    badges.push(`<span class="badge ${topPriority.urgency === 'LOOK NOW' ? 'bad' : topPriority.urgency === 'LOOK SOON' ? 'warn' : topPriority.urgency === 'PERIPHERAL' ? 'info' : ''}">Urgency: ${topPriority.urgency}</span>`);
-  }
-
-  if (leaders.length) {
-    mode = 'ACT NOW';
-    const top = leaders[0];
-    headline = `${top.symbol} ${String(top.option_type || '').toUpperCase()} ${top.strike}`;
-    subline = 'Valid setup present — review qualification card and execution path now.';
-    badges.push(`<span class="badge accent">Qualified Trade</span>`);
-    badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
-    attention = [
-      `Top actionable leader is ${top.symbol} ${String(top.option_type || '').toUpperCase()} ${top.strike}`,
-      `Confidence ${escapeHtml(top.confidence || '--')}`,
-      'Execution path is live from selected opportunity → execute',
-    ];
-    action = ['Review qualification card', 'Confirm risk / stop', 'Queue or execute if aligned'];
-    ctas = [
-      '<button class="btn-action" onclick="switchZone(\'market\')">Inspect Trade</button>',
-      '<button class="btn-action" onclick="goToExecuteSelected()">Go to Execute</button>',
-      '<button class="btn-action" onclick="goToMonitorPositions()">Monitor Positions</button>'
-    ];
-  } else if (nearMisses.length) {
-    mode = 'WATCH CLOSE';
-    const nm = nearMisses[0];
-    headline = `No Trade Yet — watch ${nm.symbol} ${nm.option_type} ${nm.strike}`;
-    subline = 'Closest rejected setup surfaced for monitoring, not execution.';
-    badges.push('<span class="badge warn">Near-Miss Active</span>');
-    badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
-    attention = [
-      `${nm.symbol} is closest to actionable with score ${nm.near_miss_score || '--'}`,
-      `Blocked by: ${(nm.rejection_reasons || []).slice(0,2).join(', ') || 'rule failure'}`,
-      `Watch for improvement: ${(nm.closeness || []).slice(0,2).join(', ') || 'one rule away'}`,
-    ];
-    action = ['Monitor near-miss watchlist', 'Force refresh on structure change', 'Do not treat as approved signal'];
-    ctas = [
-      '<button class="btn-action" onclick="focusNearMisses()">Review Near-Misses</button>',
-      manualRefreshControlHtml('Refresh Now'),
-      '<button class="btn-action" onclick="goToMonitorPositions()">Check Positions</button>'
-    ];
-  } else {
-    badges.push('<span class="badge">No Trade</span>');
-    badges.push(`<span class="badge info">Favored: ${escapeHtml(favored)}</span>`);
-    attention = [
-      'No clean leaders passed current filters',
-      'Current setup bias remains visible in Scan Status',
-      'Use near-miss and preference layers to frame watchlist attention',
-    ];
-    action = ['Wait', 'Refresh next cycle', 'Inspect filter criteria if needed'];
-    ctas = [
-      manualRefreshControlHtml('Refresh Now'),
-      '<button class="btn-action" onclick="showFilterCriteria()">Review Filters</button>',
-      '<button class="btn-action" onclick="goToMonitorPositions()">Check Positions</button>'
-    ];
-  }
-
-  stateEl.textContent = mode;
-  stateEl.className = `panel-status ${mode === 'ACT' ? 'fresh' : mode === 'WATCH' ? 'stale' : ''}`;
-  wrap.innerHTML = `
-    <div class="command-grid">
-      <div class="command-primary">
-        <div class="command-kicker">Readiness</div>
-        <div class="command-headline">${headline}</div>
-        <div class="command-subline">${subline}</div>
-        <div class="command-badges">${badges.join('')}</div>
-        ${priorityStack.length ? `
-          <div class="command-action-label" style="margin-top: var(--space-md);">Priority stack</div>
-          <div class="command-list">
-            ${priorityStack.map((item, i) => `<div class="command-list-item">${i + 1}. <strong>${escapeHtml(item.rankType)}</strong> · <span class="badge ${item.urgency === 'LOOK NOW' ? 'bad' : item.urgency === 'LOOK SOON' ? 'warn' : item.urgency === 'PERIPHERAL' ? 'info' : ''}">${escapeHtml(item.urgency)}</span> — ${escapeHtml(item.label)} <span class="text-muted">(${escapeHtml(item.why)})</span></div>`).join('')}
-          </div>
-        ` : ''}
-        <div class="preopen-note" style="margin-top: var(--space-md);">
-          <strong>Live safety:</strong> ${escapeHtml(proceedGuidance.state)} · ${escapeHtml(proceedGuidance.note)}
-        </div>
-      </div>
-      <div class="command-secondary">
-        <div class="command-action-label">What deserves attention now</div>
-        <div class="command-list">
-          ${attention.map(item => `<div class="command-list-item">• ${escapeHtml(item)}</div>`).join('')}
-        </div>
-      </div>
-      <div class="command-actions">
-        <div class="command-action-label">Action / Wait / Watch</div>
-        <div class="command-list">
-          ${action.map(item => `<div class="command-list-item">• ${escapeHtml(item)}</div>`).join('')}
-        </div>
-        <div class="command-cta-row" style="margin-top: var(--space-md);">
-          ${ctas.join('')}
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Update operator rail
-  renderOperatorRail();
-}
-
-function renderOverview(snapshot) {
-  const health = snapshot.systemHealth || {};
-  const tradier = snapshot.tradier || {};
-  const overview = tradier.overview || {};
-  const healthSummary = describeSnapshotHealth(snapshot);
-  
-  const items = [
-    { label: 'Board', value: health.tradierBoardPresent ? '✓ Live' : '✗ Missing', class: health.tradierBoardPresent ? 'positive' : 'negative' },
-    { label: 'Leaders', value: overview.leaderCount ?? tradier.leaders?.length ?? 0, class: 'accent' },
-    { label: 'Directional', value: overview.directionalCount ?? 0, class: '' },
-    { label: 'Premium', value: overview.premiumCount ?? 0, class: '' },
-    { label: 'VIX', value: overview.vix ?? '—', class: '' },
-    { label: 'Updated', value: health.tradierBoardUpdatedAt ? new Date(health.tradierBoardUpdatedAt).toLocaleTimeString() : '—', class: 'text-muted' },
-  ];
-
-  const grid = document.getElementById('overviewGrid');
-  if (!grid) return;
-  
-  grid.innerHTML = items.map(item => `
-    <div class="metric-item">
-      <div class="metric-label">${escapeHtml(item.label)}</div>
-      <div class="metric-value ${item.class}">${escapeHtml(String(item.value))}</div>
-    </div>
-  `).join('');
-  
-  // Update timestamp
-  const updatedAt = document.getElementById('updatedAt');
-  if (updatedAt) {
-    updatedAt.textContent = new Date().toLocaleTimeString();
-  }
-  
-  // Update scan status
-  renderScanStatus(snapshot);
-  renderCommandLayer(snapshot);
-  renderPreopenChecklist(snapshot);
-  renderRegimeLayer(snapshot);
-}
-
-let refreshStatusData = null;
-
-function renderScanStatus(snapshot) {
-  const health = snapshot?.systemHealth || {};
-  const scanStatusEl = document.getElementById('scanStatus');
-  const lastScanEl = document.getElementById('lastScanTime');
-  const freshnessEl = document.getElementById('dataFreshness');
-  const apiStatusEl = document.getElementById('apiStatus');
-  const refreshResultEl = document.getElementById('refreshResult');
-  const refreshStageEl = document.getElementById('refreshStage');
-  const refreshMessageEl = document.getElementById('refreshMessage');
-  const decisionContextEl = document.getElementById('decisionContextCount');
-  const outcomeAttachmentEl = document.getElementById('outcomeAttachmentCount');
-  const calibrationReviewEl = document.getElementById('calibrationReviewCount');
-  const setupQualityEl = document.getElementById('setupQualityCount');
-  const actionBiasEl = document.getElementById('actionBiasState');
-  const operatorFeedbackEl = document.getElementById('operatorFeedbackCount');
-  const actionBiasFeedbackWrap = document.getElementById('actionBiasFeedbackWrap');
-  
-  if (!scanStatusEl || !lastScanEl || !freshnessEl || !apiStatusEl) return;
-  
-  const boardUpdated = health.tradierBoardUpdatedAt;
-  const apiKeyLoaded = health.tradierApiKeyLoaded;
-  
-  // Calculate freshness
-  let freshness = 'Unknown';
-  let freshnessClass = '';
-  if (boardUpdated) {
-    const minutesAgo = (Date.now() - new Date(boardUpdated).getTime()) / 60000;
-    if (minutesAgo < 30) {
-      freshness = 'Fresh';
-      freshnessClass = 'fresh';
-    } else if (minutesAgo < 120) {
-      freshness = `${Math.round(minutesAgo)}m old`;
-      freshnessClass = 'stale';
+      showToast('Buy order sent', 'success');
     } else {
-      freshness = `${Math.round(minutesAgo / 60)}h old`;
-      freshnessClass = 'stale';
-    }
-  }
-  
-  // Update elements
-  scanStatusEl.textContent = apiKeyLoaded ? (boardUpdated ? 'Active' : 'No Data') : 'API Error';
-  scanStatusEl.className = `panel-status ${apiKeyLoaded ? (boardUpdated ? 'fresh' : 'stale') : 'error'}`;
-  
-  lastScanEl.textContent = boardUpdated ? new Date(boardUpdated).toLocaleTimeString() : 'Never';
-  freshnessEl.textContent = freshness;
-  freshnessEl.className = `status-value ${freshnessClass}`;
-  apiStatusEl.textContent = apiKeyLoaded ? 'Connected' : 'Disconnected';
-  apiStatusEl.className = `status-value ${apiKeyLoaded ? 'fresh' : 'error'}`;
-
-  if (refreshResultEl && refreshStageEl && refreshMessageEl) {
-    refreshResultEl.textContent = refreshStatusData ? (refreshStatusData.ok ? 'Success' : 'Failure') : '--';
-    refreshResultEl.className = `status-value ${refreshStatusData ? (refreshStatusData.ok ? 'fresh' : 'error') : ''}`;
-    refreshStageEl.textContent = refreshStatusData?.stage || '--';
-    refreshMessageEl.textContent = refreshStatusData?.message || '--';
-    refreshMessageEl.title = refreshStatusData?.message || '';
-  }
-
-  if (decisionContextEl) {
-    const dc = snapshot?.decisionContext;
-    if (dc) {
-      decisionContextEl.textContent = `${dc.totalLoggedThisRun} captured`;
-      decisionContextEl.className = 'status-value fresh';
-      decisionContextEl.title = `Qualified: ${dc.qualifiedTradeCount}, Near-miss: ${dc.nearMissCount}, No-trade env: ${dc.noTradeEnvironmentLogged}`;
-    }
-  }
-
-  if (outcomeAttachmentEl) {
-    const oa = snapshot?.decisionOutcomeAttachments;
-    if (oa && typeof oa.totalAttachments !== 'undefined') {
-      outcomeAttachmentEl.textContent = `${oa.totalAttachments} attached`;
-      outcomeAttachmentEl.className = 'status-value fresh';
-      outcomeAttachmentEl.title = `New this run: ${oa.newAttachments}; Horizons: ${(oa.horizons || []).join(', ')}`;
-    }
-  }
-
-  if (calibrationReviewEl) {
-    const cc = snapshot?.confidenceCalibration;
-    if (cc && cc.sourceCounts) {
-      calibrationReviewEl.textContent = `${cc.sourceCounts.outcomeAttachments} reviewed`;
-      calibrationReviewEl.className = 'status-value fresh';
-      calibrationReviewEl.title = `Decisions: ${cc.sourceCounts.decisionRecords}; Attachments: ${cc.sourceCounts.outcomeAttachments}`;
-    }
-  }
-
-  if (setupQualityEl) {
-    const sq = snapshot?.setupQuality;
-    if (sq && sq.sampleSize) {
-      setupQualityEl.textContent = `${sq.sampleSize.decisions} ranked`;
-      setupQualityEl.className = 'status-value fresh';
-      setupQualityEl.title = sq.sampleSize.note || 'Early setup quality review active';
-    }
-  }
-
-  if (actionBiasEl) {
-    const pb = snapshot?.preferenceActionBias;
-    const favored = pb?.operatorSummary?.favoredSetupClass;
-    const note = pb?.operatorSummary?.sampleNote;
-    if (favored) {
-      actionBiasEl.textContent = `Favored: ${favored}`;
-      actionBiasEl.className = 'status-value fresh';
-      actionBiasEl.title = note || '';
-    } else if (note) {
-      actionBiasEl.textContent = 'Neutral';
-      actionBiasEl.className = 'status-value';
-      actionBiasEl.title = note;
-    }
-  }
-
-  if (operatorFeedbackEl) {
-    const of = snapshot?.operatorFeedback;
-    if (of && typeof of.count !== 'undefined') {
-      operatorFeedbackEl.textContent = `${of.count} captured`;
-      operatorFeedbackEl.className = 'status-value fresh';
-      operatorFeedbackEl.title = JSON.stringify(of.byFeedback || {});
-    }
-  }
-
-  if (actionBiasFeedbackWrap) {
-    actionBiasFeedbackWrap.innerHTML = feedbackButtonsHtml('action_bias', {
-      targetType: 'action_bias',
-      strategy: snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'unknown',
-      decisionRef: `action_bias|${snapshot?.updatedAt || ''}`,
-      snapshotUpdatedAt: snapshot?.updatedAt,
-      metadata: { favoredSetupClass: snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || null }
-    }, [
-      { label: 'Agree', value: 'agree' },
-      { label: 'Disagree', value: 'disagree' },
-      { label: 'Useful', value: 'useful' }
-    ]);
-  }
-}
-
-function isTerminalRefreshStage(stage) {
-  return ['complete', 'failed', 'timeout', 'env'].includes(String(stage || '').toLowerCase());
-}
-
-async function fetchRefreshStatus() {
-  try {
-    const res = await fetch('/api/refresh-status');
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.ok) {
-      refreshStatusData = data.data;
-      return data.data;
+      showToast('Order failed', 'error');
     }
   } catch (err) {
-    console.error('Failed to fetch refresh status:', err);
-  }
-  return null;
-}
-
-async function waitForRefreshTerminalState(timeoutMs = 210000) {
-  const started = Date.now();
-  
-  // Update UI to show polling state
-  const refreshResultEl = document.getElementById('refreshResult');
-  const refreshStageEl = document.getElementById('refreshStage');
-  const refreshMessageEl = document.getElementById('refreshMessage');
-  
-  while ((Date.now() - started) < timeoutMs) {
-    const status = await fetchRefreshStatus();
-    
-    // Update UI during polling
-    if (status && refreshResultEl && refreshStageEl && refreshMessageEl) {
-      refreshResultEl.textContent = status.ok ? 'In Progress' : 'Running';
-      refreshResultEl.className = 'status-value warn';
-      refreshStageEl.textContent = status.stage || 'polling';
-      refreshMessageEl.textContent = status.message || 'Refresh in progress...';
-    }
-    
-    if (status && isTerminalRefreshStage(status.stage)) return status;
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-  
-  refreshStatusData = {
-    ok: false,
-    stage: 'timeout',
-    message: 'Manual refresh did not reach a terminal state in time',
-    updatedAt: new Date().toISOString(),
-  };
-  return refreshStatusData;
-}
-
-function renderNoTradeState() {
-  const health = currentSnapshot?.systemHealth || {};
-  const boardUpdated = health.tradierBoardUpdatedAt;
-  const apiKeyLoaded = health.tradierApiKeyLoaded;
-  
-  let freshnessText = 'Unknown';
-  let freshnessIcon = '⏱️';
-  if (boardUpdated) {
-    const minutesAgo = (Date.now() - new Date(boardUpdated).getTime()) / 60000;
-    if (minutesAgo < 30) {
-      freshnessText = 'Data is fresh';
-      freshnessIcon = '✓';
-    } else {
-      freshnessText = `Last scan: ${Math.round(minutesAgo)} minutes ago`;
-      freshnessIcon = '⏱️';
-    }
-  }
-  
-  const reasons = [
-    'Confidence threshold not met (minimum 6/10 required)',
-    'Bid-ask spreads too wide for clean entry',
-    'Volume/OI below liquidity thresholds',
-    'Delta profile outside optimal range (0.10-0.80)',
-    'Risk/reward ratio not acceptable',
-    'VIX regime suggesting caution'
-  ];
-  const nearMisses = currentSnapshot?.tradier?.nearMisses?.candidates || [];
-  
-  const refreshResult = refreshStatusData ? (refreshStatusData.ok ? 'Success' : 'Failure') : '--';
-  const refreshStage = refreshStatusData?.stage || '--';
-  const refreshMessage = refreshStatusData?.message || '--';
-
-  return `
-    <div class="no-trade-state">
-      <div class="no-trade-icon">🛡️</div>
-      <div class="no-trade-title">No Trade Signal</div>
-      <div class="no-trade-subtitle">The system is actively screening. No candidates passed filters.</div>
-      
-      <div class="status-grid telemetry-grid" style="margin: var(--space-md) 0;">
-        <div class="status-item">
-          <span class="status-label">System Status</span>
-          <span class="status-value ${apiKeyLoaded ? 'fresh' : 'error'}">${apiKeyLoaded ? 'Active' : 'Error'}</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Data Freshness</span>
-          <span class="status-value ${boardUpdated ? 'fresh' : 'error'}">${freshnessText}</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Screening</span>
-          <span class="status-value">Strict Filters</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Last Refresh Result</span>
-          <span class="status-value ${refreshStatusData ? (refreshStatusData.ok ? 'fresh' : 'error') : ''}">${refreshResult}</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Refresh Stage</span>
-          <span class="status-value">${escapeHtml(refreshStage)}</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Refresh Message</span>
-          <span class="status-value" title="${escapeHtml(refreshMessage)}">${escapeHtml(refreshMessage)}</span>
-        </div>
-      </div>
-      
-      <div class="no-trade-reasons">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: var(--space-sm);">Common Rejection Reasons</div>
-        <ul style="list-style: none; padding: 0; margin: 0;">
-          ${reasons.map(r => `<li>• ${r}</li>`).join('')}
-        </ul>
-      </div>
-      
-      ${nearMisses.length ? `
-        <div class="near-miss-panel">
-          <div class="near-miss-title">Near-Miss Watchlist</div>
-          <div class="near-miss-subtitle">Closest rejected candidates — useful for watch, not valid signals yet.</div>
-          <div class="near-miss-list">
-            ${nearMisses.map((c, i) => `
-              <div class="near-miss-card">
-                <div class="near-miss-header">
-                  <div class="near-miss-symbol">${escapeHtml(c.symbol)} ${escapeHtml(c.option_type)} ${escapeHtml(String(c.strike))}</div>
-                  <div class="near-miss-score">${escapeHtml(String(c.near_miss_score))}/100</div>
-                </div>
-                <div class="near-miss-meta">${escapeHtml(c.strategy)} · Exp ${escapeHtml(c.expiration || '--')} · Δ ${typeof c.delta === 'number' ? c.delta.toFixed(2) : '--'}</div>
-                <div class="near-miss-blockers"><strong>Blocked by:</strong> ${c.rejection_reasons.map(r => `<span class="badge warn">${escapeHtml(r)}</span>`).join(' ')}</div>
-                <div class="near-miss-closeness"><strong>Close because:</strong> ${c.closeness?.length ? c.closeness.map(r => `<span class="badge info">${escapeHtml(r)}</span>`).join(' ') : '<span class="text-muted">No promotion notes</span>'}</div>
-                ${feedbackButtonsHtml('near_miss', {
-                  targetType: 'near_miss',
-                  symbol: c.symbol,
-                  contract: { option_type: c.option_type, strike: c.strike, expiration: c.expiration },
-                  strategy: c.strategy,
-                  decisionRef: `near_miss|${c.symbol}|${c.option_type}|${c.strike}|${c.expiration}|${currentSnapshot?.updatedAt || ''}`,
-                  snapshotUpdatedAt: currentSnapshot?.updatedAt,
-                }, [
-                  { label: 'Watch', value: 'watch' },
-                  { label: 'Useful', value: 'useful' },
-                  { label: 'Misleading', value: 'misleading' },
-                ])}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-      
-      <div class="status-actions" style="justify-content: center; margin-top: var(--space-md);">
-        ${manualRefreshControlHtml('↻ Force Refresh')}
-        <button class="btn-action" onclick="showFilterCriteria()">⚙ View Filters</button>
-      </div>
-      <div style="margin-top: var(--space-sm); display:flex; justify-content:center;">
-        ${feedbackButtonsHtml('no_trade_environment', {
-          targetType: 'no_trade_environment',
-          strategy: 'no_trade_environment',
-          decisionRef: `no_trade|${currentSnapshot?.updatedAt || ''}`,
-          snapshotUpdatedAt: currentSnapshot?.updatedAt,
-          metadata: { refreshResult, refreshStage }
-        }, [
-          { label: 'Agree', value: 'agree' },
-          { label: 'Useful', value: 'useful' },
-          { label: 'Misleading', value: 'misleading' },
-        ])}
-      </div>
-    </div>
-  `;
-}
-
-async function forceRefresh() {
-  const btn = document.querySelector('[data-refresh-action="run-now"]') || document.querySelector('button[onclick="forceRefresh()"]');
-  if (btn) {
-    btn.textContent = '⟳ Running...';
-    btn.disabled = true;
-  }
-
-  // Immediately update UI to show starting state
-  const refreshResultEl = document.getElementById('refreshResult');
-  const refreshStageEl = document.getElementById('refreshStage');
-  const refreshMessageEl = document.getElementById('refreshMessage');
-  
-  if (refreshResultEl && refreshStageEl && refreshMessageEl) {
-    refreshResultEl.textContent = 'Starting';
-    refreshResultEl.className = 'status-value warn';
-    refreshStageEl.textContent = 'starting';
-    refreshMessageEl.textContent = 'Manual refresh starting…';
-  }
-
-  refreshStatusData = {
-    ok: false,
-    stage: 'starting',
-    message: 'Manual refresh starting…',
-    updatedAt: new Date().toISOString(),
-  };
-
-  try {
-    // Trigger the refresh via POST
-    const res = await fetch('/api/manual-refresh', { method: 'POST' });
-    if (!res.ok) {
-      throw new Error(`Refresh request failed: ${res.status}`);
-    }
-    
-    // Wait for terminal state (this will update UI during polling)
-    const terminal = await waitForRefreshTerminalState();
-    await refresh();
-    if (btn) btn.textContent = terminal.ok ? '✓ Refreshed' : '✗ Failed';
-  } catch (err) {
-    refreshStatusData = {
-      ok: false,
-      stage: 'failed',
-      message: err.message,
-      updatedAt: new Date().toISOString(),
-    };
-    
-    // Update UI on error
-    if (refreshResultEl && refreshStageEl && refreshMessageEl) {
-      refreshResultEl.textContent = 'Failed';
-      refreshResultEl.className = 'status-value error';
-      refreshStageEl.textContent = 'failed';
-      refreshMessageEl.textContent = err.message;
-    }
-    
-    if (btn) btn.textContent = '✗ Failed';
+    showToast('Network error', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
-      setTimeout(() => { btn.textContent = '↻ Run Now'; }, 2500);
+      btn.innerHTML = '<span class="btn-label">BUY ETH</span><span class="btn-sublabel">Market Order</span>';
     }
   }
 }
 
-function showFilterCriteria() {
-  alert(`Bazaar Filter Criteria:
-
-DIRECTIONAL/SCALPING:
-• Delta: 0.35 - 0.80
-• DTE: 7-14 days
-• Bid-ask spread: < 10%
-• Volume: > 1000 contracts
-• Confidence: ≥ 6/10
-
-PREMIUM/CREDIT:
-• Delta: 0.10 - 0.18
-• DTE: 7-14 days
-• OTM only
-• Spread width: acceptable risk
-• Confidence: ≥ 6/10
-
-Standing down when no setups meet criteria is valid discipline.`);
-}
-
-// Global for live scanner data
-let liveScannerData = null;
-
-// Quick execute from scanner row
-async function quickExecuteFromScanner(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) {
-    alert('Leader not found');
-    return;
-  }
-  
-  if (!confirm(`Quick execute: ${leaderDisplayName(leader)}?\n\nThis will create a preview for immediate execution.`)) {
-    return;
-  }
-  
-  // Set as selected leader
-  setSelectedLeader(index, currentSnapshot.tradier.leaders);
-  
-  // Trigger execute preview
-  await runExecutePreview(leader);
-}
-
-// Quick queue from scanner row
-async function quickQueueFromScanner(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) {
-    alert('Leader not found');
-    return;
+async function executeSell() {
+  const btn = document.getElementById('sell-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-label">EXECUTING...</span>';
   }
   
   try {
-    const res = await fetch('/api/actions', {
+    const res = await fetch('/api/eth-scalper/command', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'queue_selected_leader', leader }),
-    });
-    
-    const data = await res.json();
-    if (data.ok) {
-      alert(`Added to queue: ${leaderDisplayName(leader)}`);
-      await refresh();
-    } else {
-      alert(`Failed: ${data.error}`);
-    }
-  } catch (err) {
-    alert(`Error: ${err.message}`);
-  }
-}
-
-async function fetchLiveScanner() {
-  try {
-    const res = await fetch('/api/live-scanner');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        liveScannerData = data.data;
-        return data.data;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch live scanner:', err);
-  }
-  return null;
-}
-
-function getLeaderLiveData(leader) {
-  // Get live data for a leader if available
-  if (!liveScannerData?.leaders) return null;
-  
-  // Match by symbol, strike, and expiration
-  const leaderKey = `${leader.symbol}-${leader.strike}-${leader.exp}`;
-  for (const live of liveScannerData.leaders) {
-    const liveKey = `${live.symbol}-${live.strike}-${live.expiration}`;
-    if (leaderKey === liveKey) {
-      return live;
-    }
-  }
-  return null;
-}
-
-// Track expanded card
-let expandedCardIndex = null;
-
-function renderLeaderCard(leader, index) {
-  const state = getLeaderState(leader);
-  const isExpanded = expandedCardIndex === index;
-  const isSelected = selectedLeaderIndex === index;
-  
-  // Parse confidence
-  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
-  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
-  const confidenceClass = confidenceScore >= 7 ? 'high' : confidenceScore >= 5 ? 'medium' : 'low';
-  
-  // Card badges
-  const badges = [];
-  if (state.queued) badges.push('<span class="card-badge queued">Queued</span>');
-  if (state.watched) badges.push('<span class="card-badge watching">Watching</span>');
-  if (leader.fallback) badges.push('<span class="card-badge">Fallback</span>');
-  
-  // Build expanded content if this card is selected
-  let expandedContent = '';
-  if (isExpanded) {
-    expandedContent = renderExpandedCardContent(leader, state);
-  }
-  
-  return `
-    <div class="leader-card-wrapper ${isExpanded ? 'expanded' : ''}">
-      <div class="leader-card ${leader.option_type?.toLowerCase()} ${isSelected ? 'selected' : ''}" data-index="${index}" onclick="toggleCardExpand(${index})">
-        <div class="card-header">
-          <div class="card-symbol">${escapeHtml(leader.symbol)}</div>
-          <div class="card-confidence ${confidenceClass}">${confidenceScore}/10</div>
-        </div>
-        <div class="card-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))}</div>
-        <div class="card-details">
-          <div class="card-detail">Δ <span>${escapeHtml(leader.delta)}</span></div>
-          <div class="card-detail">DTE <span>${escapeHtml(leader.exp?.split('-').slice(1).join('/'))}</span></div>
-        </div>
-        <div class="card-price">$${escapeHtml(leader.ask || leader.bid || '--')}</div>
-        <div class="card-badges">${badges.join('')}</div>
-        <div class="card-expand-hint">${isExpanded ? '▲ Collapse' : '▼ Expand'}</div>
-      </div>
-      ${expandedContent}
-    </div>
-  `;
-}
-
-function renderExpandedCardContent(leader, state) {
-  // Parse confidence for spectrum
-  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
-  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
-  const spectrumWidth = confidenceScore * 10;
-  
-  return `
-    <div class="card-expanded-panel">
-      <div class="expanded-grid">
-        <!-- Left: Chart & Visuals -->
-        <div class="expanded-visuals">
-          <div class="chart-container" id="cardChart-${selectedLeaderIndex}">
-            <div class="chart-loading">Loading chart...</div>
-          </div>
-          
-          <div class="trade-levels-visual">
-            <div class="level-bar">
-              <div class="level-marker stop">Stop<br/>$${leader.invalidation || '--'}</div>
-              <div class="level-marker entry">Entry<br/>$${leader.underlying || '--'}</div>
-              <div class="level-marker target">Target<br/>$${leader.targets || '--'}</div>
-            </div>
-          </div>
-          
-          <div class="spectrum-container">
-            <div class="spectrum-label">Trade Quality</div>
-            <div class="spectrum-bar">
-              <div class="spectrum-fill" style="width: ${spectrumWidth}%; background: ${confidenceScore >= 7 ? 'var(--good)' : confidenceScore >= 5 ? 'var(--accent)' : 'var(--bad)'}"></div>
-            </div>
-            <div class="spectrum-labels">
-              <span>Weak</span>
-              <span>${confidenceScore}/10</span>
-              <span>Strong</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Right: Info & Actions -->
-        <div class="expanded-info">
-          <div class="expanded-section">
-            <h4>✓ Why This Passed Filters</h4>
-            <ul>
-              ${leader.section === 'directional' ? `
-                <li>Near-ATM delta (${leader.delta}) for directional exposure</li>
-                <li>7-14 DTE for optimal gamma/theta balance</li>
-                <li>Tight bid-ask spread for clean entry/exit</li>
-              ` : `
-                <li>OTM delta (~0.14) for defined-risk premium</li>
-                <li>Spread structure limits max loss</li>
-                <li>Time decay working in your favor</li>
-              `}
-            </ul>
-          </div>
-          
-          <div class="expanded-section">
-            <h4>⚠ Key Risk Factors</h4>
-            <ul class="risk-list">
-              <li>Momentum confirmation required - do not blind enter</li>
-              <li>Hard stop discipline essential</li>
-              <li>${leader.section === 'directional' ? 'Directional risk - wrong way move = loss' : 'Assignment risk if ITM at expiry'}</li>
-            </ul>
-          </div>
-          
-          <div class="expanded-section">
-            <h4>🎯 Setup Thesis</h4>
-            <p class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</p>
-          </div>
-          
-          <div class="expanded-actions">
-            <button class="btn-execute" onclick="event.stopPropagation(); showOrderEntryForCard(${selectedLeaderIndex})">📋 Enter Order</button>
-            ${state.queued ? 
-              '<button class="btn-secondary" disabled>✓ Queued</button>' : 
-              '<button class="btn-secondary" onclick="event.stopPropagation(); quickQueueFromScanner(selectedLeaderIndex)">+ Queue</button>'}
-            ${state.watched ? 
-              '<button class="btn-secondary" disabled>👁 Watching</button>' : 
-              '<button class="btn-secondary" onclick="event.stopPropagation(); quickWatchFromScanner(selectedLeaderIndex)">👁 Watch</button>'}
-          </div>
-          
-          <div id="cardOrderEntry-${selectedLeaderIndex}" class="card-order-entry" style="display:none;">
-            <div class="order-form-compact">
-              <div class="form-row">
-                <label>Contracts</label>
-                <input type="number" id="cardOrderQty-${selectedLeaderIndex}" value="1" min="1" max="5" onchange="updateCardOrderValue(${selectedLeaderIndex})" />
-              </div>
-              <div class="form-row">
-                <label>Order Type</label>
-                <select id="cardOrderType-${selectedLeaderIndex}" onchange="updateCardOrderValue(${selectedLeaderIndex})">
-                  <option value="market">Market</option>
-                  <option value="limit">Limit</option>
-                </select>
-              </div>
-              <div class="form-row" id="cardLimitPriceRow-${selectedLeaderIndex}" style="display:none;">
-                <label>Limit Price</label>
-                <input type="number" id="cardLimitPrice-${selectedLeaderIndex}" step="0.01" value="${leader.ask || leader.bid || ''}" />
-              </div>
-              <div class="order-value-display">
-                Est. Value: <strong id="cardOrderValue-${selectedLeaderIndex}">$0</strong>
-                <span class="risk-limit">(Max $200)</span>
-              </div>
-              <button class="btn-execute-full" onclick="event.stopPropagation(); submitCardOrder(${selectedLeaderIndex})">⚡ Execute Trade</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function toggleCardExpand(index) {
-  if (expandedCardIndex === index) {
-    expandedCardIndex = null; // Collapse if already expanded
-  } else {
-    expandedCardIndex = index; // Expand new card
-    setSelectedLeader(index, currentSnapshot?.tradier?.leaders || []);
-  }
-  renderLeaders(currentSnapshot?.tradier?.leaders || []);
-  
-  // Load chart after render if expanded
-  if (expandedCardIndex === index) {
-    setTimeout(() => loadFullChart(index), 100);
-  }
-}
-
-async function loadFullChart(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) return;
-  
-  const container = document.getElementById(`fullChart-${index}`);
-  if (!container) return;
-  
-  try {
-    const res = await fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`);
-    const data = await res.json();
-    
-    if (data.ok && data.points && data.points.length > 0) {
-      container.innerHTML = '';
-      drawMiniChart(container, data.points, leader);
-    } else {
-      container.innerHTML = '<div class="chart-loading">No chart data available</div>';
-    }
-  } catch (err) {
-    container.innerHTML = '<div class="chart-loading">Failed to load chart</div>';
-  }
-}
-
-async function loadCardChart(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) return;
-  
-  const container = document.getElementById(`cardChart-${index}`);
-  if (!container) return;
-  
-  try {
-    const res = await fetch(`/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`);
-    const data = await res.json();
-    
-    if (data.ok && data.points && data.points.length > 0) {
-      container.innerHTML = '';
-      drawMiniChart(container, data.points, leader);
-    } else {
-      container.innerHTML = '<div class="chart-loading">No chart data available</div>';
-    }
-  } catch (err) {
-    container.innerHTML = '<div class="chart-loading">Failed to load chart</div>';
-  }
-}
-
-function drawMiniChart(container, points, leader) {
-  const width = container.clientWidth || 400;
-  const height = 180;
-  const padding = { top: 10, right: 10, bottom: 30, left: 50 };
-  
-  const prices = points.map(p => p.close).filter(c => c !== null);
-  if (prices.length === 0) return;
-  
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const priceRange = maxPrice - minPrice || 1;
-  
-  // Create SVG
-  const svg = d3.select(container).append('svg')
-    .attr('width', width)
-    .attr('height', height);
-  
-  // Scales
-  const xScale = d3.scaleLinear()
-    .domain([0, prices.length - 1])
-    .range([padding.left, width - padding.right]);
-  
-  const yScale = d3.scaleLinear()
-    .domain([minPrice - priceRange * 0.1, maxPrice + priceRange * 0.1])
-    .range([height - padding.bottom, padding.top]);
-  
-  // Grid lines
-  svg.append('g')
-    .attr('class', 'grid')
-    .attr('transform', `translate(0,${height - padding.bottom})`)
-    .call(d3.axisBottom(xScale).tickSize(-(height - padding.top - padding.bottom)).tickFormat(''))
-    .call(g => g.select('.domain').remove())
-    .call(g => g.selectAll('line').attr('stroke', 'var(--border-color)').attr('stroke-opacity', 0.3));
-  
-  // Y axis
-  svg.append('g')
-    .attr('transform', `translate(${padding.left},0)`)
-    .call(d3.axisLeft(yScale).ticks(4).tickFormat(d => `$${d.toFixed(0)}`))
-    .call(g => g.select('.domain').attr('stroke', 'var(--text-secondary)'))
-    .call(g => g.selectAll('text').attr('fill', 'var(--text-secondary)').style('font-size', '9px'));
-  
-  // Line
-  const line = d3.line()
-    .x((d, i) => xScale(i))
-    .y(d => yScale(d.close))
-    .curve(d3.curveMonotoneX);
-  
-  svg.append('path')
-    .datum(points.filter(p => p.close !== null))
-    .attr('fill', 'none')
-    .attr('stroke', 'var(--accent-color)')
-    .attr('stroke-width', 2)
-    .attr('d', line);
-  
-  // Current price dot
-  const lastPoint = points[points.length - 1];
-  if (lastPoint && lastPoint.close) {
-    svg.append('circle')
-      .attr('cx', xScale(prices.length - 1))
-      .attr('cy', yScale(lastPoint.close))
-      .attr('r', 4)
-      .attr('fill', 'var(--accent-color)')
-      .attr('stroke', 'white')
-      .attr('stroke-width', 2);
-  }
-}
-
-function showOrderEntryForCard(index) {
-  const panel = document.getElementById(`cardOrderEntry-${index}`);
-  if (panel) {
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    if (panel.style.display === 'block') {
-      updateCardOrderValue(index);
-    }
-  }
-}
-
-function updateCardOrderValue(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) return;
-  
-  const qty = parseInt(document.getElementById(`cardOrderQty-${index}`)?.value || 1);
-  const orderType = document.getElementById(`cardOrderType-${index}`)?.value || 'market';
-  const limitPriceRow = document.getElementById(`cardLimitPriceRow-${index}`);
-  
-  // Show/hide limit price row
-  if (limitPriceRow) {
-    limitPriceRow.style.display = orderType === 'limit' ? 'flex' : 'none';
-  }
-  
-  let price = parseFloat(leader.ask || leader.bid || 0);
-  if (orderType === 'limit') {
-    const limitInput = document.getElementById(`cardLimitPrice-${index}`);
-    if (limitInput && limitInput.value) {
-      price = parseFloat(limitInput.value);
-    }
-  }
-  
-  const value = qty * price * 100;
-  const valueEl = document.getElementById(`cardOrderValue-${index}`);
-  if (valueEl) {
-    valueEl.textContent = `$${value.toFixed(0)}`;
-    valueEl.style.color = value > 200 ? 'var(--bad)' : 'var(--good)';
-  }
-}
-
-async function submitCardOrder(index) {
-  const leader = currentSnapshot?.tradier?.leaders?.[index];
-  if (!leader) return;
-  
-  const qty = parseInt(document.getElementById(`cardOrderQty-${index}`)?.value || 1);
-  const orderType = document.getElementById(`cardOrderType-${index}`)?.value || 'market';
-  const limitPrice = document.getElementById(`cardLimitPrice-${index}`)?.value;
-  
-  const order = {
-    symbol: leader.symbol,
-    option_type: leader.option_type?.toLowerCase() || 'call',
-    strike: parseFloat(leader.strike),
-    expiration: leader.exp,
-    side: 'buy_to_open',
-    quantity: qty,
-    order_type: orderType,
-    limit_price: limitPrice ? parseFloat(limitPrice) : null,
-    time_in_force: 'day',
-    current_price: parseFloat(leader.ask || leader.bid || 0)
-  };
-  
-  try {
-    const res = await fetch('/api/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-    
-    const data = await res.json();
-    if (data.ok) {
-      alert(`✅ Order submitted! ID: ${data.order_id}`);
-      document.getElementById(`cardOrderEntry-${index}`).style.display = 'none';
-    } else {
-      alert(`❌ Order failed: ${data.error || data.validation_errors?.join(', ')}`);
-    }
-  } catch (err) {
-    alert(`❌ Error: ${err.message}`);
-  }
-}
-
-function renderLeaders(leaders) {
-  const wrap = document.getElementById('leadersWrap');
-  
-  if (!wrap) return;
-  
-  if (currentUiMode === 'loading') {
-    wrap.innerHTML = '<div class="void">Loading Tradier snapshot...</div>';
-    return;
-  }
-  if (currentUiMode === 'error') {
-    wrap.innerHTML = `<div class="void">Error: ${escapeHtml(currentLoadError || 'Snapshot load failed')}</div>`;
-    return;
-  }
-  if (!leaders?.length) {
-    wrap.innerHTML = renderNoTradeState();
-    return;
-  }
-
-  // Check if any card is expanded
-  const hasExpandedCard = expandedCardIndex !== null && expandedCardIndex >= 0 && expandedCardIndex < leaders.length;
-
-  if (hasExpandedCard) {
-    // Full-width layout when card is expanded
-    wrap.innerHTML = `
-      <div class="leader-cards-compact">
-        ${leaders.map((leader, idx) => idx === expandedCardIndex ? '' : renderCompactCard(leader, idx)).join('')}
-      </div>
-      ${renderExpandedCardFull(leaders[expandedCardIndex], expandedCardIndex)}
-    `;
-  } else {
-    // Normal grid layout
-    wrap.innerHTML = `
-      <div class="leader-cards">
-        ${leaders.map((leader, idx) => renderLeaderCard(leader, idx)).join('')}
-      </div>
-    `;
-  }
-
-  // Only render summary strip
-  const { leader: selectedLeader } = syncSelectedLeader(leaders);
-  renderSummaryStrip(selectedLeader, null);
-}
-
-function renderCompactCard(leader, index) {
-  const isSelected = selectedLeaderIndex === index;
-  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
-  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
-  
-  return `
-    <div class="leader-card-compact ${leader.option_type?.toLowerCase()} ${isSelected ? 'selected' : ''}" onclick="toggleCardExpand(${index})">
-      <div class="compact-symbol">${escapeHtml(leader.symbol)}</div>
-      <div class="compact-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))}</div>
-      <div class="compact-price">$${escapeHtml(leader.ask || leader.bid || '--')}</div>
-      <div class="compact-confidence">${confidenceScore}/10</div>
-    </div>
-  `;
-}
-
-function renderExpandedCardFull(leader, index) {
-  const state = getLeaderState(leader);
-  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
-  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
-  const spectrumWidth = confidenceScore * 10;
-  
-  return `
-    <div class="expanded-card-full">
-      <div class="expanded-full-header">
-        <div class="expanded-title">
-          <span class="expanded-symbol">${escapeHtml(leader.symbol)}</span>
-          <span class="expanded-contract">${escapeHtml(leader.option_type)} ${escapeHtml(String(leader.strike))} @ $${escapeHtml(leader.underlying || '--')}</span>
-        </div>
-        <button class="btn-close-expanded" onclick="toggleCardExpand(${index})">✕ Close</button>
-      </div>
-      
-      <div class="expanded-full-grid">
-        <!-- Left: Chart & Visuals -->
-        <div class="expanded-full-visuals">
-          <div class="full-chart-container" id="fullChart-${index}">
-            <div class="chart-loading">Loading chart...</div>
-          </div>
-          
-          <div class="trade-levels-horizontal">
-            <div class="level-item stop">
-              <span class="level-dot"></span>
-              <span class="level-label">Stop</span>
-              <span class="level-value">$${leader.invalidation || '--'}</span>
-            </div>
-            <div class="level-arrow">→</div>
-            <div class="level-item entry">
-              <span class="level-dot"></span>
-              <span class="level-label">Entry</span>
-              <span class="level-value">$${leader.underlying || '--'}</span>
-            </div>
-            <div class="level-arrow">→</div>
-            <div class="level-item target">
-              <span class="level-dot"></span>
-              <span class="level-label">Target</span>
-              <span class="level-value">$${leader.targets || '--'}</span>
-            </div>
-          </div>
-          
-          <div class="spectrum-full">
-            <div class="spectrum-header">
-              <span>Trade Quality</span>
-              <span class="spectrum-score">${confidenceScore}/10</span>
-            </div>
-            <div class="spectrum-bar-full">
-              <div class="spectrum-fill-full" style="width: ${spectrumWidth}%; background: ${confidenceScore >= 7 ? 'var(--good)' : confidenceScore >= 5 ? 'var(--accent)' : 'var(--bad)'}"></div>
-            </div>
-            <div class="spectrum-labels-full">
-              <span>Weak</span>
-              <span>Strong</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Right: Info & Actions -->
-        <div class="expanded-full-info">
-          <div class="info-section">
-            <h4>✓ Why This Passed Filters</h4>
-            <ul>
-              ${leader.section === 'directional' ? `
-                <li>Near-ATM delta (${leader.delta}) for directional exposure</li>
-                <li>7-14 DTE for optimal gamma/theta balance</li>
-                <li>Tight bid-ask spread for clean entry/exit</li>
-              ` : `
-                <li>OTM delta (~0.14) for defined-risk premium</li>
-                <li>Spread structure limits max loss</li>
-                <li>Time decay working in your favor</li>
-              `}
-            </ul>
-          </div>
-          
-          <div class="info-section">
-            <h4>⚠ Key Risk Factors</h4>
-            <ul class="risk-list">
-              <li>Momentum confirmation required - do not blind enter</li>
-              <li>Hard stop discipline essential</li>
-              <li>${leader.section === 'directional' ? 'Directional risk - wrong way move = loss' : 'Assignment risk if ITM at expiry'}</li>
-            </ul>
-          </div>
-          
-          <div class="info-section">
-            <h4>🎯 Setup Thesis</h4>
-            <p class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</p>
-          </div>
-          
-          <div class="full-actions">
-            <button class="btn-execute-large" onclick="showOrderEntryForCard(${index})">📋 Enter Order</button>
-            ${state.queued ? 
-              '<button class="btn-action-secondary" disabled>✓ Queued</button>' : 
-              '<button class="btn-action-secondary" onclick="quickQueueFromScanner(${index})">+ Queue</button>'}
-            ${state.watched ? 
-              '<button class="btn-action-secondary" disabled>👁 Watching</button>' : 
-              '<button class="btn-action-secondary" onclick="quickWatchFromScanner(${index})">👁 Watch</button>'}
-          </div>
-          
-          <div id="cardOrderEntry-${index}" class="card-order-entry-full" style="display:none;">
-            <div class="order-form-full">
-              <div class="form-row-full">
-                <label>Contracts</label>
-                <input type="number" id="cardOrderQty-${index}" value="1" min="1" max="5" onchange="updateCardOrderValue(${index})" />
-              </div>
-              <div class="form-row-full">
-                <label>Order Type</label>
-                <select id="cardOrderType-${index}" onchange="updateCardOrderValue(${index})">
-                  <option value="market">Market</option>
-                  <option value="limit">Limit</option>
-                </select>
-              </div>
-              <div class="form-row-full" id="cardLimitPriceRow-${index}" style="display:none;">
-                <label>Limit Price</label>
-                <input type="number" id="cardLimitPrice-${index}" step="0.01" value="${leader.ask || leader.bid || ''}" />
-              </div>
-              <div class="order-value-full">
-                Est. Value: <strong id="cardOrderValue-${index}">$0</strong>
-                <span class="risk-note">(Max $200)</span>
-              </div>
-              <button class="btn-execute-full" onclick="submitCardOrder(${index})">⚡ Execute Trade</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function detailField(label, value, wide = false) {
-  return `
-    <div class="detail-field ${wide ? 'wide' : ''}">
-      <div class="label">${escapeHtml(label)}</div>
-      <div class="value">${escapeHtml(value)}</div>
-    </div>
-  `;
-}
-
-function feedbackButtonsHtml(targetType, payload, labels) {
-  return `<div class="feedback-row${targetType === 'near_miss' ? ' compact' : ''}">${labels.map(label => {
-    const p = {...payload, feedback: label.value};
-    return `<button class="btn-action" onclick='submitOperatorFeedback(${JSON.stringify(JSON.stringify(p))})'>${label.label}</button>`;
-  }).join('')}</div>`;
-}
-
-// Global to store narrative data
-let currentNarrative = null;
-
-async function fetchNarrative(symbol) {
-  try {
-    const res = await fetch(`/api/narrative?symbol=${encodeURIComponent(symbol)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.ok && data.narrative) {
-      currentNarrative = data.narrative;
-      return data.narrative;
-    }
-  } catch (err) {
-    console.error('Failed to fetch narrative:', err);
-  }
-  return null;
-}
-
-function renderNarrativePanel(leader) {
-  if (!currentNarrative) {
-    return '<div class="narrative-loading">Loading trade narrative...</div>';
-  }
-  
-  const n = currentNarrative;
-  const isBullish = n.direction === 'Bullish';
-  
-  return `
-    <div class="narrative-panel">
-      <div class="narrative-header">
-        <div class="narrative-title">Trade Narrative</div>
-        <div class="narrative-setup ${isBullish ? 'bullish' : 'bearish'}">${n.setup}</div>
-      </div>
-      
-      <div class="narrative-grid">
-        <div class="narrative-section">
-          <div class="section-label">Entry Trigger</div>
-          <div class="section-value">${escapeHtml(n.trigger)}</div>
-        </div>
-        
-        <div class="narrative-section">
-          <div class="section-label">Invalidation</div>
-          <div class="section-value warning">${escapeHtml(n.invalidation)}</div>
-        </div>
-      </div>
-      
-      <div class="trade-levels">
-        <div class="level entry">
-          <span class="level-label">Entry</span>
-          <span class="level-price">$${n.entry.price.toFixed(2)}</span>
-          <span class="level-underlying">@ $${n.entry.underlying.toFixed(2)}</span>
-        </div>
-        <div class="level stop">
-          <span class="level-label">Stop</span>
-          <span class="level-price">$${n.stop.price.toFixed(2)}</span>
-          <span class="level-distance">-${n.stop.distance.toFixed(2)}</span>
-        </div>
-        <div class="level target">
-          <span class="level-label">Target</span>
-          <span class="level-price">$${n.target.price.toFixed(2)}</span>
-          <span class="level-distance">+${n.target.distance.toFixed(2)}</span>
-        </div>
-      </div>
-      
-      <div class="position-sizing">
-        <div class="sizing-header">Position Sizing ($${n.position_sizing.max_risk} risk)</div>
-        <div class="sizing-details">
-          <span class="sizing-item">${n.position_sizing.suggested_contracts} contracts</span>
-          <span class="sizing-item">$${n.position_sizing.position_value.toFixed(0)} total</span>
-          <span class="sizing-item">${n.risk_reward.ratio} R:R</span>
-        </div>
-      </div>
-      
-      <div class="narrative-footer">
-        <span class="timeframe">${n.timeframe}</span>
-        <span class="confidence">Confidence: ${n.confidence}/10</span>
-      </div>
-    </div>
-  `;
-}
-
-function renderQualificationCard(leader) {
-  // Parse confidence score (e.g., "7/10" -> 7)
-  const confidenceMatch = leader.confidence?.match(/(\d+)\/10/);
-  const confidenceScore = confidenceMatch ? parseInt(confidenceMatch[1]) : 5;
-  const confidencePercent = confidenceScore * 10;
-  
-  // Determine confidence color
-  let confidenceColor = 'warn';
-  if (confidenceScore >= 8) confidenceColor = 'good';
-  else if (confidenceScore >= 6) confidenceColor = 'accent';
-  else if (confidenceScore < 5) confidenceColor = 'bad';
-  
-  // Build qualification reasons
-  const reasons = [];
-  
-  // Section-based qualification
-  if (leader.section === 'directional') {
-    reasons.push('Near-ATM delta (0.35-0.80) for directional exposure');
-    reasons.push('7-14 DTE for optimal gamma/theta balance');
-    reasons.push('Tight bid-ask spread for clean entry/exit');
-  } else {
-    reasons.push('OTM delta (~0.14) for defined-risk premium');
-    reasons.push('Spread structure limits max loss');
-    reasons.push('Time decay working in your favor');
-  }
-  
-  // Add liquidity reason if available
-  if (leader.bid && leader.ask) {
-    const bid = parseFloat(leader.bid);
-    const ask = parseFloat(leader.ask);
-    if (bid > 0 && ask > 0) {
-      const spreadPct = ((ask - bid) / ((ask + bid) / 2)) * 100;
-      if (spreadPct < 5) reasons.push('Tight bid-ask spread (' + spreadPct.toFixed(1) + '%)');
-    }
-  }
-  
-  // Add fallback note if applicable
-  if (leader.fallback) {
-    reasons.push('⚠ Fallback expiry - confidence adjusted');
-  }
-  
-  // Risk factors
-  const risks = [];
-  risks.push('Momentum confirmation required - do not blind enter');
-  risks.push('Hard stop discipline essential');
-  if (leader.section === 'directional') {
-    risks.push('Directional risk - wrong way move = loss');
-  } else {
-    risks.push('Assignment risk if ITM at expiry');
-  }
-  if (leader.fallback) {
-    risks.push('Non-optimal DTE may affect Greeks');
-  }
-  
-  return `
-    <div class="qualification-card">
-      <div class="qualification-header">
-        <div class="qualification-title">Trade Qualification</div>
-        <div class="confidence-badge ${confidenceColor}">${confidenceScore}/10</div>
-      </div>
-      
-      <div class="confidence-bar">
-        <div class="confidence-fill ${confidenceColor}" style="width: ${confidencePercent}%"></div>
-      </div>
-      
-      <div class="qualification-section">
-        <div class="section-title">✓ Why This Passed Filters</div>
-        <ul class="qualification-list">
-          ${reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
-        </ul>
-      </div>
-      
-      <div class="qualification-section">
-        <div class="section-title">⚠ Key Risk Factors</div>
-        <ul class="risk-list">
-          ${risks.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
-        </ul>
-      </div>
-      
-      <div class="setup-thesis">
-        <div class="section-title">Setup Thesis</div>
-        <div class="thesis-text">${escapeHtml(leader.thesis || 'Best candidate in current delta/liquidity band')}</div>
-      </div>
-
-      ${feedbackButtonsHtml('qualified_trade', {
-        targetType: 'qualified_trade',
-        symbol: leader.symbol,
-        contract: { option_type: leader.option_type, strike: leader.strike, expiration: leader.exp },
-        strategy: leader.section,
-        decisionRef: `qualified|${leader.symbol}|${leader.option_type}|${leader.strike}|${leader.exp}|${currentSnapshot?.updatedAt || ''}`,
-        snapshotUpdatedAt: currentSnapshot?.updatedAt,
-      }, [
-        { label: 'Agree', value: 'agree' },
-        { label: 'Disagree', value: 'disagree' },
-        { label: 'Watch', value: 'watch' },
-        { label: 'Strong', value: 'strong' },
-        { label: 'Weak', value: 'weak' },
-      ])}
-    </div>
-  `;
-}
-
-async function submitOperatorFeedback(payloadJson) {
-  const payload = typeof payloadJson === 'string' ? JSON.parse(payloadJson) : payloadJson;
-  try {
-    const res = await fetch('/api/operator-feedback', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || 'feedback failed');
-    captureSessionEventOnce(`first_feedback_${payload.targetType}`, {
-      eventType: 'first_operator_feedback',
-      zone: currentZone,
-      state: document.getElementById('commandState')?.textContent || null,
-      selected: payload.symbol || null,
-      metadata: { targetType: payload.targetType, feedback: payload.feedback }
-    });
-    await refresh();
-    return true;
-  } catch (err) {
-    console.error('Operator feedback failed', err);
-    return false;
-  }
-}
-
-function renderUnderlyingChart(leader) {
-  const wrap = document.getElementById('underlyingChartWrap');
-  if (!wrap || !leader?.symbol) {
-    console.log('[DIAG] renderUnderlyingChart: no wrap or no symbol');
-    return;
-  }
-  console.log(`[DIAG] renderUnderlyingChart called for ${leader.symbol}`);
-  wrap.innerHTML = '<div class="muted small">Loading chart…</div>';
-
-  const url = `/api/underlying-history?symbol=${encodeURIComponent(leader.symbol)}`;
-  console.log(`[DIAG] Fetching: ${url}`);
-  
-  fetch(url)
-    .then(response => {
-      console.log(`[DIAG] Response status: ${response.status}`);
-      return response.json();
-    })
-    .then(data => {
-      console.log(`[DIAG] Response data:`, data);
-      if (data.ok && data.points && data.points.length) {
-        console.log(`[DIAG] Rendering chart with ${data.points.length} points`);
-        wrap.innerHTML = '';
-        drawChart(wrap, data.points, leader);
-      } else {
-        console.log(`[DIAG] Falling back to setup map. ok=${data.ok}, points=${data.points?.length}, error=${data.error}`);
-        wrap.innerHTML = renderForecastViz(leader);
-      }
-    })
-    .catch(error => {
-      console.error('[DIAG] Error fetching underlying history:', error);
-      wrap.innerHTML = renderForecastViz(leader);
-    });
-}
-
-function drawChart(wrap, points, leader) {
-  const svgWidth = wrap.clientWidth || 300;
-  const svgHeight = 200; // Fixed height for compactness
-  const padding = { top: 10, right: 50, bottom: 25, left: 50 };
-
-  // Convert time strings to timestamps for scaling (backend returns 'time', not 'date')
-  const timePoints = points.map(p => new Date(p.time).getTime()).filter(t => !isNaN(t));
-  const prices = points.map(p => p.close).filter(c => c !== null && c !== undefined);
-  
-  if (timePoints.length === 0 || prices.length === 0) {
-    wrap.innerHTML = renderForecastViz(leader);
-    return;
-  }
-
-  // Determine min/max values for scaling with padding
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const pricePadding = (maxPrice - minPrice) * 0.1 || 1;
-
-  // Scale functions
-  const xScale = d3.scaleTime()
-    .domain(d3.extent(timePoints))
-    .range([padding.left, svgWidth - padding.right]);
-
-  const yScale = d3.scaleLinear()
-    .domain([minPrice - pricePadding, maxPrice + pricePadding])
-    .range([svgHeight - padding.bottom, padding.top]);
-
-  // Create SVG element
-  const svg = d3.select(wrap).append("svg")
-    .attr("width", svgWidth)
-    .attr("height", svgHeight)
-    .attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`)
-    .style("max-width", "100%");
-
-  // Add grid lines
-  svg.append("g")
-    .attr("class", "grid")
-    .attr("transform", `translate(0,${svgHeight - padding.bottom})`)
-    .call(d3.axisBottom(xScale).ticks(4).tickSize(-(svgHeight - padding.top - padding.bottom)).tickFormat(""))
-    .call(g => g.select(".domain").remove())
-    .call(g => g.selectAll("line").attr("stroke", "var(--border-color)").attr("stroke-opacity", 0.3));
-
-  svg.append("g")
-    .attr("class", "grid")
-    .attr("transform", `translate(${padding.left},0)`)
-    .call(d3.axisLeft(yScale).ticks(5).tickSize(-(svgWidth - padding.left - padding.right)).tickFormat(""))
-    .call(g => g.select(".domain").remove())
-    .call(g => g.selectAll("line").attr("stroke", "var(--border-color)").attr("stroke-opacity", 0.3));
-
-  // Add X axis
-  svg.append("g")
-    .attr("transform", `translate(0,${svgHeight - padding.bottom})`)
-    .call(d3.axisBottom(xScale).ticks(4).tickFormat(d3.timeFormat("%H:%M")))
-    .call(g => g.select(".domain").attr("stroke", "var(--text-secondary)"))
-    .call(g => g.selectAll("text").attr("fill", "var(--text-secondary)").style("font-size", "9px"));
-
-  // Add Y axis
-  svg.append("g")
-    .attr("transform", `translate(${padding.left},0)`)
-    .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.format("$.2f")))
-    .call(g => g.select(".domain").attr("stroke", "var(--text-secondary)"))
-    .call(g => g.selectAll("text").attr("fill", "var(--text-secondary)").style("font-size", "9px"));
-
-  // Line generator - use time field from backend
-  const line = d3.line()
-    .x(d => xScale(d.time))
-    .y(d => yScale(d.close))
-    .curve(d3.curveMonotoneX);
-
-  // Prepare data with proper time objects
-  const chartData = points.filter(p => p.time && p.close !== null).map(p => ({
-    time: new Date(p.time).getTime(),
-    close: p.close
-  }));
-
-  // Draw price line
-  svg.append("path")
-    .datum(chartData)
-    .attr("fill", "none")
-    .attr("stroke", "var(--accent-color)")
-    .attr("stroke-width", 2)
-    .attr("d", line);
-
-  // Add current price marker at last data point
-  const lastPoint = chartData[chartData.length - 1];
-  const currentPrice = parseFloat(currentSnapshot?.liveScanner?.leaders?.find(l => l.symbol === leader.symbol)?.quote?.last || leader.underlying || lastPoint?.close || '0');
-  
-  if (currentPrice && !isNaN(currentPrice) && lastPoint) {
-    // Current price dot
-    svg.append("circle")
-      .attr("cx", xScale(lastPoint.time))
-      .attr("cy", yScale(currentPrice))
-      .attr("r", 5)
-      .attr("fill", "var(--accent-color)")
-      .attr("stroke", "white")
-      .attr("stroke-width", 2);
-
-    // Current price label
-    svg.append("text")
-      .attr("x", xScale(lastPoint.time) + 8)
-      .attr("y", yScale(currentPrice) + 4)
-      .attr("fill", "var(--accent-color)")
-      .style("font-size", "11px")
-      .style("font-weight", "bold")
-      .text(`$${currentPrice.toFixed(2)}`);
-  }
-
-  // Add Entry/Trigger Zone, Invalidation Line, Target Zone(s)
-  const addZone = (value, label, color, isLine = false) => {
-    const val = parseFloat(value);
-    if (isNaN(val)) return;
-
-    const y = yScale(val);
-
-    if (isLine) {
-      svg.append("line")
-        .attr("x1", padding.left)
-        .attr("y1", y)
-        .attr("x2", svgWidth - padding.right)
-        .attr("y2", y)
-        .attr("stroke", color)
-        .attr("stroke-dasharray", "2,2")
-        .attr("stroke-width", 1);
-    } else {
-      svg.append("rect")
-        .attr("x", padding.left)
-        .attr("y", y - 5)
-        .attr("width", svgWidth - padding.left - padding.right)
-        .attr("height", 10)
-        .attr("fill", color)
-        .attr("opacity", 0.1);
-    }
-    
-    svg.append("text")
-      .attr("x", svgWidth - padding.right)
-      .attr("y", y - 5)
-      .attr("text-anchor", "end")
-      .attr("fill", color)
-      .style("font-size", "10px")
-      .text(`${label}: $${val.toFixed(2)}`);
-  };
-
-  addZone(leader.entry, 'Entry', 'var(--good-color)', true);
-  addZone(leader.invalidation, 'Invalidation', 'var(--bad-color)', true);
-  String(leader.targets || '').split(/[;,]/).map(s => s.trim()).filter(Boolean).forEach(target => {
-    addZone(target, 'Target', 'var(--info-color)', true);
-  });
-}
-
-function renderForecastViz(leader) {
-  const liveData = getLeaderLiveData(leader);
-  const quote = liveData?.quote || {};
-  const underlying = parseFloat(quote.last || leader?.underlying || '0') || 0;
-  const delta = parseFloat(leader?.delta || '0') || 0;
-  const directionalUp = delta >= 0;
-  const entryText = leader?.entry || 'Entry pending';
-  const invalidationText = leader?.invalidation || 'Invalidation pending';
-  const targets = String(leader?.targets || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
-  const targetText = targets[0] || 'Target zone pending';
-  const vwapText = quote?.vwap && typeof quote.vwap === 'number' ? quote.vwap.toFixed(2) : '--';
-  const mapStops = [
-    { label: 'Invalidation', value: invalidationText, kind: 'invalidation' },
-    { label: 'Entry', value: entryText, kind: 'entry' },
-    { label: 'Current', value: underlying ? underlying.toFixed(2) : '--', kind: 'current' },
-    { label: 'VWAP', value: vwapText, kind: 'vwap' },
-    { label: 'Target', value: targetText, kind: 'target' },
-  ];
-  return `
-    <div class="forecast-card">
-      <div class="forecast-header">
-        <div>
-          <div class="label">Setup Map</div>
-          <div class="forecast-title">${directionalUp ? 'Upside capture map' : 'Downside capture map'}</div>
-        </div>
-        <div class="badge-stack">
-          <span class="badge info">Underlying ${escapeHtml(String(underlying ? underlying.toFixed(2) : '--'))}</span>
-          <span class="badge ${directionalUp ? 'good' : 'warn'}">Delta ${escapeHtml(String(leader?.delta || '--'))}</span>
-        </div>
-      </div>
-      <div class="setup-map-shell ${directionalUp ? 'up' : 'down'}">
-        <div class="setup-map-axis">
-          ${mapStops.map(stop => `<div class="setup-map-stop ${stop.kind}"><span class="setup-map-label">${escapeHtml(stop.label)}</span><span class="setup-map-value">${escapeHtml(stop.value)}</span></div>`).join('')}
-          <div class="setup-map-path"></div>
-        </div>
-      </div>
-      <div class="forecast-caption">Path intent: ${directionalUp ? 'hold above invalidation, enter cleanly, and push toward higher target zones' : 'hold below invalidation, enter cleanly, and press toward lower target zones'}.</div>
-    </div>
-  `;
-}
-
-async function renderDetail(leader, stateMeta = null) {
-  const wrap = document.getElementById('detailWrap');
-  const meta = document.getElementById('selectedMeta');
-  if (!leader) {
-    meta.textContent = 'No leader selected';
-    wrap.className = 'detail-wrap placeholder';
-    if (stateMeta?.kind === 'loading') {
-      wrap.innerHTML = stateBanner('Loading selected Tradier item…', 'loading');
-      return;
-    }
-    if (stateMeta?.kind === 'error') {
-      wrap.innerHTML = stateBanner(stateMeta.message || 'Unable to load selected item detail.', 'bad');
-      return;
-    }
-    if (stateMeta?.kind === 'empty') {
-      wrap.innerHTML = stateBanner('No selected-item detail is available because no Tradier leaders were parsed.', 'warn');
-      return;
-    }
-    wrap.textContent = 'Select a Tradier leader to inspect ticket detail.';
-    return;
-  }
-
-  // Fetch narrative for this leader
-  await fetchNarrative(leader.symbol);
-
-  const state = getLeaderState(leader);
-  const feedback = getSelectedLeaderFeedback(leader);
-  const stateSummary = [
-    state.queued ? statusBadge('Already queued', 'queued') : statusBadge('Not queued', 'neutral'),
-    state.watched ? statusBadge('On watch list', 'watch') : statusBadge('Not watched', 'neutral'),
-    feedback ? statusBadge('Recent action recorded', 'recent') : '',
-  ].filter(Boolean).join('');
-  const staleNote = describeSnapshotHealth(currentSnapshot);
-
-  meta.textContent = `${formatSection(leader.section)} · ${leader.symbol || '—'} · ${leader.exp || '—'}`;
-  wrap.className = 'detail-wrap';
-  
-  // Build qualification card and narrative panel
-  const qualificationCard = renderQualificationCard(leader);
-  const narrativePanel = renderNarrativePanel(leader);
-  
-  wrap.innerHTML = `
-    ${stateMeta?.kind === 'selection-reset' ? stateBanner('Selected detail was re-anchored because the previous leader disappeared after refresh.', 'warn') : ''}
-    ${staleNote.tone !== 'good' ? stateBanner(staleNote.text, staleNote.tone) : ''}
-    ${narrativePanel}
-    ${qualificationCard}
-    <div id="underlyingChartWrap">${renderForecastViz(leader)}</div>
-    <div class="detail-state-row">
-      <div>
-        <div class="label">Local Action State</div>
-        <div class="badge-stack">${stateSummary}</div>
-      </div>
-    </div>
-    ${feedback ? `
-      <div class="detail-feedback-row">
-        <div class="label">Recent Action Result</div>
-        <div class="feedback-title">${escapeHtml(feedback.result)}</div>
-        <div class="feedback-body">${escapeHtml(feedback.stateChange)}</div>
-        <div class="muted small">${escapeHtml(feedback.action)} · ${escapeHtml(feedback.updatedAt || 'unknown time')}</div>
-      </div>
-    ` : ''}
-    <div class="detail-actions">
-      <button class="btn-primary" onclick="showOrderEntry()">📋 Enter Order</button>
-      ${state.queued ? 
-        '<button class="btn-secondary" disabled>✓ Queued</button>' : 
-        '<button class="btn-secondary" onclick="quickQueueFromScanner(selectedLeaderIndex)">+ Queue</button>'}
-      ${state.watched ? 
-        '<button class="btn-secondary" disabled>👁 Watching</button>' : 
-        '<button class="btn-secondary" onclick="quickWatchFromScanner(selectedLeaderIndex)">👁 Watch</button>'}
-    </div>
-    
-    <div id="orderEntryPanel" class="order-entry-panel" style="display:none;">
-      <div class="order-form">
-        <h4>Order Entry</h4>
-        <div class="form-row">
-          <label>Contracts</label>
-          <input type="number" id="orderQty" value="1" min="1" max="5" />
-        </div>
-        <div class="form-row">
-          <label>Order Type</label>
-          <select id="orderType">
-            <option value="market">Market</option>
-            <option value="limit">Limit</option>
-          </select>
-        </div>
-        <div class="form-row" id="limitPriceRow" style="display:none;">
-          <label>Limit Price</label>
-          <input type="number" id="limitPrice" step="0.01" />
-        </div>
-        <div class="form-row">
-          <label>Time in Force</label>
-          <select id="orderTIF">
-            <option value="day">Day</option>
-            <option value="gtc">GTC</option>
-          </select>
-        </div>
-        <div class="order-summary">
-          <span>Est. Value: <strong id="orderValue">$0</strong></span>
-          <span>Max Risk: <strong>$150</strong></span>
-        </div>
-        <button class="btn-execute" onclick="submitOrder()">⚡ Execute Trade</button>
-      </div>
-    </div>
-  `;
-  renderUnderlyingChart(leader);
-}
-
-// Global state for execution preview
-let executionPreview = null;
-
-function inferActions(leader) {
-  if (!leader) return [];
-
-  const state = getLeaderState(leader);
-
-  return [
-    {
-      key: 'execute_preview',
-      title: 'Execute Now',
-      detail: 'Preview and execute this trade immediately via Tradier.',
-      disabled: false,
-      cta: 'Execute Now',
-      stateLabel: 'Live execution',
-      stateKind: 'execute',
-      primary: true,
-    },
-    {
-      key: 'queue_selected_leader',
-      title: 'Add to execution queue',
-      detail: state.queued
-        ? 'Selected ticket is already represented in local execution queue state.'
-        : 'Write this selected Tradier ticket into local execution queue state.',
-      disabled: state.queued,
-      cta: state.queued ? 'Already queued' : 'Queue Selected Ticket',
-      stateLabel: state.queued ? 'Visible state: queued' : 'Visible state: not queued',
-      stateKind: state.queued ? 'queued' : 'neutral',
-    },
-    {
-      key: 'watch_selected_leader',
-      title: 'Add to watch list',
-      detail: state.watched
-        ? 'Selected ticket is already represented in local active_positions state as watch.'
-        : 'Write this selected Tradier ticket into local watch state for operator tracking.',
-      disabled: state.watched,
-      cta: state.watched ? 'Already watching' : 'Watch Selected Ticket',
-      stateLabel: state.watched ? 'Visible state: watching' : 'Visible state: not watched',
-      stateKind: state.watched ? 'watch' : 'neutral',
-    },
-  ];
-}
-
-async function runSelectedAction(actionKey) {
-  const leader = getSelectedLeader();
-  const status = document.getElementById('actionStatus');
-  if (!leader || !status) return;
-
-  // Handle execution preview specially
-  if (actionKey === 'execute_preview') {
-    return runExecutePreview(leader);
-  }
-  
-  // Handle execution confirmation
-  if (actionKey === 'execute_confirm') {
-    return runExecuteConfirm();
-  }
-
-  status.textContent = 'Submitting local action…';
-  status.className = 'action-status muted small';
-
-  const res = await fetch('/api/actions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: actionKey, leader }),
-  });
-  const data = await res.json();
-
-  if (!res.ok || !data.ok) {
-    status.textContent = `Action failed: ${data.error || 'unknown error'}`;
-    status.className = 'action-status bad small';
-    return;
-  }
-
-  lastActionStatus = {
-    leaderKey: leaderKey(leader),
-    message: data.feedback?.stateChange || `${data.action} saved at ${data.updatedAt}`,
-    updatedAt: data.updatedAt,
-  };
-
-  status.textContent = lastActionStatus.message;
-  status.className = 'action-status good small';
-  await refresh();
-}
-
-async function runExecutePreview(leader) {
-  const status = document.getElementById('actionStatus');
-  if (!status) return;
-
-  status.textContent = 'Creating order preview via Tradier…';
-  status.className = 'action-status loading small';
-
-  try {
-    const res = await fetch('/api/actions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'execute_preview', leader }),
-    });
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      status.textContent = `Preview failed: ${data.error || 'unknown error'}`;
-      status.className = 'action-status bad small';
-      executionPreview = null;
-      return;
-    }
-
-    executionPreview = data;
-    
-    // Show preview in actions panel
-    renderExecutionPreview(data);
-    
-    status.textContent = 'Preview ready - review and confirm below';
-    status.className = 'action-status good small';
-    
-  } catch (err) {
-    status.textContent = `Preview error: ${err.message}`;
-    status.className = 'action-status bad small';
-    executionPreview = null;
-  }
-}
-
-function renderExecutionPreview(data) {
-  const wrap = document.getElementById('actionsWrap');
-  const preview = data.preview || {};
-  const broker = data.broker_response || {};
-  const risk = data.risk_decision || {};
-  
-  const previewHtml = `
-    <div class="execution-preview-box">
-      <div class="preview-title">⚠️ Order Preview - Review Before Confirming</div>
-      <div class="preview-details">
-        <div><strong>Intent ID:</strong> ${escapeHtml(data.intent_id || 'N/A')}</div>
-        <div><strong>Risk Check:</strong> ${risk.allowed ? '✅ Allowed' : '❌ Blocked'}</div>
-        ${risk.reasons?.length ? `<div><strong>Risk Notes:</strong> ${escapeHtml(risk.reasons.join(', '))}</div>` : ''}
-        <hr/>
-        <div><strong>Estimated Cost:</strong> $${escapeHtml(String(preview.estimated_cost || 'N/A'))}</div>
-        <div><strong>Fees:</strong> $${escapeHtml(String(preview.fees || 'N/A'))}</div>
-        <div><strong>Buying Power Effect:</strong> $${escapeHtml(String(preview.buying_power_effect || 'N/A'))}</div>
-        ${preview.warnings?.length ? `<div class="preview-warnings">⚠️ ${escapeHtml(preview.warnings.join(', '))}</div>` : ''}
-        ${broker.order?.status ? `<div><strong>Broker Status:</strong> ${escapeHtml(broker.order.status)}</div>` : ''}
-      </div>
-      <div class="preview-actions">
-        <button class="action-btn execute-confirm" data-action-key="execute_confirm">✅ Confirm & Execute</button>
-        <button class="action-btn execute-cancel" onclick="cancelExecutionPreview()">❌ Cancel</button>
-      </div>
-    </div>
-  `;
-  
-  // Insert preview after action list
-  const actionList = wrap.querySelector('.action-list');
-  if (actionList) {
-    // Remove any existing preview
-    const existing = wrap.querySelector('.execution-preview-box');
-    if (existing) existing.remove();
-    
-    actionList.insertAdjacentHTML('afterend', previewHtml);
-    bindActionButtons();
-  }
-}
-
-function cancelExecutionPreview() {
-  executionPreview = null;
-  const preview = document.querySelector('.execution-preview-box');
-  if (preview) preview.remove();
-  
-  const status = document.getElementById('actionStatus');
-  if (status) {
-    status.textContent = 'Execution cancelled';
-    status.className = 'action-status muted small';
-  }
-  
-  // Re-render to clear preview
-  renderActions(getSelectedLeader());
-}
-
-async function runExecuteConfirm() {
-  const status = document.getElementById('actionStatus');
-  if (!status || !executionPreview) return;
-  
-  const intentId = executionPreview.intent_id;
-  if (!intentId) {
-    status.textContent = 'Error: No intent ID for confirmation';
-    status.className = 'action-status bad small';
-    return;
-  }
-
-  status.textContent = 'Placing order via Tradier…';
-  status.className = 'action-status loading small';
-
-  try {
-    const res = await fetch('/api/actions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'execute_confirm', intent_id: intentId }),
-    });
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      status.textContent = `Execution failed: ${data.error || 'unknown error'}`;
-      status.className = 'action-status bad small';
-      return;
-    }
-
-    executionPreview = null;
-    
-    lastActionStatus = {
-      leaderKey: leaderKey(getSelectedLeader()),
-      message: `Order placed: ${data.order?.broker_order_id || 'N/A'}`,
-      updatedAt: new Date().toISOString(),
-    };
-
-    status.textContent = `✅ Order executed: ${data.order?.broker_order_id || 'N/A'} · monitor next`;
-    status.className = 'action-status good small';
-    
-    // Clear preview and refresh
-    await refresh();
-    
-  } catch (err) {
-    status.textContent = `Execution error: ${err.message}`;
-    status.className = 'action-status bad small';
-  }
-}
-
-function bindActionButtons() {
-  document.querySelectorAll('[data-action-key]').forEach(button => {
-    button.addEventListener('click', () => runSelectedAction(button.dataset.actionKey).catch(err => {
-      const status = document.getElementById('actionStatus');
-      if (status) {
-        status.textContent = err.message;
-        status.className = 'action-status bad small';
-      }
-    }));
-  });
-}
-
-function buildExecutionConfidence(leader, snapshot) {
-  if (!leader) return null;
-  const priorityItem = buildPriorityStack(snapshot).find(item => leaderKey(item.payload) === leaderKey(leader) || item.label === leaderDisplayName(leader)) || null;
-  const favored = snapshot?.preferenceActionBias?.operatorSummary?.favoredSetupClass || 'none';
-  const freshMinutes = getSnapshotAgeMinutes(snapshot);
-  const freshText = freshMinutes === null ? 'freshness unknown' : freshMinutes < 30 ? `fresh ${Math.round(freshMinutes)}m` : `stale ${Math.round(freshMinutes)}m`;
-  const confidence = leader.confidence || '--';
-  const regime = document.getElementById('regimeState')?.textContent || 'MIXED';
-  const whyNow = [
-    `Qualification strength ${confidence}`,
-    `Regime frame ${regime.toLowerCase()}`,
-    `Bias alignment ${favored}`,
-    priorityItem ? `Priority ${priorityItem.rankType.toLowerCase()} · urgency ${priorityItem.urgency.toLowerCase()}` : null,
-    `Snapshot ${freshText}`,
-  ].filter(Boolean);
-
-  let caution = leader.risk || 'Defined-risk discipline only.';
-  if ((parseInt(String(confidence).split('/')[0]) || 0) <= 6) caution = `${caution} Confidence is usable but not thick; inspect fills and stand down if structure weakens.`;
-  if (freshMinutes !== null && freshMinutes >= 30) caution = `${caution} Data freshness is slipping, so confirm the setup still holds before action.`;
-
-  return {
-    whyNow: whyNow.join(' · '),
-    caution,
-    nextWatch: stateLabelForMonitor(leader),
-  };
-}
-
-function stateLabelForMonitor(leader) {
-  const state = getLeaderState(leader);
-  if (state.watchItem?.invalidation) return `Watch invalidation: ${state.watchItem.invalidation}`;
-  if (leader?.invalidation) return `Watch invalidation: ${leader.invalidation}`;
-  if (leader?.entry) return `Watch execution/entry integrity: ${leader.entry}`;
-  return 'Watch fill quality, state change, and invalidation immediately after action.';
-}
-
-function renderActions(leader, stateMeta = null) {
-  const wrap = document.getElementById('actionsWrap');
-  if (!leader) {
-    wrap.className = 'actions-wrap placeholder';
-    if (stateMeta?.kind === 'loading') {
-      wrap.innerHTML = stateBanner('Loading selected-item action state…', 'loading');
-      return;
-    }
-    if (stateMeta?.kind === 'error') {
-      wrap.innerHTML = stateBanner(stateMeta.message || 'Unable to load selected-item actions.', 'bad');
-      return;
-    }
-    if (stateMeta?.kind === 'empty') {
-      wrap.innerHTML = stateBanner('No selected-item actions are available because no Tradier leaders are present.', 'warn');
-      return;
-    }
-    wrap.textContent = 'Select a Tradier leader to view local next actions.';
-    return;
-  }
-
-  const state = getLeaderState(leader);
-  const feedback = getSelectedLeaderFeedback(leader);
-  const actions = inferActions(leader);
-  const executionConfidence = buildExecutionConfidence(leader, currentSnapshot);
-  const actionStateSummary = [
-    state.queued ? statusBadge('Queued in local state', 'queued') : statusBadge('Queue pending', 'neutral'),
-    state.watched ? statusBadge('Watching in local state', 'watch') : statusBadge('Watch pending', 'neutral'),
-    feedback ? statusBadge('Recent action feedback live', 'recent') : '',
-  ].filter(Boolean).join('');
-
-  const coherentStatus = lastActionStatus && lastActionStatus.leaderKey === leaderKey(leader)
-    ? `${lastActionStatus.message} · coherent after refresh`
-    : 'Selected-item actions write only to current local dashboard state files.';
-
-  wrap.className = 'actions-wrap';
-  wrap.innerHTML = `
-    ${stateMeta?.kind === 'selection-reset' ? stateBanner('Actions were re-anchored to a new selected leader after refresh.', 'warn') : ''}
-    <div class="action-summary">
-      <div class="action-summary-title">Selected Ticket</div>
-      <div class="action-summary-value">${escapeHtml(leaderDisplayName(leader))}</div>
-      <div class="badge-stack">${actionStateSummary}</div>
-      <div class="muted small">Real local actions only. No remote execution or workflow expansion.</div>
-    </div>
-    ${executionConfidence ? `
-      <div class="action-feedback-box">
-        <div class="label">Why Execute This Now</div>
-        <div class="feedback-title">${escapeHtml(executionConfidence.whyNow)}</div>
-        <div class="feedback-body">${escapeHtml(executionConfidence.caution)}</div>
-        <div class="muted small">If you act, monitoring should begin with: ${escapeHtml(executionConfidence.nextWatch)}</div>
-      </div>
-    ` : ''}
-    ${feedback ? `
-      <div class="action-feedback-box">
-        <div class="label">What Just Happened</div>
-        <div class="feedback-title">${escapeHtml(feedback.result)}</div>
-        <div class="feedback-body">${escapeHtml(feedback.stateChange)}</div>
-        <div class="muted small">${escapeHtml(feedback.action)} · ${escapeHtml(feedback.updatedAt || 'unknown time')}</div>
-      </div>
-    ` : ''}
-    <div class="action-list">
-      ${actions.map(action => `
-        <div class="action-item">
-          <div class="action-item-top">
-            <div class="action-title">${escapeHtml(action.title)}</div>
-            ${statusBadge(action.stateLabel, action.stateKind)}
-          </div>
-          <div class="action-detail">${escapeHtml(action.detail)}</div>
-          <button class="action-btn" data-action-key="${escapeHtml(action.key)}" ${action.disabled ? 'disabled' : ''}>${escapeHtml(action.cta)}</button>
-        </div>
-      `).join('')}
-    </div>
-    <div class="action-feedback-box">
-      <div class="label">Monitor Continuity</div>
-      <div class="feedback-title">Next destination after action: Positions / Monitor</div>
-      <div class="feedback-body">${escapeHtml(stateLabelForMonitor(leader))}</div>
-      <div class="preview-actions" style="margin-top: var(--space-sm);">
-        <button class="action-btn" onclick="goToMonitorPositions()">Go to Monitor</button>
-      </div>
-    </div>
-    <div id="actionStatus" class="action-status ${(lastActionStatus && lastActionStatus.leaderKey === leaderKey(leader)) ? 'good' : 'muted'} small">${escapeHtml(coherentStatus)}</div>
-  `;
-  bindActionButtons();
-}
-
-// Global variable for live position data
-let livePositionData = null;
-let exitPredictorData = null;
-let alertConfig = {
-  soundEnabled: true,
-  browserNotifications: true,
-  alertedPositions: new Set() // Track which positions we've already alerted on
-};
-
-// Request browser notification permission
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-}
-
-// Play alert sound
-function playAlertSound() {
-  if (!alertConfig.soundEnabled) return;
-  
-  // Create oscillator for beep sound
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 800;
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.5);
-  } catch (e) {
-    console.error('Failed to play alert sound:', e);
-  }
-}
-
-// Send browser notification
-function sendBrowserNotification(title, body) {
-  if (!alertConfig.browserNotifications) return;
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-  
-  try {
-    new Notification(title, {
-      body: body,
-      icon: '🚨',
-      tag: 'exit-alert',
-      requireInteraction: true
-    });
-  } catch (e) {
-    console.error('Failed to send notification:', e);
-  }
-}
-
-// Check for new EXIT signals and alert
-function checkExitAlerts(positions) {
-  if (!exitPredictorData?.results) return;
-  
-  exitPredictorData.results.forEach(result => {
-    const pos = result.position;
-    const analysis = result.analysis;
-    const positionKey = `${pos.symbol}_${pos.contract}`;
-    
-    // Only alert on EXIT signals we haven't alerted on yet
-    if (analysis.signal === 'EXIT' && !alertConfig.alertedPositions.has(positionKey)) {
-      alertConfig.alertedPositions.add(positionKey);
-      
-      // Play sound
-      playAlertSound();
-      
-      // Send browser notification
-      const reason = analysis.reasons?.[0] || 'Exit signal triggered';
-      sendBrowserNotification(
-        '🚨 EXIT ALERT: ' + pos.symbol,
-        `${pos.contract} - Score: ${analysis.score}/100 - ${reason}`
-      );
-      
-      // Add to alert log
-      addAlertToLog({
-        timestamp: new Date().toISOString(),
-        symbol: pos.symbol,
-        contract: pos.contract,
-        score: analysis.score,
-        reason: reason,
-        type: 'EXIT'
-      });
-    }
-  });
-}
-
-// Alert log
-let alertLog = [];
-
-function addAlertToLog(alert) {
-  alertLog.unshift(alert);
-  // Keep only last 20 alerts
-  alertLog = alertLog.slice(0, 20);
-  renderAlertLog();
-}
-
-function renderAlertLog() {
-  const logContainer = document.getElementById('alertLog');
-  if (!logContainer) return;
-  
-  if (alertLog.length === 0) {
-    logContainer.innerHTML = '<div class="void">No alerts</div>';
-    return;
-  }
-  
-  logContainer.innerHTML = alertLog.map(alert => `
-    <div class="alert-item">
-      <span class="alert-time">${new Date(alert.timestamp).toLocaleTimeString()}</span>
-      <span class="alert-message">${escapeHtml(alert.symbol)} ${escapeHtml(alert.contract)}</span>
-      <span class="badge ${alert.type === 'EXIT' ? 'bad' : alert.type === 'WATCH' ? 'warn' : 'info'}">${alert.type}</span>
-    </div>
-  `).join('');
-}
-
-// Toggle sound
-function toggleAlertSound() {
-  alertConfig.soundEnabled = !alertConfig.soundEnabled;
-  localStorage.setItem('alertSoundEnabled', alertConfig.soundEnabled);
-  updateAlertControls();
-}
-
-// Toggle browser notifications
-function toggleBrowserNotifications() {
-  alertConfig.browserNotifications = !alertConfig.browserNotifications;
-  localStorage.setItem('browserNotificationsEnabled', alertConfig.browserNotifications);
-  
-  if (alertConfig.browserNotifications && 'Notification' in window && Notification.permission === 'default') {
-    requestNotificationPermission();
-  }
-  
-  updateAlertControls();
-}
-
-// Update alert control UI
-function updateAlertControls() {
-  const soundBtn = document.getElementById('toggleSound');
-  const notifBtn = document.getElementById('toggleNotifications');
-  
-  if (soundBtn) {
-    soundBtn.textContent = alertConfig.soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
-    soundBtn.className = alertConfig.soundEnabled ? 'alert-control active' : 'alert-control';
-  }
-  
-  if (notifBtn) {
-    notifBtn.textContent = alertConfig.browserNotifications ? '🔔 Notifications On' : '🔕 Notifications Off';
-    notifBtn.className = alertConfig.browserNotifications ? 'alert-control active' : 'alert-control';
-  }
-}
-
-// Load alert config from localStorage
-function loadAlertConfig() {
-  const soundEnabled = localStorage.getItem('alertSoundEnabled');
-  const notifEnabled = localStorage.getItem('browserNotificationsEnabled');
-  
-  if (soundEnabled !== null) {
-    alertConfig.soundEnabled = soundEnabled === 'true';
-  }
-  if (notifEnabled !== null) {
-    alertConfig.browserNotifications = notifEnabled === 'true';
-  }
-  
-  // Request notification permission on load
-  requestNotificationPermission();
-}
-
-// Fetch exit predictor analysis
-async function fetchExitPredictor() {
-  try {
-    const res = await fetch('/api/exit-predictor');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        exitPredictorData = data.data;
-        return data.data;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch exit predictor:', err);
-  }
-  return null;
-}
-
-// Get exit analysis for a position
-function getPositionExitAnalysis(symbol, instrument) {
-  if (!exitPredictorData?.results) return null;
-  
-  for (const result of exitPredictorData.results) {
-    const pos = result.position;
-    const posInstrument = pos.contract?.split(' ', 1)[1] || pos.contract;
-    if (pos.symbol === symbol && posInstrument === instrument) {
-      return result.analysis;
-    }
-  }
-  return null;
-}
-
-async function fetchLivePositions() {
-  try {
-    const res = await fetch('/api/live-positions');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        livePositionData = data.data;
-        return data.data;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch live positions:', err);
-  }
-  return null;
-}
-
-function calculatePnL(entry, current, size) {
-  const entryVal = parseFloat(entry) || 0;
-  const currentVal = parseFloat(current) || 0;
-  const qty = parseInt(size) || 0;
-  const pnl = (currentVal - entryVal) * qty * 100; // Options are 100 shares
-  const pnlPct = entryVal > 0 ? ((currentVal - entryVal) / entryVal) * 100 : 0;
-  return { pnl, pnlPct };
-}
-
-function formatPnL(pnl, pnlPct) {
-  const safePnl = typeof pnl === 'number' ? pnl : 0;
-  const safePnlPct = typeof pnlPct === 'number' ? pnlPct : 0;
-  const sign = safePnl >= 0 ? '+' : '';
-  const colorClass = safePnl >= 0 ? 'good' : 'bad';
-  return `<span class="${colorClass}">${sign}$${safePnl.toFixed(2)} (${sign}${safePnlPct.toFixed(1)}%)</span>`;
-}
-
-async function closePosition(symbol, instrument, size) {
-  if (!confirm(`Close position: ${symbol} ${instrument}?\n\nThis will place a market order to sell ${size} contract(s).`)) {
-    return;
-  }
-  
-  // Parse instrument to get option details
-  // Format: "395 PUT 2026-03-31" or "400 CALL 2026-04-17"
-  const parts = instrument.split(' ');
-  if (parts.length < 3) {
-    alert('Could not parse position details');
-    return;
-  }
-  
-  const strike = parts[0];
-  const optionType = parts[1].toLowerCase();
-  const expiration = parts[2];
-  
-  try {
-    const res = await fetch('/api/close-position', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        symbol,
-        quantity: parseInt(size),
-        option_type: optionType,
-        strike: parseFloat(strike),
-        expiration
-      })
-    });
-    
-    const data = await res.json();
-    if (data.ok) {
-      alert(`Position close order placed!\nOrder ID: ${data.order?.order?.id || 'N/A'}`);
-      await refresh();
-    } else {
-      alert(`Failed to close position: ${data.error}`);
-    }
-  } catch (err) {
-    alert(`Error: ${err.message}`);
-  }
-}
-
-function renderPositions(positions) {
-  const wrap = document.getElementById('positionsWrap');
-  if (!wrap) return;
-  
-  // Use live data if available, fall back to snapshot data
-  const livePositions = livePositionData?.positions || [];
-  const snapshotPositions = positions || [];
-  const executionPositions = currentSnapshot?.tradierExecution?.positions || [];
-  
-  // Build position map with live data taking precedence
-  const positionMap = new Map();
-  
-  // Add snapshot positions first
-  snapshotPositions.forEach(pos => {
-    if (pos.status === 'open') {
-      positionMap.set(pos.position_id, pos);
-    }
-  });
-  
-  // Add execution positions
-  executionPositions.forEach(ep => {
-    if (ep.current_status === 'open') {
-      const instrument = ep.contract?.split(' ', 1)[1] || ep.contract;
-      positionMap.set(ep.position_id, {
-        symbol: ep.symbol,
-        instrument: instrument,
-        entry: String(ep.entry_price),
-        current: String(ep.entry_price),
-        size: String(ep.qty),
-        status: 'open',
-        position_id: ep.position_id,
-        notes: ep.notes || '',
-      });
-    }
-  });
-  
-  // Merge live data (has real-time prices)
-  livePositions.forEach(lp => {
-    const key = lp.description; // Use description as key since IDs may differ
-    // Find matching position by symbol and instrument
-    for (const [pid, pos] of positionMap) {
-      if (pos.symbol === lp.symbol && pos.instrument.includes(String(lp.strike))) {
-        positionMap.set(pid, {
-          ...pos,
-          current: String(lp.current_price),
-          live_price: lp.current_price,
-          market_value: lp.market_value,
-          pnl_dollar: lp.pnl_dollar,
-          pnl_percent: lp.pnl_percent,
-          days_to_expiry: lp.days_to_expiry,
-          option_type: lp.option_type,
-          strike: lp.strike,
-          expiration: lp.expiration,
-        });
-        break;
-      }
-    }
-  });
-  
-  const openPositions = Array.from(positionMap.values());
-  
-  if (openPositions.length === 0) {
-    wrap.innerHTML = '<div class="void">No open positions</div>';
-    return;
-  }
-  
-  // Calculate total P&L
-  let totalPnL = 0;
-  openPositions.forEach(pos => {
-    if (pos.pnl_dollar !== undefined) {
-      totalPnL += pos.pnl_dollar;
-    } else {
-      const { pnl } = calculatePnL(pos.entry, pos.current, pos.size);
-      totalPnL += pnl;
-    }
-  });
-  
-  wrap.innerHTML = openPositions.map(pos => {
-    const pnl = pos.pnl_dollar !== undefined ? pos.pnl_dollar : calculatePnL(pos.entry, pos.current, pos.size).pnl;
-    const pnlClass = pnl >= 0 ? 'positive' : 'negative';
-    return `
-      <div class="position-row">
-        <span class="pos-symbol">${escapeHtml(pos.symbol)}</span>
-        <span class="pos-details">${escapeHtml(pos.instrument)} × ${escapeHtml(pos.size)}</span>
-        <span class="pos-pnl ${pnlClass}">${formatPnL(pnl)}</span>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderTradierSlice() {
-  if (!currentSnapshot && currentUiMode !== 'loading') return;
-  if (currentSnapshot) {
-    renderOverview(currentSnapshot);
-    renderPositions(currentSnapshot?.activePositions?.positions || []);
-  }
-  renderLeaders(currentSnapshot?.tradier?.leaders || []);
-}
-
-async function refresh() {
-  currentUiMode = 'loading';
-  currentLoadError = null;
-  renderTradierSlice();
-  try {
-    currentSnapshot = await loadSnapshot();
-    await fetchRefreshStatus();
-    currentUiMode = 'ready';
-    syncSelectedLeader(currentSnapshot?.tradier?.leaders || []);
-    const updatedAtEl = document.getElementById('updatedAt');
-    if (updatedAtEl) updatedAtEl.textContent = `Snapshot: ${currentSnapshot.updatedAt}`;
-    renderTradierSlice();
-  } catch (err) {
-    currentUiMode = 'error';
-    currentLoadError = err.message;
-    const updatedAtEl = document.getElementById('updatedAt');
-    if (updatedAtEl) updatedAtEl.textContent = 'Snapshot unavailable';
-    renderTradierSlice();
-    throw err;
-  }
-}
-
-// Load alert configuration
-loadAlertConfig();
-updateAlertControls();
-
-// Trade Journal globals
-let journalData = null;
-let analyticsData = null;
-let premarketData = null;
-
-// Pre-market scanner
-async function runPremarketScan() {
-  const resultsDiv = document.getElementById('premarketResults');
-  const timeDiv = document.getElementById('premarketTime');
-  
-  resultsDiv.innerHTML = '<div class="premarket-loading">Scanning for gaps...</div>';
-  
-  try {
-    const res = await fetch('/api/premarket');
-    const data = await res.json();
-    
-    if (data.ok) {
-      premarketData = data.data;
-      if (timeDiv) timeDiv.textContent = 'Last scan: ' + new Date().toLocaleTimeString();
-      renderPremarketResults(data.data);
-    } else {
-      resultsDiv.innerHTML = `<div class="premarket-error">Scan failed: ${data.error}</div>`;
-    }
-  } catch (err) {
-    resultsDiv.innerHTML = `<div class="premarket-error">Error: ${err.message}</div>`;
-  }
-}
-
-function renderPremarketResults(data) {
-  const container = document.getElementById('premarketResults');
-  
-  if (data.gaps_found === 0) {
-    container.innerHTML = '<div class="premarket-empty">No significant gaps found (>3%)</div>';
-    return;
-  }
-  
-  const highPriority = data.high_priority || [];
-  const mediumPriority = data.medium_priority || [];
-  
-  container.innerHTML = `
-    <div class="premarket-summary">
-      <span class="premarket-count">${data.gaps_found} gaps found</span>
-      <span class="premarket-high">${highPriority.length} high priority</span>
-    </div>
-    
-    ${highPriority.length > 0 ? `
-      <div class="premarket-section">
-        <div class="premarket-section-title">🔥 High Priority (>5%)</div>
-        ${highPriority.map(gap => renderGapCard(gap)).join('')}
-      </div>
-    ` : ''}
-    
-    ${mediumPriority.length > 0 ? `
-      <div class="premarket-section">
-        <div class="premarket-section-title">📊 Medium Priority (3-5%)</div>
-        ${mediumPriority.map(gap => renderGapCard(gap)).join('')}
-      </div>
-    ` : ''}
-  `;
-}
-
-function renderGapCard(gap) {
-  const isUp = gap.direction === 'gap_up';
-  const directionEmoji = isUp ? '🚀' : '🔻';
-  const directionClass = isUp ? 'gap-up' : 'gap-down';
-  const volumeClass = gap.relative_volume > 2 ? 'high-volume' : '';
-  
-  return `
-    <div class="gap-card ${directionClass}">
-      <div class="gap-header">
-        <span class="gap-symbol">${escapeHtml(gap.symbol)} ${directionEmoji}</span>
-        <span class="gap-percent ${directionClass}">${isUp ? '+' : ''}${gap.gap_percent}%</span>
-      </div>
-      <div class="gap-details">
-        <span>Last: $${typeof gap.last_price === 'number' ? gap.last_price.toFixed(2) : '--'}</span>
-        <span>Prev: $${typeof gap.prev_close === 'number' ? gap.prev_close.toFixed(2) : '--'}</span>
-        <span class="gap-volume ${volumeClass}">Vol: ${typeof gap.relative_volume === 'number' ? gap.relative_volume.toFixed(1) : '--'}x avg</span>
-      </div>
-      ${gap.option_plays ? `
-        <div class="gap-plays">
-          ${gap.option_plays.map(play => `
-            <div class="gap-play ${play.direction}">
-              <span class="play-strategy">${escapeHtml(play.strategy)}</span>
-              <span class="play-risk">${escapeHtml(play.risk)} risk</span>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-      <button class="queue-gap-btn" onclick="queueGap('${escapeHtml(gap.symbol)}', '${gap.direction}')">
-        + Add to Watchlist
-      </button>
-    </div>
-  `;
-}
-
-function renderBotMonitorFromSnapshot() {
-  const container = document.getElementById('analyticsSummary');
-  const snapshot = currentSnapshot || {};
-  const bloc = snapshot.blocStatus || {};
-  const desk = snapshot.tradingDeskStatus || {};
-  const autonomy = snapshot.autonomyMonitor || {};
-  if (!container) return;
-  container.innerHTML = `
-    <div class="analytics-grid bot-monitor-grid">
-      <div class="analytics-item bot-monitor-card wide">
-        <div class="analytics-label">Bloc Status</div>
-        <div class="bot-monitor-line"><strong>Mode:</strong> ${escapeHtml(bloc.mode || '--')}</div>
-        <div class="bot-monitor-line"><strong>Funded Side:</strong> ${escapeHtml(bloc.fundedSide || '--')}</div>
-        <div class="bot-monitor-line"><strong>Wallet:</strong> ${Number(bloc.wallet?.eth || 0).toFixed(4)} ETH / $${Number(bloc.wallet?.usdc || 0).toFixed(2)} USDC</div>
-        <div class="bot-monitor-line"><strong>Last Action:</strong> ${escapeHtml(bloc.lastAction?.reason || bloc.lastAction?.type || '--')}</div>
-        <div class="bot-monitor-line"><strong>Active Position:</strong> ${escapeHtml(bloc.activePosition?.id || 'none')}</div>
-        <div class="bot-monitor-line"><strong>Next:</strong> ${escapeHtml(bloc.nextExpectedAction || '--')}</div>
-      </div>
-      <div class="analytics-item bot-monitor-card wide">
-        <div class="analytics-label">Trading Desk Status</div>
-        <div class="bot-monitor-line"><strong>Candidate:</strong> ${escapeHtml(desk.lastEvaluatedCandidate?.symbol || '--')}</div>
-        <div class="bot-monitor-line"><strong>Decision:</strong> ${escapeHtml(desk.decisionResult || '--')}</div>
-        <div class="bot-monitor-line"><strong>Contract:</strong> ${escapeHtml(desk.decisionCard?.contract || '--')}</div>
-        <div class="bot-monitor-line"><strong>Confidence:</strong> ${escapeHtml(String(desk.decisionCard?.confidence ?? '--'))}</div>
-        <div class="bot-monitor-line"><strong>Rejection:</strong> ${escapeHtml(desk.rejectionReason || '--')}</div>
-        <div class="bot-monitor-line"><strong>Preview:</strong> ${escapeHtml(desk.previewState?.response?.order?.status || '--')}</div>
-        <div class="bot-monitor-line"><strong>Live:</strong> ${escapeHtml(desk.liveOrderState?.response?.order?.status || '--')}</div>
-      </div>
-      <div class="analytics-item bot-monitor-card wide">
-        <div class="analytics-label">Autonomy Monitor</div>
-        <div class="bot-monitor-line"><strong>Last Cycle:</strong> ${escapeHtml(autonomy.lastCycleRun || '--')}</div>
-        <div class="bot-monitor-line"><strong>Next Cycle:</strong> ${escapeHtml(autonomy.nextCycle || '--')}</div>
-        <div class="bot-monitor-line"><strong>Heartbeat:</strong> Bloc ${escapeHtml(autonomy.heartbeat?.bloc || '--')} / Desk ${escapeHtml(autonomy.heartbeat?.tradingDesk || '--')}</div>
-        <div class="bot-monitor-line"><strong>Last Success:</strong> ${escapeHtml(typeof autonomy.lastSuccessfulAction === 'string' ? autonomy.lastSuccessfulAction : JSON.stringify(autonomy.lastSuccessfulAction || '--'))}</div>
-        <div class="bot-monitor-line"><strong>Last Failure:</strong> ${escapeHtml(typeof autonomy.lastFailure === 'string' ? autonomy.lastFailure : JSON.stringify(autonomy.lastFailure || '--'))}</div>
-        <div class="bot-monitor-line"><strong>Automation:</strong> Bloc ${autonomy.automationEnabled?.bloc ? 'ON' : 'OFF'} / Desk ${autonomy.automationEnabled?.tradingDesk ? 'ON' : 'OFF'}</div>
-      </div>
-    </div>
-  `;
-}
-
-async function queueGap(symbol, direction) {
-  // Add to execution queue for market open
-  try {
-    const leader = {
-      symbol: symbol,
-      option_type: direction === 'gap_up' ? 'PUT' : 'CALL',
-      headline: `Pre-market ${direction} play`,
-      entry: 'Gap fade',
-      thesis: `Fade the ${direction.replace('_', ' ')} at market open`
-    };
-    
-    const res = await fetch('/api/queue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(leader)
+      body: JSON.stringify({ command: 'SELL' })
     });
     
     if (res.ok) {
-      alert(`${symbol} added to execution queue for market open`);
-    }
-  } catch (err) {
-    alert('Failed to queue: ' + err.message);
-  }
-}
-
-// Fetch journal entries
-async function fetchJournal() {
-  try {
-    const res = await fetch('/api/journal');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        journalData = data.trades;
-        return data.trades;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch journal:', err);
-  }
-  return null;
-}
-
-// Fetch analytics
-async function fetchAnalytics(period = 'all') {
-  try {
-    const res = await fetch(`/api/analytics?period=${period}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        analyticsData = data.analytics;
-        return data.analytics;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch analytics:', err);
-  }
-  return null;
-}
-
-// Update analytics display
-async function updateAnalytics() {
-  const period = document.getElementById('analyticsPeriod')?.value || 'all';
-  const analytics = await fetchAnalytics(period);
-  
-  const container = document.getElementById('analyticsSummary');
-  if (!container || !analytics) return;
-  if (currentSnapshot?.blocStatus || currentSnapshot?.tradingDeskStatus) {
-    renderBotMonitorFromSnapshot();
-    return;
-  }
-  
-  if (analytics.total_trades === 0) {
-    container.innerHTML = '<div class="analytics-empty">No trades yet. Execute a trade to see analytics.</div>';
-    return;
-  }
-  
-  const winRateClass = analytics.win_rate >= 50 ? 'good' : 'bad';
-  const pnlClass = analytics.total_pnl >= 0 ? 'good' : 'bad';
-  
-  container.innerHTML = `
-    <div class="analytics-grid">
-      <div class="analytics-item">
-        <div class="analytics-value">${analytics.total_trades}</div>
-        <div class="analytics-label">Total Trades</div>
-      </div>
-      <div class="analytics-item">
-        <div class="analytics-value ${winRateClass}">${analytics.win_rate}%</div>
-        <div class="analytics-label">Win Rate</div>
-      </div>
-      <div class="analytics-item">
-        <div class="analytics-value ${pnlClass}">$${typeof analytics.total_pnl === 'number' ? analytics.total_pnl.toFixed(2) : '0.00'}</div>
-        <div class="analytics-label">Total P&L</div>
-      </div>
-      <div class="analytics-item">
-        <div class="analytics-value">$${typeof analytics.avg_pnl === 'number' ? analytics.avg_pnl.toFixed(2) : '0.00'}</div>
-        <div class="analytics-label">Avg P&L</div>
-      </div>
-      <div class="analytics-item">
-        <div class="analytics-value">${analytics.max_drawdown_streak}</div>
-        <div class="analytics-label">Max Loss Streak</div>
-      </div>
-      <div class="analytics-item">
-        <div class="analytics-value">${typeof analytics.avg_duration_minutes === 'number' ? analytics.avg_duration_minutes.toFixed(0) : '--'}m</div>
-        <div class="analytics-label">Avg Duration</div>
-      </div>
-    </div>
-    ${analytics.best_trade && typeof analytics.best_trade.pnl === 'number' ? `
-      <div class="trade-extremes">
-        <div class="extreme best">
-          <span class="extreme-label">Best Trade</span>
-          <span class="extreme-value good">+$${analytics.best_trade.pnl.toFixed(2)}</span>
-          <span class="extreme-symbol">${analytics.best_trade.symbol}</span>
-        </div>
-        <div class="extreme worst">
-          <span class="extreme-label">Worst Trade</span>
-          <span class="extreme-value bad">$${analytics.worst_trade && typeof analytics.worst_trade.pnl === 'number' ? analytics.worst_trade.pnl.toFixed(2) : '0.00'}</span>
-          <span class="extreme-symbol">${analytics.worst_trade?.symbol || '--'}</span>
-        </div>
-      </div>
-    ` : ''}
-  `;
-  
-  // Also update journal entries
-  renderJournalEntries();
-}
-
-// Render journal entries
-function renderJournalEntries() {
-  const container = document.getElementById('journalEntries');
-  const operatorJournal = currentSnapshot?.operatorJournal || [];
-  if (!container) return;
-  
-  if (operatorJournal.length > 0) {
-    container.innerHTML = `
-      <div class="journal-list">
-        ${operatorJournal.slice().reverse().map(entry => `
-          <div class="journal-item ${escapeHtml(entry.kind || 'event')}">
-            <div class="journal-main">
-              <span class="journal-symbol">${escapeHtml(entry.system || '--')}</span>
-              <span class="journal-contract">${escapeHtml(entry.kind || 'event')}</span>
-              <span class="journal-pnl muted">${escapeHtml(entry.ts || '--')}</span>
-            </div>
-            <div class="journal-details">
-              <span>${escapeHtml(entry.summary || '--')}</span>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    return;
-  }
-  if (!journalData) return;
-  
-  if (journalData.length === 0) {
-    container.innerHTML = '<div class="journal-empty">No trades recorded yet.</div>';
-    return;
-  }
-  
-  // Show last 10 trades
-  const recentTrades = journalData.slice(0, 10);
-  
-  container.innerHTML = `
-    <div class="journal-list">
-      ${recentTrades.map(trade => {
-        const entry = trade.entry;
-        const exit = trade.exit;
-        const isWin = trade.pnl && trade.pnl.dollar > 0;
-        const pnlClass = isWin ? 'good' : trade.pnl ? 'bad' : 'muted';
-        const pnlText = trade.pnl && typeof trade.pnl.dollar === 'number' ? `${isWin ? '+' : ''}$${trade.pnl.dollar.toFixed(2)}` : 'Open';
-        
-        return `
-          <div class="journal-item ${trade.status}">
-            <div class="journal-main">
-              <span class="journal-symbol">${escapeHtml(entry.symbol)}</span>
-              <span class="journal-contract">${escapeHtml(entry.option_type)} ${entry.strike} ${entry.expiration}</span>
-              <span class="journal-pnl ${pnlClass}">${pnlText}</span>
-            </div>
-            <div class="journal-details">
-              <span>Entry: $${entry.price} × ${entry.quantity}</span>
-              ${exit ? `<span>Exit: $${exit.price} (${exit.reason})</span>` : '<span>Open position</span>'}
-              ${trade.duration_minutes && typeof trade.duration_minutes === 'number' ? `<span>Duration: ${trade.duration_minutes.toFixed(0)}m</span>` : ''}
-            </div>
-            ${trade.tags.length > 0 ? `
-              <div class="journal-tags">
-                ${trade.tags.map(tag => `<span class="journal-tag">${escapeHtml(tag)}</span>`).join('')}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-// Export journal to CSV
-async function exportJournal() {
-  try {
-    const res = await fetch('/api/journal/export', { method: 'POST' });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        alert(`Journal exported to: ${data.path}`);
-      } else {
-        alert('Export failed: ' + data.error);
-      }
-    }
-  } catch (err) {
-    alert('Export error: ' + err.message);
-  }
-}
-
-document.getElementById('refreshBtn').addEventListener('click', refresh);
-refresh().catch(err => {
-  const serverState = document.getElementById('serverState');
-  if (serverState) {
-    serverState.textContent = 'ERROR';
-    serverState.className = 'status-pill bad';
-  }
-  const detailWrap = document.getElementById('detailWrap');
-  if (detailWrap) {
-    detailWrap.className = 'detail-wrap placeholder';
-    detailWrap.textContent = err.message;
-  }
-});
-
-// Auto-refresh every 30 seconds for general snapshot
-setInterval(() => {
-  refresh().catch(() => {});
-}, 30000);
-
-// Auto-refresh positions every 5 seconds for real-time P&L
-setInterval(() => {
-  fetchLivePositions().then(() => {
-    if (currentSnapshot) {
-      renderPositions(currentSnapshot?.activePositions?.positions || []);
-    }
-  }).catch(() => {});
-}, 5000);
-
-// Auto-refresh scanner every 10 seconds for live market data
-setInterval(() => {
-  fetchLiveScanner().then(() => {
-    if (currentSnapshot) {
-      renderLeaders(currentSnapshot?.tradier?.leaders || []);
-    }
-  }).catch(() => {});
-}, 10000);
-
-// Auto-refresh exit predictor every 30 seconds
-setInterval(() => {
-  fetchExitPredictor().then(() => {
-    if (currentSnapshot) {
-      renderPositions(currentSnapshot?.activePositions?.positions || []);
-      // Check for new EXIT alerts
-      checkExitAlerts(currentSnapshot?.activePositions?.positions || []);
-    }
-  }).catch(() => {});
-}, 30000);
-
-// Load journal on init
-fetchJournal().then(() => {
-  updateAnalytics();
-});
-
-// Portfolio Heatmap globals
-let heatmapData = null;
-
-// Fetch portfolio heatmap
-async function fetchHeatmap() {
-  try {
-    const res = await fetch('/api/heatmap');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok) {
-        heatmapData = data.data;
-        renderHeatmap(data.data);
-        renderRiskMetrics(data.data);
-        return data.data;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch heatmap:', err);
-  }
-  return null;
-}
-
-function renderHeatmap(data) {
-  const container = document.getElementById('heatmapContainer');
-  if (!container) return;
-  
-  if (!data.positions || data.positions.length === 0) {
-    container.innerHTML = '<div class="heatmap-empty">No positions to display</div>';
-    return;
-  }
-  
-  // Calculate cell sizes based on position value relative to total
-  const totalValue = data.total_value;
-  
-  container.innerHTML = `
-    <div class="heatmap-grid">
-      ${data.positions.map(pos => {
-        // Size based on market value
-        const sizePercent = totalValue > 0 ? (pos.market_value / totalValue) * 100 : 0;
-        const minSize = 15; // Minimum size percentage
-        const cellSize = Math.max(minSize, sizePercent);
-        
-        // Color based on P&L
-        const pnlPercent = pos.pnl_percent || 0;
-        let colorClass = 'heatmap-neutral';
-        let intensity = 0;
-        
-        if (pnlPercent > 0) {
-          // Green for winners, intensity based on % gain
-          colorClass = 'heatmap-green';
-          intensity = Math.min(100, Math.abs(pnlPercent) * 5); // Scale up for visibility
-        } else if (pnlPercent < 0) {
-          // Red for losers
-          colorClass = 'heatmap-red';
-          intensity = Math.min(100, Math.abs(pnlPercent) * 5);
-        }
-        
-        // Format display
-        const pnlSign = pnlPercent >= 0 ? '+' : '';
-        
-        return `
-          <div class="heatmap-cell ${colorClass}" 
-               style="flex: 0 0 ${cellSize}%; --intensity: ${intensity}%"
-               title="${pos.symbol} ${pos.option_type} $${pos.strike} - P&L: ${pnlSign}${typeof pnlPercent === 'number' ? pnlPercent.toFixed(1) : '--'}%">
-            <div class="heatmap-cell-content">
-              <div class="heatmap-symbol">${escapeHtml(pos.symbol)}</div>
-              <div class="heatmap-details">
-                <span class="heatmap-strike">$${escapeHtml(pos.strike)}</span>
-                <span class="heatmap-dte">${pos.dte}DTE</span>
-              </div>
-              <div class="heatmap-pnl ${pnlPercent >= 0 ? 'good' : 'bad'}">${pnlSign}${typeof pnlPercent === 'number' ? pnlPercent.toFixed(1) : '--'}%</div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-function renderRiskMetrics(data) {
-  const container = document.getElementById('riskMetrics');
-  if (!container) return;
-  
-  const metrics = data.risk_metrics || {};
-  const alerts = data.alerts || [];
-  
-  // Determine delta bias
-  const delta = metrics.total_delta || 0;
-  let deltaBias = 'Neutral';
-  let deltaClass = 'neutral';
-  if (delta > 10) {
-    deltaBias = 'Bullish 📈';
-    deltaClass = 'bullish';
-  } else if (delta < -10) {
-    deltaBias = 'Bearish 📉';
-    deltaClass = 'bearish';
-  }
-  
-  // Theta interpretation
-  const theta = metrics.total_theta || 0;
-  const thetaClass = theta < -50 ? 'bad' : theta < 0 ? 'warning' : 'good';
-  
-  container.innerHTML = `
-    <div class="risk-metrics-grid">
-      <div class="risk-metric">
-        <span class="risk-label">Total Delta</span>
-        <span class="risk-value ${deltaClass}">${typeof delta === 'number' ? delta.toFixed(1) : '--'} (${deltaBias})</span>
-      </div>
-      <div class="risk-metric">
-        <span class="risk-label">Daily Theta</span>
-        <span class="risk-value ${thetaClass}">$${typeof theta === 'number' ? theta.toFixed(2) : '--'}/day</span>
-      </div>
-      <div class="risk-metric">
-        <span class="risk-label">Total Vega</span>
-        <span class="risk-value">${metrics.total_vega?.toFixed(1) || 0}</span>
-      </div>
-      <div class="risk-metric">
-        <span class="risk-label">Max Loss</span>
-        <span class="risk-value bad">-$${metrics.max_loss_scenario?.toFixed(2) || 0}</span>
-      </div>
-    </div>
-    
-    ${alerts.length > 0 ? `
-      <div class="risk-alerts">
-        <div class="risk-alerts-title">⚠️ Risk Alerts</div>
-        ${alerts.map(alert => `
-          <div class="risk-alert ${alert.severity}">
-            <span class="alert-icon">${alert.severity === 'warning' ? '⚠️' : 'ℹ️'}</span>
-            <span class="alert-message">${escapeHtml(alert.message)}</span>
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-    
-    ${Object.keys(data.concentration || {}).length > 0 ? `
-      <div class="concentration-section">
-        <div class="concentration-title">Portfolio Concentration</div>
-        <div class="concentration-bars">
-          ${Object.entries(data.concentration).map(([symbol, data]) => `
-            <div class="concentration-item">
-              <span class="concentration-symbol">${escapeHtml(symbol)}</span>
-              <div class="concentration-bar">
-                <div class="concentration-fill ${data.percent > 20 ? 'high' : ''}" style="width: ${Math.min(100, data.percent)}%"></div>
-              </div>
-              <span class="concentration-percent ${data.percent > 20 ? 'high' : ''}">${data.percent}%</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    ` : ''}
-  `;
-}
-
-// Load heatmap on init
-fetchHeatmap();
-
-// Auto-refresh heatmap every 30 seconds
-setInterval(() => {
-  fetchHeatmap().catch(() => {});
-}, 30000);
-
-// Crypto Trading Module
-let cryptoInitialized = false;
-let cryptoWalletAddress = null;
-
-async function initCryptoWallet() {
-  const btn = document.getElementById('cryptoInitBtn');
-  btn.textContent = 'Initializing...';
-  btn.disabled = true;
-  
-  try {
-    const res = await fetch('/api/crypto/init', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'init' })
-    });
-    
-    const data = await res.json();
-    if (data.ok) {
-      cryptoInitialized = true;
-      cryptoWalletAddress = data.address;
-      renderCryptoWallet(data);
-      document.getElementById('cryptoEmergencyBtn').style.display = 'inline-block';
-      btn.style.display = 'none';
-      fetchCryptoPairs();
+      showToast('Sell order sent', 'success');
     } else {
-      alert('Failed to initialize: ' + data.error);
-      btn.textContent = '🔐 Initialize Wallet';
+      showToast('Order failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error', 'error');
+  } finally {
+    if (btn) {
       btn.disabled = false;
+      btn.innerHTML = '<span class="btn-label">SELL ETH</span><span class="btn-sublabel">Market Order</span>';
     }
-  } catch (err) {
-    alert('Error: ' + err.message);
-    btn.textContent = '🔐 Initialize Wallet';
-    btn.disabled = false;
   }
 }
 
-function renderCryptoWallet(data) {
-  const container = document.getElementById('cryptoWalletInfo');
-  
-  container.innerHTML = `
-    <div class="crypto-wallet-header">
-      <div class="crypto-section-title">💳 Wallet</div>
-      <div class="crypto-wallet-address">${escapeHtml(data.address)}</div>
-    </div>
-    <div class="crypto-balance">
-      <div class="crypto-balance-item">
-        <div class="crypto-balance-value">${data.eth_balance?.toFixed(4) || 0}</div>
-        <div class="crypto-balance-label">ETH</div>
-      </div>
-      ${Object.entries(data.tokens || {}).map(([token, balance]) => `
-        <div class="crypto-balance-item">
-          <div class="crypto-balance-value">${balance?.toFixed(2) || 0}</div>
-          <div class="crypto-balance-label">${escapeHtml(token)}</div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="crypto-status ${data.emergency_stop ? 'bad' : 'good'}">
-      ${data.emergency_stop ? '🛑 Emergency Stop Active' : '✅ Trading Active'}
-    </div>
+function showToast(message, type) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    padding: 12px 20px;
+    background: ${type === 'success' ? '#00d084' : '#ff4d4d'};
+    color: white;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
   `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
 }
 
-async function fetchCryptoPairs() {
-  try {
-    const res = await fetch('/api/crypto/pairs');
-    const data = await res.json();
-    
-    if (data.ok) {
-      const container = document.getElementById('cryptoPairsList');
-      container.innerHTML = data.pairs.map(pair => `
-        <div class="crypto-pair-row">
-          <span class="crypto-pair-name">${escapeHtml(pair.pair)}</span>
-          <span class="crypto-pair-price">${pair.quote?.toFixed(6) || 'N/A'}</span>
-        </div>
-      `).join('');
-    }
-  } catch (err) {
-    console.error('Failed to fetch crypto pairs:', err);
-  }
-}
-
-async function toggleCryptoEmergencyStop() {
-  try {
-    const res = await fetch('/api/crypto/emergency', { method: 'POST' });
-    const data = await res.json();
-    
-    if (data.ok) {
-      alert(data.stopped ? '🛑 Emergency Stop Activated' : '✅ Trading Resumed');
-      // Refresh wallet info
-      const walletRes = await fetch('/api/crypto/wallet');
-      const walletData = await walletRes.json();
-      if (walletData.ok) renderCryptoWallet(walletData);
-    }
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
-}
-
-// Auto-refresh crypto data every 30 seconds if initialized
-setInterval(() => {
-  if (cryptoInitialized) {
-    fetch('/api/crypto/wallet')
-      .then(r => r.json())
-      .then(data => { if (data.ok) renderCryptoWallet(data); })
-      .catch(() => {});
-  }
-}, 30000);
+// Handle window resize
+window.addEventListener('resize', () => {
+  initChart();
+  drawChart();
+});
