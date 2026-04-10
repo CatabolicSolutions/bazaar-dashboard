@@ -77,7 +77,7 @@ class TradeManager:
         return position
     
     async def open_position(self, position: Position) -> bool:
-        """Execute entry trade"""
+        """Execute entry trade - NOTE: Actual swap execution is handled by ETHScalper._execute_live_trade"""
         position.status = PositionStatus.OPEN
         
         if position.paper:
@@ -88,9 +88,12 @@ class TradeManager:
             print(f"   Stop: ${position.stop_price:.2f}")
             return True
         else:
-            # Live trade - would execute swap here
-            # TODO: Implement actual 1inch swap
-            print(f"💰 Live position would open: {position.id}")
+            # Live trade - swap execution is handled by the bot's _execute_live_trade method
+            # This method just marks the position as open for tracking
+            print(f"💰 Live position opening: {position.id}")
+            print(f"   Entry: ${position.entry_price:.2f}")
+            print(f"   Target: ${position.target_price:.2f}")
+            print(f"   Stop: ${position.stop_price:.2f}")
             return True
     
     async def close_position(self, position_id: str, current_price: float, reason: str = "target") -> Optional[Position]:
