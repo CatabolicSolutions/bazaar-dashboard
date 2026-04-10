@@ -1,29 +1,29 @@
 /* THE BAZAAR - Arabian Nights / Desert Mirage Color Scheme */
 :root {
-  /* Arabian Nights Palette - darker, richer */
-  --bg: #09060d;
-  --bg-elevated: #120d18;
-  --panel: #1a1322;
-  --panel-hover: #24192f;
-  --border: #312244;
-  --border-accent: #4a3266;
+  /* Cave of Wonders Palette - obsidian, ember, sapphire */
+  --bg: #070506;
+  --bg-elevated: #140c0a;
+  --panel: #22120d;
+  --panel-hover: #2c1710;
+  --border: #5a2a1c;
+  --border-accent: #8a4328;
   
-  /* Text hierarchy - moonlit sand */
-  --text-primary: #f3e8d6;
-  --text-secondary: #bcae9a;
-  --text-tertiary: #7f6f84;
+  /* Text hierarchy - treasure sand */
+  --text-primary: #f6dfb8;
+  --text-secondary: #d7b88a;
+  --text-tertiary: #8e6a4c;
   
-  /* Accent colors - jewel tones */
-  --accent: #b889ff;
-  --accent-dim: rgba(184, 137, 255, 0.16);
-  --good: #4fbf7a;
-  --good-dim: rgba(79, 191, 122, 0.14);
-  --warn: #d7a35d;
-  --warn-dim: rgba(215, 163, 93, 0.14);
-  --bad: #c86a6a;
-  --bad-dim: rgba(200, 106, 106, 0.14);
-  --info: #6e8fd8;
-  --info-dim: rgba(110, 143, 216, 0.14);
+  /* Accent colors - magic cave */
+  --accent: #ff8a3d;
+  --accent-dim: rgba(255, 138, 61, 0.16);
+  --good: #38b26d;
+  --good-dim: rgba(56, 178, 109, 0.14);
+  --warn: #ffb347;
+  --warn-dim: rgba(255, 179, 71, 0.14);
+  --bad: #d9634f;
+  --bad-dim: rgba(217, 99, 79, 0.14);
+  --info: #4b63d1;
+  --info-dim: rgba(75, 99, 209, 0.14);
   
   /* Spacing */
   --space-2xs: 2px;
@@ -137,8 +137,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent), #d4a52c);
-  color: #000;
+  background: linear-gradient(135deg, #ffb347, #ff8a3d);
+  color: #1a0d06;
   font-size: 16px;
   font-weight: 800;
   border-radius: var(--radius-md);
@@ -437,12 +437,12 @@ body {
 
 .btn-action.primary {
   background: var(--accent);
-  color: white;
+  color: #1a0d06;
   border-color: var(--accent);
 }
 
 .btn-action.primary:hover {
-  background: #8e44ad;
+  background: #ff9a52;
 }
 
 .panel-research { grid-column: span 12; }
