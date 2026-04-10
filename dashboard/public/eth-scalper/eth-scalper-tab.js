@@ -380,18 +380,11 @@ class EthScalperTab {
     if (gasDisplay) gasDisplay.textContent = `${this.data.wallet.gas.toFixed(1)} gwei`;
     if (tradesDisplay) tradesDisplay.textContent = this.data.daily_trades;
 
-    // P&L
-    const pnlValue = document.getElementById('eth-pnl-value');
+    // P&L Total and Available (already handled above with pulse effect)
     const pnlTotal = document.getElementById('eth-pnl-total');
     const pnlAvailable = document.getElementById('eth-available');
     const pnlBadge = document.getElementById('pnl-badge');
     
-    if (pnlValue) {
-      const pnlClass = this.data.pnl.today >= 0 ? 'positive' : 'negative';
-      const pnlSign = this.data.pnl.today >= 0 ? '+' : '';
-      pnlValue.className = `pnl-value ${pnlClass}`;
-      pnlValue.textContent = `${pnlSign}$${this.data.pnl.today.toFixed(2)}`;
-    }
     if (pnlTotal) {
       const totalSign = this.data.pnl.total >= 0 ? '+' : '';
       pnlTotal.textContent = `${totalSign}$${this.data.pnl.total.toFixed(2)}`;
