@@ -28,7 +28,7 @@ from tradier_broker_interface import TradierBrokerInterface
 from tradier_execution_service import TradierExecutionService
 from tradier_execution_models import ExecutionIntent
 from tradier_state_store import load_state, save_state, append_audit
-from tradier_position_monitor import PositionMonitor
+# Position monitoring is handled internally
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BOARD = ROOT / 'out' / 'tradier_leaders_board.txt'
@@ -41,7 +41,7 @@ class AutonomousTrader:
     def __init__(self):
         self.service = TradierExecutionService()
         self.broker = TradierBrokerInterface()
-        self.monitor = PositionMonitor()
+        self.monitor = None  # Position monitoring handled internally
         self.running = False
         
         # Trading parameters
@@ -464,6 +464,7 @@ class AutonomousTrader:
 def main():
     parser = argparse.ArgumentParser(description='Autonomous Tradier Trader')
     parser.add_argument('--dry-run', action='store_true', help='Simulate without executing')
+    parser.add_argument('--ignore-hours', action='store_true', help='Run outside market hours (for testing)')
     args = parser.parse_args()
     
     trader = AutonomousTrader()
@@ -471,6 +472,11 @@ def main():
     if args.dry_run:
         print("DRY RUN MODE - No orders will be placed")
         trader.broker = None  # Disable broker
+    
+    if args.ignore_hours:
+        # Override market hours check
+        trader._market_open = lambda: True
+        print("MARKET HOURS OVERRIDE - Running regardless of time")
     
     asyncio.run(trader.run())
 
