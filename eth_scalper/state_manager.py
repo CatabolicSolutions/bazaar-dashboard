@@ -123,6 +123,13 @@ class StateManager:
             except Exception:
                 current = []
         current = [p for p in current if p.get('id') != position.id]
+        lot_units = None
+        try:
+            signal_price = float(position.signal.get('price')) if getattr(position, 'signal', None) else None
+            if signal_price and signal_price > 0:
+                lot_units = float(position.size_usd) / signal_price
+        except Exception:
+            lot_units = None
         current.append({
             'id': position.id,
             'source': 'tracked_live_execution',
@@ -132,6 +139,7 @@ class StateManager:
             'stop_price': position.stop_price,
             'max_hold_seconds': HOLD_TIME_MAX_SECONDS,
             'size_usd': position.size_usd,
+            'lot_units': lot_units,
             'status': position.status.value,
             'entry_time': position.entry_time,
             'tx_hash': position.tx_hash,
@@ -185,23 +193,57 @@ class StateManager:
 
         weth_balance = float((wallet or {}).get('weth') or 0.0)
         if weth_balance > 0 and persisted_positions:
-            return persisted_positions
+            remaining = weth_balance
+            reconciled = []
+            for pos in persisted_positions:
+                lot_units = pos.get('lot_units')
+                if lot_units is None:
+                    lot_units = 0.0
+                allocated_units = min(remaining, float(lot_units)) if remaining > 0 else 0.0
+                remaining = max(0.0, remaining - allocated_units)
+                enriched = dict(pos)
+                enriched['lot_units'] = float(lot_units)
+                enriched['allocated_units'] = allocated_units
+                enriched['linked_to_wallet_inventory'] = allocated_units > 0
+                reconciled.append(enriched)
+            if remaining > 0:
+                reconciled.append({
+                    'source': 'inventory_reconciliation',
+                    'asset': 'WETH',
+                    'lot_units': remaining,
+                    'allocated_units': remaining,
+                    'entry_price': None,
+                    'target_price': None,
+                    'stop_price': None,
+                    'max_hold_seconds': None,
+                    'status': 'legacy_unallocated_inventory',
+                    'tx_hash': None,
+                    'linked_to_wallet_inventory': True,
+                    'entry_derivation': 'UNVERIFIED',
+                    'target_derivation': 'UNVERIFIED',
+                    'stop_derivation': 'UNVERIFIED',
+                    'max_hold_derivation': 'UNVERIFIED',
+                    'notes': 'Unallocated legacy WETH inventory not linked to a tracked execution lot.'
+                })
+            return reconciled
         if weth_balance > 0:
             return [{
                 'source': 'inventory_reconciliation',
                 'asset': 'WETH',
-                'size_units': weth_balance,
+                'lot_units': weth_balance,
+                'allocated_units': weth_balance,
                 'entry_price': None,
                 'target_price': None,
                 'stop_price': None,
                 'max_hold_seconds': None,
-                'status': 'open_inventory',
+                'status': 'legacy_unallocated_inventory',
                 'tx_hash': None,
+                'linked_to_wallet_inventory': True,
                 'entry_derivation': 'UNVERIFIED',
                 'target_derivation': 'UNVERIFIED',
                 'stop_derivation': 'UNVERIFIED',
                 'max_hold_derivation': 'UNVERIFIED',
-                'notes': 'Derived from nonzero on-chain WETH inventory with no active tracked trade-manager position.'
+                'notes': 'Derived from nonzero on-chain WETH inventory with no active or persisted tracked lots.'
             }]
         return []
 
