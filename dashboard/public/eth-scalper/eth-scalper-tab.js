@@ -373,8 +373,23 @@ class EthScalperTab {
     const tradesDisplay = document.getElementById('eth-trades-display');
     
     if (priceDisplay) {
-      const ethUsd = this.data.wallet.eth > 0 ? 
-        (this.data.wallet.usdc / this.data.wallet.eth) : 2500;
+      // Calculate ETH price from wallet data
+      // estimated_total_usd = (ETH * price) + USDC
+      // So: price = (estimated_total_usd - USDC) / ETH
+      const totalUsd = this.data.wallet.estimated_total_usd || 0;
+      const usdc = this.data.wallet.usdc || 0;
+      const eth = this.data.wallet.eth || 0;
+      let ethUsd = 2500; // Default fallback
+      
+      if (eth > 0 && totalUsd > usdc) {
+        ethUsd = (totalUsd - usdc) / eth;
+      }
+      
+      // Sanity check - ETH should be between $1000 and $10000
+      if (ethUsd < 1000 || ethUsd > 10000) {
+        ethUsd = 2500; // Fallback to reasonable estimate
+      }
+      
       priceDisplay.textContent = `$${ethUsd.toFixed(2)}`;
     }
     if (gasDisplay) gasDisplay.textContent = `${this.data.wallet.gas.toFixed(1)} gwei`;
