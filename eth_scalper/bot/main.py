@@ -174,8 +174,10 @@ class ETHScalper:
                 'usdc': wallet.get('usdc', 0.0),
                 'has_live_weth_inventory': bool(weth_balance and weth_balance > 0),
             }
+            tracked_positions = trade_manager.get_open_positions()
             if weth_balance and weth_balance > 0 and inferred_open_positions == 0:
                 inferred_open_positions = 1
+            reconciled_positions = state_manager.build_reconciled_positions(wallet, tracked_positions)
 
             state_manager.update_bot_state(
                 status=status,
@@ -186,11 +188,12 @@ class ETHScalper:
                 open_positions=inferred_open_positions,
                 available_capital=risk['available_capital'],
                 mode=mode,
-                live_inventory=live_inventory
+                live_inventory=live_inventory,
+                reconciled_positions=reconciled_positions
             )
             
             # Update positions
-            state_manager.update_positions(trade_manager.get_open_positions())
+            state_manager.update_positions(tracked_positions)
             state_manager.update_wallet(wallet)
             
         except Exception as e:

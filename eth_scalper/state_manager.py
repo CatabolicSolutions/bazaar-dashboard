@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
+from config.settings import HOLD_TIME_MAX_SECONDS
 
 ROOT = Path(__file__).parent
 STATE_DIR = ROOT / 'state'
@@ -25,7 +26,8 @@ class StateManager:
     
     def update_bot_state(self, status: str, pnl_today: float, pnl_total: float, 
                          requests_used: int, daily_trades: int, open_positions: int,
-                         available_capital: float, mode: str = 'live', live_inventory: Optional[Dict] = None):
+                         available_capital: float, mode: str = 'live', live_inventory: Optional[Dict] = None,
+                         reconciled_positions: Optional[List[Dict]] = None):
         """Update bot status for dashboard"""
         state = {
             'status': status,
@@ -42,6 +44,7 @@ class StateManager:
             'open_positions': open_positions,
             'available_capital': round(available_capital, 2),
             'live_inventory': live_inventory or {},
+            'reconciled_positions': reconciled_positions or [],
             'updated_at': datetime.now(timezone.utc).isoformat()
         }
         self.bot_state_file.write_text(json.dumps(state, indent=2))
@@ -116,6 +119,49 @@ class StateManager:
         state = dict(wallet or {})
         state['updated_at'] = datetime.now(timezone.utc).isoformat()
         wallet_file.write_text(json.dumps(state, indent=2))
+
+    def build_reconciled_positions(self, wallet: Dict, tracked_positions: Optional[List] = None) -> List[Dict]:
+        """Reconstruct visible live position objects without inventing non-derivable metadata."""
+        tracked_positions = tracked_positions or []
+        if tracked_positions:
+            reconciled = []
+            for pos in tracked_positions:
+                reconciled.append({
+                    'source': 'tracked_trade_manager_state',
+                    'asset': 'WETH' if getattr(pos, 'direction', None) == 'long' else 'UNKNOWN',
+                    'entry_price': getattr(pos, 'entry_price', None),
+                    'target_price': getattr(pos, 'target_price', None),
+                    'stop_price': getattr(pos, 'stop_price', None),
+                    'max_hold_seconds': HOLD_TIME_MAX_SECONDS,
+                    'size_usd': getattr(pos, 'size_usd', None),
+                    'status': getattr(getattr(pos, 'status', None), 'value', None),
+                    'tx_hash': getattr(pos, 'tx_hash', None),
+                    'entry_derivation': 'tracked',
+                    'target_derivation': 'tracked',
+                    'stop_derivation': 'tracked',
+                    'max_hold_derivation': 'config',
+                })
+            return reconciled
+
+        weth_balance = float((wallet or {}).get('weth') or 0.0)
+        if weth_balance > 0:
+            return [{
+                'source': 'inventory_reconciliation',
+                'asset': 'WETH',
+                'size_units': weth_balance,
+                'entry_price': None,
+                'target_price': None,
+                'stop_price': None,
+                'max_hold_seconds': None,
+                'status': 'open_inventory',
+                'tx_hash': None,
+                'entry_derivation': 'UNVERIFIED',
+                'target_derivation': 'UNVERIFIED',
+                'stop_derivation': 'UNVERIFIED',
+                'max_hold_derivation': 'UNVERIFIED',
+                'notes': 'Derived from nonzero on-chain WETH inventory with no active tracked trade-manager position.'
+            }]
+        return []
 
     def read_command(self) -> Optional[str]:
         """Read command from dashboard"""
