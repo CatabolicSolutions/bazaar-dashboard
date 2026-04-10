@@ -305,9 +305,9 @@ class ETHScalper:
         funded_side = position.signal.get('funded_side', 'ETH')
         if funded_side == 'USDC':
             from_token = USDC_ADDRESS
-            to_token = ETH_ADDRESS
+            to_token = WETH_ADDRESS
             amount_wei = int(position.size_usd * 1e6)
-            print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC...")
+            print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC -> WETH...")
         else:
             from_token = ETH_ADDRESS
             to_token = USDC_ADDRESS
@@ -386,10 +386,10 @@ class ETHScalper:
         pnl_pct = price_change * 100
         pnl_usd = position.size_usd * price_change
         
-        # Execute reverse swap (USDC back to ETH)
+        # Execute reverse swap (USDC back to WETH path first)
         from execution.live_executor import live_executor
         from_token = USDC_ADDRESS
-        to_token = ETH_ADDRESS
+        to_token = WETH_ADDRESS
         
         # Approximate USDC amount (position size + P&L)
         usdc_amount = int((position.size_usd + pnl_usd) * 1e6)

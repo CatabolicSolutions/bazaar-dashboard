@@ -1,7 +1,7 @@
 """Live trade execution via 1inch"""
 import requests
 from typing import Optional, Dict
-from config.settings import INCH_API_KEY, WALLET_ADDRESS, PRIVATE_KEY, MAX_SLIPPAGE_PERCENT, BASE_RPC_URL, CHAIN_ID
+from config.settings import INCH_API_KEY, WALLET_ADDRESS, PRIVATE_KEY, MAX_SLIPPAGE_PERCENT, BASE_RPC_URL, CHAIN_ID, USDC_ADDRESS, WETH_ADDRESS
 from config.logger import logger
 
 class LiveExecutor:
@@ -25,6 +25,65 @@ class LiveExecutor:
         self.enabled = False
         logger.info("LIVE TRADING DISABLED")
     
+    def ensure_allowance(self, token_address: str, spender: str, required_amount: int) -> Optional[Dict]:
+        """Ensure ERC20 allowance exists for spender, submitting approve() when needed."""
+        if token_address.lower() in {'0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', WETH_ADDRESS.lower()} and token_address.lower() != USDC_ADDRESS.lower():
+            return {'skipped': True, 'reason': 'native-or-non-usdc path'}
+
+        try:
+            from web3 import Web3
+            from eth_account import Account
+
+            w3 = Web3(Web3.HTTPProvider(BASE_RPC_URL))
+            if not w3.is_connected():
+                logger.error("Failed to connect to Base RPC for allowance check")
+                return None
+
+            abi = [
+                {
+                    'name': 'allowance', 'type': 'function', 'stateMutability': 'view',
+                    'inputs': [{'name': 'owner', 'type': 'address'}, {'name': 'spender', 'type': 'address'}],
+                    'outputs': [{'name': '', 'type': 'uint256'}]
+                },
+                {
+                    'name': 'approve', 'type': 'function', 'stateMutability': 'nonpayable',
+                    'inputs': [{'name': 'spender', 'type': 'address'}, {'name': 'amount', 'type': 'uint256'}],
+                    'outputs': [{'name': '', 'type': 'bool'}]
+                }
+            ]
+            contract = w3.eth.contract(address=Web3.to_checksum_address(token_address), abi=abi)
+            current = contract.functions.allowance(Web3.to_checksum_address(WALLET_ADDRESS), Web3.to_checksum_address(spender)).call()
+            logger.info(f"Allowance read: token={token_address} spender={spender} allowance={current} required={required_amount}")
+            if current >= required_amount:
+                return {'approved': False, 'allowance': current}
+
+            account = Account.from_key(PRIVATE_KEY)
+            nonce = w3.eth.get_transaction_count(WALLET_ADDRESS)
+            latest_block = w3.eth.get_block('latest')
+            base_fee = latest_block.get('baseFeePerGas', w3.eth.gas_price)
+            priority_fee = w3.to_wei(0.001, 'gwei')
+            max_fee = int(base_fee * 2 + priority_fee)
+            approve_tx = contract.functions.approve(Web3.to_checksum_address(spender), 2**256 - 1).build_transaction({
+                'from': WALLET_ADDRESS,
+                'chainId': CHAIN_ID,
+                'nonce': nonce,
+                'gas': 100000,
+                'maxPriorityFeePerGas': priority_fee,
+                'maxFeePerGas': max_fee,
+                'type': 2,
+                'value': 0,
+            })
+            signed_tx = account.sign_transaction(approve_tx)
+            raw_tx = getattr(signed_tx, 'raw_transaction', None) or getattr(signed_tx, 'rawTransaction')
+            tx_hash = w3.eth.send_raw_transaction(raw_tx).hex()
+            receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            logger.info(f"Approval submitted: tx_hash={tx_hash} status={receipt.status}")
+            refreshed = contract.functions.allowance(Web3.to_checksum_address(WALLET_ADDRESS), Web3.to_checksum_address(spender)).call()
+            return {'approved': True, 'approval_tx_hash': tx_hash, 'allowance': refreshed, 'status': receipt.status}
+        except Exception as e:
+            logger.error(f"Allowance ensure failed: {e}")
+            return None
+
     def get_swap_data(
         self,
         from_token: str,
@@ -42,6 +101,19 @@ class LiveExecutor:
             return None
         
         try:
+            approve_response = requests.get(
+                f'{self.base_url}/approve/spender',
+                headers=self.headers,
+                timeout=15
+            )
+            spender = approve_response.json().get('address') if approve_response.ok else '0x1111111254eeb25477b68fb85ed929f73a960582'
+            if from_token.lower() == USDC_ADDRESS.lower():
+                allowance_result = self.ensure_allowance(from_token, spender, amount)
+                logger.info(f"Allowance result: {allowance_result}")
+                if not allowance_result or (allowance_result.get('status') == 0):
+                    logger.error("Approval orchestration failed before swap")
+                    return None
+
             params = {
                 'src': from_token,
                 'dst': to_token,
