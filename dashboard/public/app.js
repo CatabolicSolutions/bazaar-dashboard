@@ -46,21 +46,25 @@ async function loadEthData() {
       fetch('/api/eth-scalper/status').catch(() => null),
       fetch('/api/eth-scalper/wallet').catch(() => null)
     ]);
+
+    let statusData = null;
+    let walletData = null;
     
     if (statusRes?.ok) {
-      const data = await statusRes.json();
-      ethData = { ...ethData, ...data };
-      
-      // Price history for chart
-      const price = calculateEthPrice(data);
-      if (price > 0) {
-        priceHistory.push({ price, time: Date.now() });
-        if (priceHistory.length > 100) priceHistory.shift();
-      }
+      statusData = await statusRes.json();
+      ethData = { ...ethData, ...statusData };
     }
     
     if (walletRes?.ok) {
-      ethData.wallet = await walletRes.json();
+      walletData = await walletRes.json();
+      ethData.wallet = walletData;
+    }
+
+    const merged = { ...ethData, ...(statusData || {}), wallet: walletData || ethData.wallet };
+    const price = calculateEthPrice(merged);
+    if (price > 0) {
+      priceHistory.push({ price, time: Date.now() });
+      if (priceHistory.length > 100) priceHistory.shift();
     }
   } catch (e) { console.error('ETH data error:', e); }
 }
