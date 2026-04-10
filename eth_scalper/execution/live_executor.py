@@ -62,8 +62,9 @@ class LiveExecutor:
             if response.status_code == 429:
                 logger.error("1inch rate limit hit")
                 return None
-            
-            response.raise_for_status()
+            if response.status_code >= 400:
+                logger.error(f"1inch swap error body: status={response.status_code} body={response.text}")
+                response.raise_for_status()
             data = response.json()
             
             return {
