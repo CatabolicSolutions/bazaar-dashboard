@@ -1,29 +1,31 @@
 /* THE BAZAAR - Arabian Nights / Desert Mirage Color Scheme */
 :root {
-  /* Cave of Wonders Palette - obsidian, ember, sapphire */
-  --bg: #070506;
-  --bg-elevated: #140c0a;
-  --panel: #22120d;
-  --panel-hover: #2c1710;
-  --border: #5a2a1c;
-  --border-accent: #8a4328;
+  /* Cave of Wonders Palette - blended obsidian, ember, gold, purple */
+  --bg: #070508;
+  --bg-elevated: #120b10;
+  --panel: #221610;
+  --panel-hover: #2e1c16;
+  --border: #6b3826;
+  --border-accent: #9b6a2f;
   
   /* Text hierarchy - treasure sand */
-  --text-primary: #f6dfb8;
-  --text-secondary: #d7b88a;
-  --text-tertiary: #8e6a4c;
+  --text-primary: #f5dfbf;
+  --text-secondary: #d8b88c;
+  --text-tertiary: #8f6d73;
   
-  /* Accent colors - magic cave */
-  --accent: #ff8a3d;
-  --accent-dim: rgba(255, 138, 61, 0.16);
-  --good: #38b26d;
-  --good-dim: rgba(56, 178, 109, 0.14);
-  --warn: #ffb347;
-  --warn-dim: rgba(255, 179, 71, 0.14);
-  --bad: #d9634f;
-  --bad-dim: rgba(217, 99, 79, 0.14);
-  --info: #4b63d1;
-  --info-dim: rgba(75, 99, 209, 0.14);
+  /* Accent colors - mixed fire and magic */
+  --accent: #d98d2b;
+  --accent-2: #8f63d8;
+  --accent-dim: rgba(217, 141, 43, 0.16);
+  --accent-2-dim: rgba(143, 99, 216, 0.14);
+  --good: #42b874;
+  --good-dim: rgba(66, 184, 116, 0.14);
+  --warn: #f0b35b;
+  --warn-dim: rgba(240, 179, 91, 0.14);
+  --bad: #d96d57;
+  --bad-dim: rgba(217, 109, 87, 0.14);
+  --info: #6f72d9;
+  --info-dim: rgba(111, 114, 217, 0.14);
   
   /* Spacing */
   --space-2xs: 2px;
@@ -137,7 +139,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ffb347, #ff8a3d);
+  background: linear-gradient(135deg, #f0b35b 0%, #d98d2b 58%, #8f63d8 100%);
   color: #1a0d06;
   font-size: 16px;
   font-weight: 800;
@@ -172,9 +174,10 @@ body {
 }
 
 .nav-pill.active {
-  background: var(--accent-dim);
+  background: linear-gradient(135deg, var(--accent-dim), var(--accent-2-dim));
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px rgba(143, 99, 216, 0.18);
 }
 
 .nav-icon { font-size: 14px; }
@@ -436,13 +439,13 @@ body {
 }
 
 .btn-action.primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #1a0d06;
   border-color: var(--accent);
 }
 
 .btn-action.primary:hover {
-  background: #ff9a52;
+  background: linear-gradient(135deg, #e5a247, #9b72dd);
 }
 
 .panel-research { grid-column: span 12; }
