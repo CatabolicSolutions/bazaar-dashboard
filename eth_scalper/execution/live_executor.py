@@ -145,7 +145,8 @@ class LiveExecutor:
                 'tx': data.get('tx'),
                 'to_amount': data.get('toAmount'),
                 'from_amount': amount,
-                'protocols': data.get('protocols', [])
+                'protocols': data.get('protocols', []),
+                'dst_token': to_token,
             }
             
         except requests.exceptions.RequestException as e:

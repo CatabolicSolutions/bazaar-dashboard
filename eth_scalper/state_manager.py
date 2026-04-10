@@ -125,9 +125,13 @@ class StateManager:
         current = [p for p in current if p.get('id') != position.id]
         lot_units = None
         try:
-            signal_price = float(position.signal.get('price')) if getattr(position, 'signal', None) else None
-            if signal_price and signal_price > 0:
-                lot_units = float(position.size_usd) / signal_price
+            executed_to_amount = getattr(position, 'executed_to_amount_units', None)
+            if executed_to_amount is not None:
+                lot_units = float(executed_to_amount)
+            else:
+                signal_price = float(position.signal.get('price')) if getattr(position, 'signal', None) else None
+                if signal_price and signal_price > 0:
+                    lot_units = float(position.size_usd) / signal_price
         except Exception:
             lot_units = None
         current.append({

@@ -341,6 +341,13 @@ class ETHScalper:
         
         if tx_hash:
             position.tx_hash = tx_hash
+            try:
+                to_amount = swap_data.get('to_amount')
+                dst_token = swap_data.get('dst_token')
+                if to_amount is not None and dst_token == WETH_ADDRESS:
+                    position.executed_to_amount_units = int(to_amount) / 1e18
+            except Exception:
+                position.executed_to_amount_units = None
             state_manager.persist_live_position(position)
             print(f"   ✅ SWAP EXECUTED: {tx_hash}")
             print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
