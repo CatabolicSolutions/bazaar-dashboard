@@ -15,9 +15,11 @@ from tradier_intent_readiness import intent_readiness_for_intent
 from tradier_intent_timing import intent_timing_for_intent
 from tradier_reconciliation_state import intent_reconciliation_for_intent
 
-ROOT = Path(__file__).resolve().parents[1] / 'dashboard' / 'state'
-EXECUTION_STATE_PATH = ROOT / 'tradier_execution_state.json'
-AUDIT_LOG_PATH = ROOT / 'tradier_audit_log.json'
+ROOT = Path(__file__).resolve().parents[1]
+STATE_ROOT = ROOT / 'out' / 'runtime_state'
+LEGACY_DASHBOARD_STATE_ROOT = ROOT / 'dashboard' / 'state'
+EXECUTION_STATE_PATH = STATE_ROOT / 'tradier_execution_state.json'
+AUDIT_LOG_PATH = STATE_ROOT / 'tradier_audit_log.json'
 
 
 def default_state() -> dict[str, Any]:
@@ -37,13 +39,21 @@ def load_json(path: Path, fallback: Any):
     return json.loads(path.read_text(encoding='utf-8'))
 
 
+def load_with_legacy_fallback(path: Path, legacy_path: Path, fallback: Any):
+    if path.exists():
+        return load_json(path, fallback)
+    if legacy_path.exists():
+        return load_json(legacy_path, fallback)
+    return fallback
+
+
 def save_json(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding='utf-8')
 
 
 def load_state() -> dict[str, Any]:
-    return load_json(EXECUTION_STATE_PATH, default_state())
+    return load_with_legacy_fallback(EXECUTION_STATE_PATH, LEGACY_DASHBOARD_STATE_ROOT / 'tradier_execution_state.json', default_state())
 
 
 def validate_execution_state(state: dict[str, Any]) -> None:
@@ -75,7 +85,7 @@ def save_state(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def append_audit(action: str, actor: str, target_id: str, summary: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
-    payload = load_json(AUDIT_LOG_PATH, {'updatedAt': now_iso(), 'events': []})
+    payload = load_with_legacy_fallback(AUDIT_LOG_PATH, LEGACY_DASHBOARD_STATE_ROOT / 'tradier_audit_log.json', {'updatedAt': now_iso(), 'events': []})
     event = {
         'timestamp': now_iso(),
         'actor': actor,
