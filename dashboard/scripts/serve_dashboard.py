@@ -1054,16 +1054,22 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
     def _handle_eth_scalper_wallet(self):
-        """Get wallet balances"""
+        """Get wallet balances from Alchemy"""
         try:
-            # This would normally query Alchemy for real balances
-            # For now return placeholder
-            return self.json_response(200, {
-                'eth': 0.023,
-                'usdc': 127.50,
-                'gas': 24.5
-            })
+            import sys
+            sys.path.insert(0, str(ROOT / 'eth_scalper'))
+            from wallet_monitor import wallet_monitor
+            
+            balances = wallet_monitor.get_all_balances()
+            return self.json_response(200, balances)
         except Exception as e:
+            # Fallback to state file if available
+            try:
+                state_file = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+                if state_file.exists():
+                    return self.json_response(200, json.loads(state_file.read_text()))
+            except:
+                pass
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
     def _handle_eth_scalper_command(self, body):

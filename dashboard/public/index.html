@@ -27,7 +27,7 @@
       </div>
       
       <nav class="command-nav">
-        <button class="nav-pill active" data-zone="trade" onclick="switchZone('trade')">
+        <button class="nav-pill" data-zone="trade" onclick="switchZone('trade')">
           <span class="nav-icon">⚡</span>
           <span class="nav-label">Trade</span>
         </button>
@@ -43,7 +43,7 @@
           <span class="nav-icon">📓</span>
           <span class="nav-label">Journal</span>
         </button>
-        <button class="nav-pill" data-zone="eth-scalper" onclick="switchZone('eth-scalper')">
+        <button class="nav-pill active" data-zone="eth-scalper" onclick="switchZone('eth-scalper')">
           <span class="nav-icon">⟠</span>
           <span class="nav-label">ETH Scalper</span>
         </button>
@@ -60,7 +60,7 @@
     </header>
 
     <!-- Zone: Trade (Leaders + Chart + Quick Actions) -->
-    <main class="zone active" id="zone-trade">
+    <main class="zone" id="zone-trade">
       <div class="zone-header">
         <h2 class="zone-title">Market Intelligence</h2>
         <p class="zone-subtitle">Pre-market gaps · Tradier leaders · Real-time scanner</p>
@@ -318,7 +318,7 @@
     </main>
     
     <!-- Zone: ETH Scalper -->
-    <main class="zone" id="zone-eth-scalper">
+    <main class="zone active" id="zone-eth-scalper">
       <div id="ethScalperContainer"></div>
     </main>
   </div>

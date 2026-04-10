@@ -1,32 +1,32 @@
 **BAZAAR OF FORTUNES — DAILY MACRO MARKET ANALYSIS**
-**Generated:** 2026-04-07 06:31 MDT
+**Generated:** 2026-04-09 06:30 MDT
 
 **1. Overnight Drivers**
-- Sector & Industry Performance - Bloomberg.com
-- Check out S&P 500 INDEX's stock price (.SPX) in real time - CNBC
+- New Bitcoin ETF Chases Gains That Come While Wall Street Sleeps - Bloomberg.com
 - Asia-Pacific markets close mixed as oil gains and Iran war keeps investors on edge - CNBC
+- Wall Street’s Selloff Turned Into a Stampede This Week - Bloomberg.com
 
 **2. US Economic Calendar (Today / Tomorrow)**
-- Wed 06:00 PM ET — FOMC Meeting Minutes (High)
-- Tue 12:15 PM ET — ADP Weekly Employment Change (Low)
-- Tue 02:10 PM ET — RCM/TIPP Economic Optimism (Low)
-- Tue 04:35 PM ET — FOMC Member Goolsbee Speaks (Low)
+- Thu 12:30 PM ET — Core PCE Price Index m/m (High)
+- Thu 12:30 PM ET — Final GDP q/q (High)
+- Fri 12:30 PM ET — Core CPI m/m (High)
+- Fri 12:30 PM ET — CPI m/m (High)
 
 **3. VIX Context**
-- VIX: 25.96 vs yesterday 24.17 (+7.41%)
-- 5-session average: 25.69 | recent range: 23.87–30.61
-- Read: trending up / fear expanding
+- VIX: 21.22 vs yesterday 21.04 (+0.86%)
+- 5-session average: 23.88 | recent range: 21.04–25.78
+- Read: roughly stable / mixed risk tone
 
 **4. Futures / Pre-Market Proxy**
-- SPX / S&P 500 proxy: up +4.23% vs previous close (regular)
-- NDX / Nasdaq 100 proxy: up +5.40% vs previous close (regular)
+- SPX / S&P 500 proxy: up +3.16% vs previous close (regular)
+- NDX / Nasdaq 100 proxy: up +3.68% vs previous close (regular)
 
 **5. Key Levels**
-- SPY: prev H/L/C 658.20/645.11/655.83 | pivot 653.05 | S1 647.89 | R1 660.98
-- QQQ: prev H/L/C 586.05/571.92/584.98 | pivot 580.98 | S1 575.92 | R1 590.05
+- SPY: prev H/L/C 659.61/651.06/659.22 | pivot 656.63 | S1 653.65 | R1 662.20
+- QQQ: prev H/L/C 588.98/578.40/588.59 | pivot 585.32 | S1 581.67 | R1 592.25
 
 **Desk Read / Synopsis**
 - event risk elevated; do not overtrust early directional moves before scheduled data/speakers
-- volatility is expanding; tighten selectivity and avoid lazy chasing
+- volatility is not screaming regime change; trade the tape, but stay selective
 - premarket tone constructive; bullish leaders can earn more confidence if they hold after the open
 

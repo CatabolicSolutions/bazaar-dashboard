@@ -91,7 +91,7 @@ function renderOperatorRail() {
 document.addEventListener('DOMContentLoaded', () => {
   // Set initial zone
   document.querySelectorAll('.zone').forEach(z => z.style.display = 'none');
-  switchZone('market');
+  switchZone('eth-scalper');
 
   if (!document.getElementById('manualRefreshSink')) {
     const sink = document.createElement('iframe');

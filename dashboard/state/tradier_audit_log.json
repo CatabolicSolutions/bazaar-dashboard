@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-06T20:28:53.324019+00:00",
+  "updatedAt": "2026-04-10T01:22:37.369992+00:00",
   "events": [
     {
       "timestamp": "2026-03-31T04:29:18.652840+00:00",
@@ -495,6 +495,59 @@
       "summary": "Risk evaluation completed",
       "extra": {
         "allowed": false
+      }
+    },
+    {
+      "timestamp": "2026-04-10T01:22:07.225287+00:00",
+      "actor": "alfred",
+      "action": "intent_created",
+      "target_id": "intent_890182882cdf",
+      "summary": "Created cash_day_trade intent from SPY-2026-04-23-CALL-675",
+      "extra": {
+        "candidate_id": "SPY-2026-04-23-CALL-675"
+      }
+    },
+    {
+      "timestamp": "2026-04-10T01:22:36.853070+00:00",
+      "actor": "alfred",
+      "action": "intent_created",
+      "target_id": "intent_f7186fe09fbe",
+      "summary": "Created cash_day_trade intent from SPY-2026-04-23-CALL-675",
+      "extra": {
+        "candidate_id": "SPY-2026-04-23-CALL-675"
+      }
+    },
+    {
+      "timestamp": "2026-04-10T01:22:37.369986+00:00",
+      "actor": "alfred",
+      "action": "risk_evaluated",
+      "target_id": "intent_f7186fe09fbe",
+      "summary": "Risk evaluation completed: rejected",
+      "extra": {
+        "allowed": false,
+        "disposition": "rejected",
+        "reasons": [
+          "estimated notional 1127.00 exceeds buying power reference 197.78"
+        ],
+        "decision_card": {
+          "symbol": "SPY",
+          "direction": "buy",
+          "contract": "SPY 675.0 CALL 2026-04-23",
+          "setup_type": "long call",
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "market_regime": "unclassified",
+          "confidence": 0,
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "",
+          "why_not": [
+            "estimated notional 1127.00 exceeds buying power reference 197.78"
+          ],
+          "rejection_reason": "estimated notional 1127.00 exceeds buying power reference 197.78",
+          "disposition": "rejected"
+        }
       }
     }
   ]

@@ -1,6 +1,6 @@
 /**
- * ETH Scalper Tab - GitHub Dark Theme
- * Clean, minimal crypto trading interface
+ * ETH Scalper Tab - Enhanced Trading Interface
+ * Real-time trading with manual execution controls
  */
 
 class EthScalperTab {
@@ -9,13 +9,18 @@ class EthScalperTab {
     this.refreshInterval = null;
     this.data = {
       status: 'loading',
+      mode: 'unknown',
       pnl: { today: 0, total: 0 },
       trades: [],
       positions: [],
       signals: [],
-      wallet: { eth: 0, usdc: 0, gas: 0 },
-      requests: { used: 0, limit: 900 }
+      wallet: { eth: 0, usdc: 0, gas: 0, address: '' },
+      requests: { used: 0, limit: 900 },
+      daily_trades: 0,
+      open_positions: 0,
+      available_capital: 0
     };
+    this.lastUpdate = null;
   }
 
   async init() {
@@ -32,7 +37,7 @@ class EthScalperTab {
   }
 
   startPolling() {
-    this.refreshInterval = setInterval(() => this.loadData(), 5000);
+    this.refreshInterval = setInterval(() => this.loadData(), 3000); // Poll every 3s
   }
 
   async loadData() {
@@ -48,8 +53,13 @@ class EthScalperTab {
       if (statusRes?.ok) {
         const status = await statusRes.json();
         this.data.status = status.status || 'unknown';
+        this.data.mode = status.mode || 'unknown';
         this.data.pnl = status.pnl || { today: 0, total: 0 };
         this.data.requests = status.requests || { used: 0, limit: 900 };
+        this.data.daily_trades = status.daily_trades || 0;
+        this.data.open_positions = status.open_positions || 0;
+        this.data.available_capital = status.available_capital || 0;
+        this.lastUpdate = status.updated_at;
       }
 
       if (tradesRes?.ok) {
@@ -83,96 +93,173 @@ class EthScalperTab {
 
     this.container.innerHTML = `
       <div class="eth-scalper-tab">
+        <!-- HEADER -->
         <header class="eth-header">
-          <h2>ETH Scalper</h2>
-          <span id="eth-status-badge" class="status-badge loading">Loading...</span>
+          <div class="eth-title">
+            <h2>⟠ ETH Scalper</h2>
+            <span id="eth-mode-badge" class="mode-badge">Loading...</span>
+          </div>
+          <div class="eth-status">
+            <span id="eth-status-indicator" class="status-indicator"></span>
+            <span id="eth-status-text">Connecting...</span>
+          </div>
         </header>
 
+        <!-- PRIMARY ACTION BAR -->
+        <div class="eth-action-bar">
+          <button id="eth-buy-btn" class="eth-btn-buy" onclick="ethScalperTab.confirmBuy()">
+            <span class="btn-icon">🚀</span>
+            <span class="btn-text">BUY ETH NOW</span>
+            <span class="btn-sub">Execute 0.02 ETH swap</span>
+          </button>
+          
+          <div class="eth-quick-stats">
+            <div class="quick-stat">
+              <span class="stat-label">ETH Price</span>
+              <span id="eth-price-display" class="stat-value">--</span>
+            </div>
+            <div class="quick-stat">
+              <span class="stat-label">Gas</span>
+              <span id="eth-gas-display" class="stat-value">-- gwei</span>
+            </div>
+            <div class="quick-stat">
+              <span class="stat-label">Daily Trades</span>
+              <span id="eth-trades-display" class="stat-value">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN GRID -->
         <div class="eth-grid">
+          <!-- P&L CARD -->
           <div class="eth-card pnl-card">
-            <h3>Today's P&L</h3>
+            <div class="card-header">
+              <h3>💰 P&L</h3>
+              <span class="card-badge" id="pnl-badge">Today</span>
+            </div>
             <div id="eth-pnl-value" class="pnl-value">$0.00</div>
-            <div id="eth-pnl-subtext" class="pnl-subtext">Total: $0.00</div>
+            <div class="pnl-breakdown">
+              <div class="pnl-row">
+                <span>Total</span>
+                <span id="eth-pnl-total">$0.00</span>
+              </div>
+              <div class="pnl-row">
+                <span>Available</span>
+                <span id="eth-available">$0.00</span>
+              </div>
+            </div>
           </div>
 
+          <!-- POSITIONS CARD -->
           <div class="eth-card positions-card">
-            <h3>Open Positions</h3>
-            <div id="eth-positions-count" class="positions-count">0</div>
-            <div class="positions-detail">Max: 2 positions</div>
-          </div>
-
-          <div class="eth-card status-card">
-            <h3>API Status</h3>
-            <div class="status-item">
-              <span class="status-label">1inch Requests</span>
-              <span id="eth-requests-value" class="status-value">0/900</span>
+            <div class="card-header">
+              <h3>🎯 Positions</h3>
+              <span class="card-badge live" id="positions-badge">0 Open</span>
             </div>
-            <div class="status-item">
-              <span class="status-label">Daily Trades</span>
-              <span id="eth-trades-value" class="status-value">0/20</span>
+            <div id="eth-positions-list" class="positions-list">
+              <div class="empty-state">No open positions</div>
             </div>
           </div>
-        </div>
 
-        <div class="eth-card trades-section">
-          <h3>Live Trades</h3>
-          <div id="eth-trades-table">
-            <div class="eth-empty">
-              <div class="eth-empty-icon">📈</div>
-              <p>No trades yet. Waiting for signals...</p>
+          <!-- WALLET CARD -->
+          <div class="eth-card wallet-card">
+            <div class="card-header">
+              <h3>💳 Wallet</h3>
+              <span class="card-badge" id="wallet-address">--</span>
             </div>
-          </div>
-        </div>
-
-        <div class="eth-card signals-section">
-          <h3>Signal Log</h3>
-          <div id="eth-signals-log">
-            <div class="eth-empty">
-              <div class="eth-empty-icon">📡</div>
-              <p>No signals detected yet...</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="eth-card wallet-section">
-          <h3>Wallet & Gas</h3>
-          <div class="wallet-grid">
-            <div class="wallet-item">
-              <div class="wallet-icon eth">⟠</div>
-              <div class="wallet-info">
-                <div class="wallet-label">ETH Balance</div>
-                <div id="eth-balance" class="wallet-value">0.0000 ETH</div>
+            <div class="wallet-balances">
+              <div class="balance-item">
+                <span class="balance-icon">⟠</span>
+                <div class="balance-info">
+                  <span class="balance-label">ETH</span>
+                  <span id="eth-balance" class="balance-value">0.0000</span>
+                </div>
+              </div>
+              <div class="balance-item">
+                <span class="balance-icon">💵</span>
+                <div class="balance-info">
+                  <span class="balance-label">USDC</span>
+                  <span id="usdc-balance" class="balance-value">$0.00</span>
+                </div>
+              </div>
+              <div class="balance-item">
+                <span class="balance-icon">⛽</span>
+                <div class="balance-info">
+                  <span class="balance-label">Gas</span>
+                  <span id="gas-price" class="balance-value">-- gwei</span>
+                </div>
               </div>
             </div>
-            <div class="wallet-item">
-              <div class="wallet-icon usdc">💵</div>
-              <div class="wallet-info">
-                <div class="wallet-label">USDC Balance</div>
-                <div id="usdc-balance" class="wallet-value">$0.00</div>
-              </div>
+          </div>
+
+          <!-- API STATUS CARD -->
+          <div class="eth-card api-card">
+            <div class="card-header">
+              <h3>🔌 API</h3>
+              <span class="card-badge" id="api-status">Active</span>
             </div>
-            <div class="wallet-item">
-              <div class="wallet-icon gas">⛽</div>
-              <div class="wallet-info">
-                <div class="wallet-label">Gas Price</div>
-                <div id="gas-price" class="wallet-value">0.0 gwei</div>
+            <div class="api-stats">
+              <div class="api-stat">
+                <span class="api-label">1inch Calls</span>
+                <div class="api-bar">
+                  <div id="api-bar-fill" class="api-bar-fill" style="width: 0%"></div>
+                </div>
+                <span id="api-calls" class="api-value">0/900</span>
+              </div>
+              <div class="api-stat">
+                <span class="api-label">Last Update</span>
+                <span id="last-update" class="api-value">--</span>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- ACTIVITY SECTIONS -->
+        <div class="eth-activity">
+          <!-- TRADES -->
+          <div class="eth-card activity-card">
+            <div class="card-header">
+              <h3>📈 Recent Trades</h3>
+              <span class="card-badge">Last 10</span>
+            </div>
+            <div id="eth-trades-table" class="activity-table">
+              <div class="empty-state">
+                <div class="empty-icon">📊</div>
+                <p>No trades executed yet</p>
+                <p class="empty-sub">Click "BUY ETH NOW" to make your first trade</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIGNALS -->
+          <div class="eth-card activity-card">
+            <div class="card-header">
+              <h3>📡 Signal Log</h3>
+              <span class="card-badge">Last 10</span>
+            </div>
+            <div id="eth-signals-log" class="activity-table">
+              <div class="empty-state">
+                <div class="empty-icon">📡</div>
+                <p>No signals detected</p>
+                <p class="empty-sub">Bot is monitoring for momentum...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTROLS -->
         <div class="eth-controls">
-          <button class="eth-btn danger" onclick="ethScalperTab.sendCommand('STOP')">
-            🛑 STOP BOT
+          <button class="eth-btn secondary" onclick="ethScalperTab.sendCommand('PAUSE')">
+            ⏸️ Pause
           </button>
-          <button class="eth-btn primary" onclick="ethScalperTab.sendCommand('START')">
-            ▶️ START BOT
-          </button>
-          <button class="eth-btn secondary" onclick="ethScalperTab.toggleMode()">
-            📝 PAPER MODE
+          <button class="eth-btn secondary" onclick="ethScalperTab.sendCommand('RESUME')">
+            ▶️ Resume
           </button>
           <button class="eth-btn secondary" onclick="ethScalperTab.viewLogs()">
-            📄 VIEW LOGS
+            📄 Logs
+          </button>
+          <button class="eth-btn danger" onclick="ethScalperTab.sendCommand('STOP')">
+            🛑 Stop Bot
           </button>
         </div>
       </div>
@@ -180,53 +267,129 @@ class EthScalperTab {
   }
 
   updateUI() {
-    // Update status badge
-    const statusBadge = document.getElementById('eth-status-badge');
-    if (statusBadge) {
-      statusBadge.className = `status-badge ${this.data.status}`;
-      statusBadge.textContent = this.data.status.toUpperCase();
+    // Mode badge
+    const modeBadge = document.getElementById('eth-mode-badge');
+    if (modeBadge) {
+      const modeText = this.data.mode.toUpperCase();
+      modeBadge.className = `mode-badge ${this.data.mode}`;
+      modeBadge.textContent = modeText;
     }
 
-    // Update P&L
+    // Status indicator
+    const statusIndicator = document.getElementById('eth-status-indicator');
+    const statusText = document.getElementById('eth-status-text');
+    if (statusIndicator && statusText) {
+      const isRunning = this.data.status === 'running';
+      statusIndicator.className = `status-indicator ${isRunning ? 'active' : 'inactive'}`;
+      statusText.textContent = isRunning ? 'RUNNING' : this.data.status.toUpperCase();
+    }
+
+    // Quick stats
+    const priceDisplay = document.getElementById('eth-price-display');
+    const gasDisplay = document.getElementById('eth-gas-display');
+    const tradesDisplay = document.getElementById('eth-trades-display');
+    
+    if (priceDisplay) {
+      const ethUsd = this.data.wallet.eth > 0 ? 
+        (this.data.wallet.usdc / this.data.wallet.eth) : 2500;
+      priceDisplay.textContent = `$${ethUsd.toFixed(2)}`;
+    }
+    if (gasDisplay) gasDisplay.textContent = `${this.data.wallet.gas.toFixed(1)} gwei`;
+    if (tradesDisplay) tradesDisplay.textContent = this.data.daily_trades;
+
+    // P&L
     const pnlValue = document.getElementById('eth-pnl-value');
-    const pnlSubtext = document.getElementById('eth-pnl-subtext');
+    const pnlTotal = document.getElementById('eth-pnl-total');
+    const pnlAvailable = document.getElementById('eth-available');
+    const pnlBadge = document.getElementById('pnl-badge');
+    
     if (pnlValue) {
-      const pnlClass = this.data.pnl.today >= 0 ? 'eth-profit' : 'eth-loss';
+      const pnlClass = this.data.pnl.today >= 0 ? 'positive' : 'negative';
       const pnlSign = this.data.pnl.today >= 0 ? '+' : '';
       pnlValue.className = `pnl-value ${pnlClass}`;
       pnlValue.textContent = `${pnlSign}$${this.data.pnl.today.toFixed(2)}`;
     }
-    if (pnlSubtext) {
+    if (pnlTotal) {
       const totalSign = this.data.pnl.total >= 0 ? '+' : '';
-      pnlSubtext.textContent = `Total: ${totalSign}$${this.data.pnl.total.toFixed(2)}`;
+      pnlTotal.textContent = `${totalSign}$${this.data.pnl.total.toFixed(2)}`;
+    }
+    if (pnlAvailable) pnlAvailable.textContent = `$${this.data.available_capital.toFixed(2)}`;
+    if (pnlBadge) pnlBadge.textContent = `Today (${this.data.daily_trades} trades)`;
+
+    // Positions
+    const positionsList = document.getElementById('eth-positions-list');
+    const positionsBadge = document.getElementById('positions-badge');
+    
+    if (positionsBadge) {
+      positionsBadge.textContent = `${this.data.open_positions} Open`;
+      positionsBadge.className = `card-badge ${this.data.open_positions > 0 ? 'live' : ''}`;
+    }
+    
+    if (positionsList) {
+      if (this.data.positions.length === 0) {
+        positionsList.innerHTML = '<div class="empty-state">No open positions</div>';
+      } else {
+        positionsList.innerHTML = this.data.positions.map(p => this.renderPosition(p)).join('');
+      }
     }
 
-    // Update positions
-    const positionsCount = document.getElementById('eth-positions-count');
-    if (positionsCount) {
-      positionsCount.textContent = this.data.positions.length;
-    }
-
-    // Update API status
-    const requestsValue = document.getElementById('eth-requests-value');
-    if (requestsValue) {
-      requestsValue.textContent = `${this.data.requests.used}/${this.data.requests.limit}`;
-    }
-
-    // Update wallet
+    // Wallet
     const ethBalance = document.getElementById('eth-balance');
     const usdcBalance = document.getElementById('usdc-balance');
     const gasPrice = document.getElementById('gas-price');
-
-    if (ethBalance) ethBalance.textContent = `${this.data.wallet.eth.toFixed(4)} ETH`;
+    const walletAddress = document.getElementById('wallet-address');
+    
+    if (ethBalance) ethBalance.textContent = this.data.wallet.eth.toFixed(4);
     if (usdcBalance) usdcBalance.textContent = `$${this.data.wallet.usdc.toFixed(2)}`;
     if (gasPrice) gasPrice.textContent = `${this.data.wallet.gas.toFixed(1)} gwei`;
+    if (walletAddress && this.data.wallet.address) {
+      walletAddress.textContent = `${this.data.wallet.address.slice(0, 6)}...${this.data.wallet.address.slice(-4)}`;
+    }
 
-    // Update trades table
+    // API stats
+    const apiBarFill = document.getElementById('api-bar-fill');
+    const apiCalls = document.getElementById('api-calls');
+    const lastUpdate = document.getElementById('last-update');
+    
+    if (apiBarFill) {
+      const pct = (this.data.requests.used / this.data.requests.limit) * 100;
+      apiBarFill.style.width = `${Math.min(pct, 100)}%`;
+    }
+    if (apiCalls) apiCalls.textContent = `${this.data.requests.used}/${this.data.requests.limit}`;
+    if (lastUpdate && this.lastUpdate) {
+      const date = new Date(this.lastUpdate);
+      lastUpdate.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // Tables
     this.updateTradesTable();
-
-    // Update signals log
     this.updateSignalsLog();
+  }
+
+  renderPosition(pos) {
+    const directionEmoji = pos.direction === 'long' ? '📈' : '📉';
+    const targetPct = ((pos.target_price / pos.entry_price) - 1) * 100;
+    const stopPct = ((1 - pos.stop_price / pos.entry_price)) * 100;
+    
+    return `
+      <div class="position-item">
+        <div class="position-header">
+          <span class="position-direction">${directionEmoji} ${pos.direction.toUpperCase()}</span>
+          <span class="position-status ${pos.status}">${pos.status.toUpperCase()}</span>
+        </div>
+        <div class="position-details">
+          <div class="position-row">
+            <span>Entry: $${pos.entry_price.toFixed(2)}</span>
+            <span>Size: $${pos.size_usd.toFixed(2)}</span>
+          </div>
+          <div class="position-row targets">
+            <span class="target">🎯 +${targetPct.toFixed(2)}%</span>
+            <span class="stop">🛑 -${stopPct.toFixed(2)}%</span>
+          </div>
+        </div>
+        ${pos.tx_hash ? `<a href="https://etherscan.io/tx/${pos.tx_hash}" target="_blank" class="tx-link">View Tx ↗</a>` : ''}
+      </div>
+    `;
   }
 
   updateTradesTable() {
@@ -235,9 +398,10 @@ class EthScalperTab {
 
     if (this.data.trades.length === 0) {
       container.innerHTML = `
-        <div class="eth-empty">
-          <div class="eth-empty-icon">📈</div>
-          <p>No trades yet. Waiting for signals...</p>
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <p>No trades executed yet</p>
+          <p class="empty-sub">Click "BUY ETH NOW" to make your first trade</p>
         </div>
       `;
       return;
@@ -249,11 +413,11 @@ class EthScalperTab {
         <thead>
           <tr>
             <th>Time</th>
-            <th>Type</th>
+            <th>Dir</th>
             <th>Entry</th>
             <th>Exit</th>
             <th>P&L</th>
-            <th>Status</th>
+            <th>Tx</th>
           </tr>
         </thead>
         <tbody>
@@ -265,19 +429,19 @@ class EthScalperTab {
 
   renderTradeRow(trade) {
     const time = new Date(trade.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const pnlClass = (trade.pnl_usd || 0) >= 0 ? 'eth-profit' : 'eth-loss';
+    const pnlClass = (trade.pnl_usd || 0) >= 0 ? 'positive' : 'negative';
     const pnlSign = (trade.pnl_usd || 0) >= 0 ? '+' : '';
-    const badgeClass = (trade.pnl_usd || 0) >= 0 ? 'win' : (trade.pnl_usd || 0) < 0 ? 'loss' : 'pending';
-    const emoji = (trade.pnl_usd || 0) >= 0 ? '✅' : (trade.pnl_usd || 0) < 0 ? '❌' : '⏳';
+    const directionEmoji = trade.direction === 'long' ? '📈' : '📉';
+    const txLink = trade.tx_hash ? `<a href="https://etherscan.io/tx/${trade.tx_hash}" target="_blank">↗</a>` : '-';
 
     return `
       <tr>
         <td>${time}</td>
-        <td>${trade.type || 'ETH→USDC'}</td>
+        <td>${directionEmoji}</td>
         <td>$${(trade.entry_price || 0).toFixed(2)}</td>
         <td>$${(trade.exit_price || 0).toFixed(2)}</td>
         <td class="${pnlClass}">${pnlSign}$${(trade.pnl_usd || 0).toFixed(2)}</td>
-        <td><span class="trade-badge ${badgeClass}">${emoji}</span></td>
+        <td>${txLink}</td>
       </tr>
     `;
   }
@@ -288,9 +452,10 @@ class EthScalperTab {
 
     if (this.data.signals.length === 0) {
       container.innerHTML = `
-        <div class="eth-empty">
-          <div class="eth-empty-icon">📡</div>
-          <p>No signals detected yet...</p>
+        <div class="empty-state">
+          <div class="empty-icon">📡</div>
+          <p>No signals detected</p>
+          <p class="empty-sub">Bot is monitoring for momentum...</p>
         </div>
       `;
       return;
@@ -302,10 +467,10 @@ class EthScalperTab {
         <thead>
           <tr>
             <th>Time</th>
-            <th>Signal</th>
+            <th>Dir</th>
+            <th>Price</th>
             <th>Score</th>
             <th>Action</th>
-            <th>Result</th>
           </tr>
         </thead>
         <tbody>
@@ -317,18 +482,103 @@ class EthScalperTab {
 
   renderSignalRow(signal) {
     const time = new Date(signal.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const directionEmoji = signal.direction === 'up' ? '📈' : '📉';
     const badgeClass = signal.executed ? 'executed' : 'skipped';
-    const badgeText = signal.executed ? 'EXECUTED' : 'SKIPPED';
+    const badgeText = signal.executed ? 'TRADED' : 'SKIPPED';
 
     return `
       <tr>
         <td>${time}</td>
-        <td>${signal.type || 'Momentum'}</td>
-        <td><span class="signal-score">${signal.score || 0}/10</span></td>
+        <td>${directionEmoji}</td>
+        <td>$${(signal.price || 0).toFixed(2)}</td>
+        <td>${signal.score || 0}/10</td>
         <td><span class="signal-badge ${badgeClass}">${badgeText}</span></td>
-        <td>${signal.reason || '-'}</td>
       </tr>
     `;
+  }
+
+  confirmBuy() {
+    const modal = document.createElement('div');
+    modal.className = 'eth-modal';
+    modal.innerHTML = `
+      <div class="eth-modal-content">
+        <div class="eth-modal-header">
+          <h3>🚀 Confirm Purchase</h3>
+          <button class="close-btn" onclick="this.closest('.eth-modal').remove()">×</button>
+        </div>
+        <div class="eth-modal-body">
+          <div class="confirm-details">
+            <div class="confirm-row">
+              <span>Action:</span>
+              <strong>Buy 0.02 ETH</strong>
+            </div>
+            <div class="confirm-row">
+              <span>Approximate Value:</span>
+              <strong>~$50 USD</strong>
+            </div>
+            <div class="confirm-row">
+              <span>Gas Estimate:</span>
+              <strong>$2-5</strong>
+            </div>
+            <div class="confirm-row">
+              <span>Mode:</span>
+              <strong>${this.data.mode.toUpperCase()}</strong>
+            </div>
+          </div>
+          <p class="confirm-warning">
+            ${this.data.mode === 'live' 
+              ? '⚠️ This will execute a REAL transaction on Ethereum mainnet.' 
+              : '📝 This is a paper trade - no real money will be spent.'}
+          </p>
+        </div>
+        <div class="eth-modal-footer">
+          <button class="eth-btn secondary" onclick="this.closest('.eth-modal').remove()">Cancel</button>
+          <button class="eth-btn primary" onclick="ethScalperTab.executeBuy(); this.closest('.eth-modal').remove()">
+            ${this.data.mode === 'live' ? '💰 EXECUTE LIVE TRADE' : '📝 EXECUTE PAPER TRADE'}
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  async executeBuy() {
+    const btn = document.getElementById('eth-buy-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">EXECUTING...</span>';
+    }
+
+    try {
+      const res = await fetch('/api/eth-scalper/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'BUY' })
+      });
+
+      if (res.ok) {
+        this.showToast('✅ Buy order sent to bot', 'success');
+        setTimeout(() => this.loadData(), 1000);
+      } else {
+        this.showToast('❌ Failed to send buy order', 'error');
+      }
+    } catch (err) {
+      console.error('Buy failed:', err);
+      this.showToast('❌ Network error', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="btn-icon">🚀</span><span class="btn-text">BUY ETH NOW</span><span class="btn-sub">Execute 0.02 ETH swap</span>';
+      }
+    }
+  }
+
+  showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `eth-toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   }
 
   async sendCommand(command) {
@@ -340,92 +590,19 @@ class EthScalperTab {
       });
 
       if (res.ok) {
-        // Refresh immediately
+        this.showToast(`✅ Command sent: ${command}`, 'success');
         setTimeout(() => this.loadData(), 500);
+      } else {
+        this.showToast('❌ Command failed', 'error');
       }
     } catch (err) {
       console.error('Command failed:', err);
+      this.showToast('❌ Network error', 'error');
     }
   }
 
-  toggleMode() {
-    // Toggle between paper and live mode
-    const newMode = this.data.status === 'paper' ? 'LIVE' : 'PAPER';
-    this.sendCommand(newMode);
-  }
-
   viewLogs() {
-    // Fetch and display logs
-    fetch('/eth-scalper/logs/')
-      .then(res => res.text())
-      .then(logs => {
-        // Create a modal to show logs
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.8);
-          z-index: 10000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        `;
-        modal.innerHTML = `
-          <div style="
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 1200px;
-            height: 80%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-          ">
-            <div style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              padding: 16px 20px;
-              border-bottom: 1px solid #30363d;
-            ">
-              <h3 style="margin: 0; color: #e6edf3;">ETH Scalper Logs</h3>
-              <button onclick="this.closest('.modal').remove()" style="
-                background: transparent;
-                border: none;
-                color: #7d8590;
-                font-size: 20px;
-                cursor: pointer;
-              ">✕</button>
-            </div>
-            <pre style="
-              flex: 1;
-              margin: 0;
-              padding: 20px;
-              overflow: auto;
-              color: #e6edf3;
-              font-family: 'SF Mono', Monaco, monospace;
-              font-size: 12px;
-              line-height: 1.5;
-              background: #0d1117;
-            ">${logs.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-          </div>
-        `;
-        modal.className = 'modal';
-        document.body.appendChild(modal);
-        
-        // Close on background click
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) modal.remove();
-        });
-      })
-      .catch(err => {
-        alert('Failed to load logs: ' + err.message);
-      });
+    window.open('/eth-scalper/logs/', '_blank');
   }
 }
 

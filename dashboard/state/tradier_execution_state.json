@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-06T20:28:53.321721+00:00",
+  "updatedAt": "2026-04-10T01:22:37.368474+00:00",
   "intents": [
     {
       "mode": "cash_day",
@@ -1046,6 +1046,116 @@
         }
       ],
       "updated_at": "2026-04-06T20:28:52.776538+00:00"
+    },
+    {
+      "mode": "cash_day_trade",
+      "strategy_type": "long_call",
+      "symbol": "SPY",
+      "contract": "SPY 675.0 CALL 2026-04-23",
+      "side": "buy",
+      "qty": 1,
+      "limit_price": 11.27,
+      "time_in_force": "day",
+      "source": "leader",
+      "candidate_id": "SPY-2026-04-23-CALL-675",
+      "notes": "auto-trade runner",
+      "allocation_bucket": "cash_day_core",
+      "position_relationship": "open_new_position",
+      "position_id": null,
+      "strategy_family": "Scalping Buy",
+      "strategy_source": "tradier_leaders_board",
+      "strategy_run_id": "SPY-2026-04-23-CALL-675",
+      "origin": "system_generated",
+      "decision_state": "proposed",
+      "decision_actor": "system",
+      "decision_note": "Created from leaders board candidate",
+      "readiness_state": "not_ready",
+      "readiness_reason": "Awaiting preview and authorization prerequisites",
+      "outcome_state": "no_outcome",
+      "outcome_reason": "",
+      "effected_qty": null,
+      "escalation_state": "no_escalation",
+      "escalation_reason": "",
+      "timing_state": "no_timing_pressure",
+      "timing_reason": "",
+      "external_reference_state": "no_external_reference",
+      "external_reference_id": null,
+      "external_reference_system": "",
+      "external_reference_note": "",
+      "attempt_state": "no_attempt",
+      "attempt_count": 0,
+      "latest_attempt_id": null,
+      "latest_attempt_note": "",
+      "reconciliation_state": "not_reconciled",
+      "reconciliation_note": "",
+      "intent_id": "intent_890182882cdf",
+      "created_at": "2026-04-10T01:22:07.221328+00:00",
+      "status": "queued",
+      "transition_history": [
+        {
+          "from": "candidate",
+          "to": "queued",
+          "actor": "alfred",
+          "note": "Created cash_day_trade intent from SPY-2026-04-23-CALL-675",
+          "timestamp": "2026-04-10T01:22:07.222087+00:00"
+        }
+      ],
+      "updated_at": "2026-04-10T01:22:07.222092+00:00"
+    },
+    {
+      "mode": "cash_day_trade",
+      "strategy_type": "long_call",
+      "symbol": "SPY",
+      "contract": "SPY 675.0 CALL 2026-04-23",
+      "side": "buy",
+      "qty": 1,
+      "limit_price": 11.27,
+      "time_in_force": "day",
+      "source": "leader",
+      "candidate_id": "SPY-2026-04-23-CALL-675",
+      "notes": "auto-trade runner",
+      "allocation_bucket": "cash_day_core",
+      "position_relationship": "open_new_position",
+      "position_id": null,
+      "strategy_family": "Scalping Buy",
+      "strategy_source": "tradier_leaders_board",
+      "strategy_run_id": "SPY-2026-04-23-CALL-675",
+      "origin": "system_generated",
+      "decision_state": "proposed",
+      "decision_actor": "system",
+      "decision_note": "Created from leaders board candidate",
+      "readiness_state": "not_ready",
+      "readiness_reason": "Awaiting preview and authorization prerequisites",
+      "outcome_state": "no_outcome",
+      "outcome_reason": "",
+      "effected_qty": null,
+      "escalation_state": "no_escalation",
+      "escalation_reason": "",
+      "timing_state": "no_timing_pressure",
+      "timing_reason": "",
+      "external_reference_state": "no_external_reference",
+      "external_reference_id": null,
+      "external_reference_system": "",
+      "external_reference_note": "",
+      "attempt_state": "no_attempt",
+      "attempt_count": 0,
+      "latest_attempt_id": null,
+      "latest_attempt_note": "",
+      "reconciliation_state": "not_reconciled",
+      "reconciliation_note": "",
+      "intent_id": "intent_f7186fe09fbe",
+      "created_at": "2026-04-10T01:22:36.851195+00:00",
+      "status": "queued",
+      "transition_history": [
+        {
+          "from": "candidate",
+          "to": "queued",
+          "actor": "alfred",
+          "note": "Created cash_day_trade intent from SPY-2026-04-23-CALL-675",
+          "timestamp": "2026-04-10T01:22:36.851632+00:00"
+        }
+      ],
+      "updated_at": "2026-04-10T01:22:36.851637+00:00"
     }
   ],
   "previews": [
@@ -1500,6 +1610,84 @@
         }
       },
       "timestamp": "2026-04-06T20:28:53.321574+00:00"
+    },
+    {
+      "intent_id": "intent_f7186fe09fbe",
+      "mode": "cash_day_trade",
+      "allowed": false,
+      "reasons": [
+        "estimated notional 1127.00 exceeds buying power reference 197.78"
+      ],
+      "checks": {
+        "mode": "cash_day_trade",
+        "strategy_allowed": true,
+        "qty_within_cap": true,
+        "time_in_force_day_only": true,
+        "account_ready_flag": true,
+        "account_type": "cash",
+        "cash_account_day_trading_mode": true,
+        "open_positions_count": 2,
+        "market_regime": "unclassified",
+        "confidence_score": 0,
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "candidate passed pre-trade gates",
+        "review_only": false,
+        "estimated_notional": 1127.0,
+        "buying_power_reference": 197.78,
+        "manual_limit_drift": {
+          "mark_price": 11.27,
+          "limit_price": 11.27,
+          "max_drift_pct": 0.05,
+          "drift_pct": 0.0
+        }
+      },
+      "decision_card": {
+        "symbol": "SPY",
+        "direction": "buy",
+        "contract": "SPY 675.0 CALL 2026-04-23",
+        "setup_type": "long call",
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "market_regime": "unclassified",
+        "confidence": 0,
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "",
+        "why_not": [
+          "estimated notional 1127.00 exceeds buying power reference 197.78"
+        ],
+        "rejection_reason": "estimated notional 1127.00 exceeds buying power reference 197.78",
+        "disposition": "rejected"
+      },
+      "disposition": "rejected",
+      "timestamp": "2026-04-10T01:22:37.368294+00:00"
+    }
+  ],
+  "decisionCards": [
+    {
+      "intent_id": "intent_f7186fe09fbe",
+      "symbol": "SPY",
+      "direction": "buy",
+      "contract": "SPY 675.0 CALL 2026-04-23",
+      "setup_type": "long call",
+      "entry_logic": "leader-driven entry",
+      "trigger_condition": "candidate selected by automation",
+      "invalidation_logic": "premium stop / thesis break",
+      "target_exit_logic": "intraday target or timeout exit",
+      "market_regime": "unclassified",
+      "confidence": 0,
+      "risk_classification": "smallest_size_cash_account",
+      "why_now": "",
+      "why_not": [
+        "estimated notional 1127.00 exceeds buying power reference 197.78"
+      ],
+      "rejection_reason": "estimated notional 1127.00 exceeds buying power reference 197.78",
+      "disposition": "rejected"
     }
   ]
 }
