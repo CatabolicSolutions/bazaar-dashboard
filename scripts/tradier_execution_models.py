@@ -6,7 +6,7 @@ from typing import Any
 import uuid
 
 
-VALID_MODES = {'cash_day', 'margin_swing'}
+VALID_MODES = {'cash_day', 'cash_day_trade', 'margin_swing'}
 VALID_STRATEGY_TYPES = {'long_call', 'long_put', 'defined_risk_spread'}
 
 EXECUTION_INTENT_LIFECYCLE = {
@@ -160,7 +160,7 @@ class ExecutionIntent:
         if self.qty <= 0:
             raise ValueError('qty must be > 0')
         if not self.allocation_bucket:
-            self.allocation_bucket = 'cash_day_core' if self.mode == 'cash_day' else 'margin_swing_core'
+            self.allocation_bucket = 'cash_day_core' if self.mode in {'cash_day', 'cash_day_trade'} else 'margin_swing_core'
         if not self.strategy_family:
             self.strategy_family = self.strategy_type
         if not self.strategy_source:

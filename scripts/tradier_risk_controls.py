@@ -13,6 +13,13 @@ DEFAULT_POLICY = {
         'manual_limit_drift_pct': 0.05,
         'require_limit_price': False,
     },
+    'cash_day_trade': {
+        'allowed_strategies': {'long_call', 'long_put'},
+        'max_qty': 10,
+        'max_notional': 2500.0,
+        'manual_limit_drift_pct': 0.05,
+        'require_limit_price': False,
+    },
     'margin_swing': {
         'allowed_strategies': {'long_call', 'long_put'},
         'max_qty': 20,

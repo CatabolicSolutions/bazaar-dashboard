@@ -35,28 +35,26 @@ def load_tickets() -> list[dict[str, Any]]:
     if DEFAULT_BOARD.exists():
         board_text = DEFAULT_BOARD.read_text(encoding='utf-8')
         try:
+            import re
             lines = [line.strip() for line in board_text.splitlines() if line.strip()]
             tickets = []
             current_strategy = 'Scalping Buy'
+            line_re = re.compile(r'^(\d+)\.\s+([A-Z]+)\s+(CALL|PUT)\s+\|\s+Underlying\s+([0-9.]+)\s+\|\s+Strike\s+([0-9.]+)\s+\|\s+Exp\s+([0-9\-]+)\s+\|.*?Bid/Ask\s+([0-9.]+)/([0-9.]+)')
             for line in lines:
                 if 'Premium / Credit Leaders' in line:
                     current_strategy = 'Credit'
                     continue
-                if not line[:2].isdigit() and not (line[0].isdigit() and line[1] == '.'):
+                if 'Directional / Scalping Leaders' in line:
+                    current_strategy = 'Scalping Buy'
                     continue
-                parts = [p.strip() for p in line.split('|')]
-                if len(parts) < 6:
+                match = line_re.match(line)
+                if not match:
                     continue
-                rank_symbol = parts[0]
-                symbol_bits = rank_symbol.split('.', 1)[-1].strip().split()
-                symbol = symbol_bits[0]
-                option_type = symbol_bits[1] if len(symbol_bits) > 1 else 'CALL'
-                underlying = float(parts[1].replace('Underlying', '').strip())
-                strike = float(parts[2].replace('Strike', '').strip())
-                expiration = parts[3].replace('Exp', '').strip()
-                bid_ask = parts[5].replace('Bid/Ask', '').strip().split('/')
-                bid = float(bid_ask[0])
-                ask = float(bid_ask[1])
+                _, symbol, option_type, underlying, strike, expiration, bid, ask = match.groups()
+                underlying = float(underlying)
+                strike = float(strike)
+                bid = float(bid)
+                ask = float(ask)
                 tickets.append({
                     'symbol': symbol,
                     'option_type': option_type.lower(),
