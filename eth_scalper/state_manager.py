@@ -109,6 +109,13 @@ class StateManager:
             })
         self.positions_file.write_text(json.dumps(state, indent=2))
     
+    def update_wallet(self, wallet: Dict):
+        """Persist live wallet balances for dashboard/state consumers."""
+        wallet_file = STATE_DIR / 'wallet.json'
+        state = dict(wallet or {})
+        state['updated_at'] = datetime.now(timezone.utc).isoformat()
+        wallet_file.write_text(json.dumps(state, indent=2))
+
     def read_command(self) -> Optional[str]:
         """Read command from dashboard"""
         cmd_file = STATE_DIR / 'command.txt'

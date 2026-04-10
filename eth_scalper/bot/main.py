@@ -178,13 +178,9 @@ class ETHScalper:
             # Update positions
             state_manager.update_positions(trade_manager.get_open_positions())
             
-            # Update wallet state
+            # Update wallet state from live on-chain reads
             wallet = wallet_monitor.get_all_balances()
-            import json
-            from pathlib import Path
-            wallet_file = Path(__file__).parent.parent / 'state' / 'wallet.json'
-            wallet_file.parent.mkdir(parents=True, exist_ok=True)
-            wallet_file.write_text(json.dumps(wallet, indent=2))
+            state_manager.update_wallet(wallet)
             
         except Exception as e:
             print(f"Failed to update dashboard: {e}")
