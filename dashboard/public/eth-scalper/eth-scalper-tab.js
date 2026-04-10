@@ -214,6 +214,67 @@ class EthScalperTab {
           </div>
         </div>
 
+        <!-- AUTONOMOUS STATUS DASHBOARD -->
+        <div class="eth-autonomous-status">
+          <div class="eth-card autonomous-card">
+            <div class="card-header">
+              <h3>🤖 Autonomous Agents</h3>
+              <span class="card-badge live">LIVE</span>
+            </div>
+            <div class="autonomous-grid">
+              <div class="agent-status">
+                <div class="agent-icon">⟠</div>
+                <div class="agent-info">
+                  <span class="agent-name">ETH Scalper</span>
+                  <span id="eth-agent-status" class="agent-state">Checking...</span>
+                </div>
+                <div id="eth-agent-dot" class="agent-dot"></div>
+              </div>
+              <div class="agent-status">
+                <div class="agent-icon">📈</div>
+                <div class="agent-info">
+                  <span class="agent-name">Tradier Bot</span>
+                  <span id="tradier-agent-status" class="agent-state">Checking...</span>
+                </div>
+                <div id="tradier-agent-dot" class="agent-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RISK GAUGE -->
+        <div class="eth-risk-section">
+          <div class="eth-card risk-card">
+            <div class="card-header">
+              <h3>⚠️ Risk Monitor</h3>
+              <span id="risk-badge" class="card-badge">SAFE</span>
+            </div>
+            <div class="risk-gauges">
+              <div class="risk-gauge">
+                <span class="gauge-label">Exposure</span>
+                <div class="gauge-bar">
+                  <div id="exposure-fill" class="gauge-fill" style="width: 0%"></div>
+                </div>
+                <span id="exposure-value" class="gauge-value">0%</span>
+              </div>
+              <div class="risk-gauge">
+                <span class="gauge-label">Daily Loss</span>
+                <div class="gauge-bar">
+                  <div id="daily-loss-fill" class="gauge-fill" style="width: 0%"></div>
+                </div>
+                <span id="daily-loss-value" class="gauge-value">$0/$15</span>
+              </div>
+              <div class="risk-gauge">
+                <span class="gauge-label">Position Heat</span>
+                <div class="gauge-bar">
+                  <div id="heat-fill" class="gauge-fill" style="width: 0%"></div>
+                </div>
+                <span id="heat-value" class="gauge-value">0/2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ACTIVITY SECTIONS -->
         <div class="eth-activity">
           <!-- TRADES -->
@@ -273,6 +334,28 @@ class EthScalperTab {
       const modeText = this.data.mode.toUpperCase();
       modeBadge.className = `mode-badge ${this.data.mode}`;
       modeBadge.textContent = modeText;
+    }
+
+    // P&L PULSE - Visual heartbeat based on performance
+    const pnlValue = document.getElementById('eth-pnl-value');
+    if (pnlValue) {
+      const pnl = this.data.pnl.today;
+      const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+      const pnlSign = pnl >= 0 ? '+' : '';
+      pnlValue.className = `pnl-value ${pnlClass}`;
+      pnlValue.textContent = `${pnlSign}$${pnl.toFixed(2)}`;
+      
+      // Add pulse animation based on magnitude
+      const intensity = Math.min(Math.abs(pnl) / 50, 1); // Max pulse at $50
+      if (intensity > 0.1) {
+        pnlValue.style.animation = `pulse ${1 - intensity * 0.5}s ease-in-out infinite`;
+        pnlValue.style.textShadow = pnl >= 0 
+          ? `0 0 ${intensity * 20}px rgba(34, 197, 94, ${intensity})`
+          : `0 0 ${intensity * 20}px rgba(239, 68, 68, ${intensity})`;
+      } else {
+        pnlValue.style.animation = 'none';
+        pnlValue.style.textShadow = 'none';
+      }
     }
 
     // Status indicator
@@ -360,6 +443,21 @@ class EthScalperTab {
       const date = new Date(this.lastUpdate);
       lastUpdate.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
+
+    // AUTONOMOUS STATUS DASHBOARD
+    const ethAgentStatus = document.getElementById('eth-agent-status');
+    const ethAgentDot = document.getElementById('eth-agent-dot');
+    if (ethAgentStatus && ethAgentDot) {
+      const isRunning = this.data.status === 'running';
+      ethAgentStatus.textContent = isRunning ? 'RUNNING' : 'PAUSED';
+      ethAgentDot.className = `agent-dot ${isRunning ? 'active' : 'inactive'}`;
+    }
+    
+    // Fetch Tradier agent status
+    this.updateTradierStatus();
+
+    // RISK GAUGE
+    this.updateRiskGauge();
 
     // Tables
     this.updateTradesTable();
@@ -495,6 +593,87 @@ class EthScalperTab {
         <td><span class="signal-badge ${badgeClass}">${badgeText}</span></td>
       </tr>
     `;
+  }
+
+  async updateTradierStatus() {
+    try {
+      const response = await fetch('/api/tradier/status').catch(() => null);
+      const tradierAgentStatus = document.getElementById('tradier-agent-status');
+      const tradierAgentDot = document.getElementById('tradier-agent-dot');
+      
+      if (tradierAgentStatus && tradierAgentDot) {
+        if (response?.ok) {
+          const data = await response.json();
+          const isRunning = data.status === 'running';
+          tradierAgentStatus.textContent = isRunning ? 'RUNNING' : 'WAITING';
+          tradierAgentDot.className = `agent-dot ${isRunning ? 'active' : 'waiting'}`;
+        } else {
+          tradierAgentStatus.textContent = 'STANDBY';
+          tradierAgentDot.className = 'agent-dot standby';
+        }
+      }
+    } catch (e) {
+      // Silent fail - will retry next poll
+    }
+  }
+
+  updateRiskGauge() {
+    // Calculate exposure (position size / total capital)
+    const totalCapital = this.data.wallet.eth * 2500 + this.data.wallet.usdc; // Approximate
+    const positionValue = this.data.open_positions * 50; // Approx $50 per position
+    const exposurePct = totalCapital > 0 ? (positionValue / totalCapital) * 100 : 0;
+    
+    // Daily loss (approximate from P&L)
+    const dailyLoss = Math.abs(Math.min(0, this.data.pnl.today));
+    const maxDailyLoss = 15;
+    const lossPct = (dailyLoss / maxDailyLoss) * 100;
+    
+    // Position heat
+    const maxPositions = 2;
+    const heatPct = (this.data.open_positions / maxPositions) * 100;
+    
+    // Update exposure gauge
+    const exposureFill = document.getElementById('exposure-fill');
+    const exposureValue = document.getElementById('exposure-value');
+    if (exposureFill && exposureValue) {
+      exposureFill.style.width = `${Math.min(exposurePct, 100)}%`;
+      exposureFill.className = `gauge-fill ${exposurePct > 80 ? 'high' : exposurePct > 50 ? 'medium' : 'low'}`;
+      exposureValue.textContent = `${exposurePct.toFixed(0)}%`;
+    }
+    
+    // Update daily loss gauge
+    const lossFill = document.getElementById('daily-loss-fill');
+    const lossValue = document.getElementById('daily-loss-value');
+    if (lossFill && lossValue) {
+      lossFill.style.width = `${Math.min(lossPct, 100)}%`;
+      lossFill.className = `gauge-fill ${lossPct > 80 ? 'high' : lossPct > 50 ? 'medium' : 'low'}`;
+      lossValue.textContent = `$${dailyLoss.toFixed(0)}/$${maxDailyLoss}`;
+    }
+    
+    // Update heat gauge
+    const heatFill = document.getElementById('heat-fill');
+    const heatValue = document.getElementById('heat-value');
+    if (heatFill && heatValue) {
+      heatFill.style.width = `${heatPct}%`;
+      heatFill.className = `gauge-fill ${heatPct >= 100 ? 'high' : heatPct > 50 ? 'medium' : 'low'}`;
+      heatValue.textContent = `${this.data.open_positions}/${maxPositions}`;
+    }
+    
+    // Update overall risk badge
+    const riskBadge = document.getElementById('risk-badge');
+    if (riskBadge) {
+      const overallRisk = Math.max(exposurePct, lossPct, heatPct);
+      if (overallRisk >= 80) {
+        riskBadge.textContent = 'ELEVATED';
+        riskBadge.className = 'card-badge danger';
+      } else if (overallRisk >= 50) {
+        riskBadge.textContent = 'MODERATE';
+        riskBadge.className = 'card-badge warning';
+      } else {
+        riskBadge.textContent = 'SAFE';
+        riskBadge.className = 'card-badge safe';
+      }
+    }
   }
 
   confirmBuy() {
