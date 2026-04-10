@@ -1,249 +1,475 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BAZAAR — Trading Terminal</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>THE BAZAAR — Trading Command Center</title>
+  <link rel="stylesheet" href="./styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="app" class="terminal">
-    <!-- Header Ticker -->
-    <header class="ticker-bar">
-      <div class="ticker-item">
-        <span class="ticker-symbol">ETH</span>
-        <span id="ticker-eth-price" class="ticker-price">--</span>
-        <span id="ticker-eth-change" class="ticker-change">--</span>
+  <div class="app">
+    <!-- Operator Rail -->
+    <div class="operator-rail">
+      <div class="operator-rail-left">
+        <span class="operator-chip primary" id="systemMode">LIVE</span>
+        <span class="operator-chip" id="accountType">CASH</span>
+        <span class="operator-chip" id="buyingPower">BP: $197.78</span>
       </div>
-      <div class="ticker-item">
-        <span class="ticker-symbol">USDC</span>
-        <span id="ticker-usdc-balance" class="ticker-price">--</span>
+      <div class="operator-rail-right">
+        <span class="operator-chip" id="marketStatus">MARKET CLOSED</span>
+        <span class="operator-chip" id="lastUpdate">--:--:--</span>
       </div>
-      <div class="ticker-item">
-        <span class="ticker-symbol">P&L</span>
-        <span id="ticker-pnl" class="ticker-price">--</span>
+    </div>
+
+    <!-- Command Center Header -->
+    <header class="command-center">
+      <div class="brand-zone">
+        <div class="logo-mark">◈</div>
+        <div class="brand-text">
+          <div class="brand-name">THE BAZAAR</div>
+          <div class="brand-tag">Trading Command Center</div>
+        </div>
       </div>
-      <div class="ticker-item">
-        <span class="ticker-symbol">POS</span>
-        <span id="ticker-positions" class="ticker-price">--</span>
-      </div>
-      <div class="ticker-item status-indicator">
-        <span id="system-status" class="status-dot"></span>
-        <span id="system-status-text">LIVE</span>
+      
+      <nav class="command-nav">
+        <button class="nav-pill active" data-zone="trade" onclick="switchZone('trade')">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">Trade</span>
+        </button>
+        <button class="nav-pill" data-zone="research" onclick="switchZone('research')">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Research</span>
+        </button>
+        <button class="nav-pill" data-zone="execute" onclick="switchZone('execute')">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Execute</span>
+        </button>
+        <button class="nav-pill" data-zone="journal" onclick="switchZone('journal')">
+          <span class="nav-icon">📓</span>
+          <span class="nav-label">Journal</span>
+        </button>
+        <button class="nav-pill" data-zone="eth-scalper" onclick="switchZone('eth-scalper')">
+          <span class="nav-icon">⟠</span>
+          <span class="nav-label">ETH Scalper</span>
+        </button>
+      </nav>
+      
+      <div class="status-zone">
+        <div class="status-cluster">
+          <div class="status-dot live"></div>
+          <span class="status-text">LIVE</span>
+        </div>
+        <div class="time-display" id="clock">--:--:--</div>
+        <button id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
       </div>
     </header>
 
-    <!-- Main Grid -->
-    <main class="terminal-grid">
-      <!-- Left Column: Positions & Orders -->
-      <section class="column positions-column">
-        <div class="widget positions-widget">
-          <div class="widget-header">
-            <h3>OPEN POSITIONS</h3>
-            <span id="positions-count" class="badge">0</span>
+    <!-- Zone: Trade (Leaders + Chart + Quick Actions) -->
+    <main class="zone active" id="zone-trade">
+      <div class="zone-header">
+        <h2 class="zone-title">Market Intelligence</h2>
+        <p class="zone-subtitle">Pre-market gaps · Tradier leaders · Real-time scanner</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <!-- Monday Open Command Layer -->
+        <section class="panel panel-command-layer">
+          <div class="panel-header">
+            <span class="panel-label">MONDAY OPEN COMMAND LAYER</span>
+            <span class="panel-status" id="commandState">--</span>
           </div>
-          <div id="positions-list" class="widget-content">
-            <div class="empty-state">No open positions</div>
-          </div>
-        </div>
+          <div id="commandLayerWrap" class="panel-body"></div>
+        </section>
 
-        <div class="widget orders-widget">
-          <div class="widget-header">
-            <h3>RECENT ORDERS</h3>
-            <span class="badge">Last 5</span>
-          </div>
-          <div id="orders-list" class="widget-content">
-            <div class="empty-state">No recent orders</div>
-          </div>
-        </div>
-      </section>
+        <details class="panel panel-preopen-checklist panel-collapsible">
+          <summary class="panel-header">
+            <span class="panel-label">PRE-OPEN READINESS CHECKLIST</span>
+            <span class="panel-status" id="preopenState">--</span>
+          </summary>
+          <div id="preopenChecklistWrap" class="panel-body compact"></div>
+        </details>
 
-      <!-- Center Column: Chart & Trading -->
-      <section class="column center-column">
-        <div class="widget chart-widget">
-          <div class="widget-header">
-            <h3>ETH/USD</h3>
-            <div class="timeframe-selector">
-              <button class="tf-btn active">1M</button>
-              <button class="tf-btn">5M</button>
-              <button class="tf-btn">15M</button>
-              <button class="tf-btn">1H</button>
+        <details class="panel panel-regime-layer panel-collapsible">
+          <summary class="panel-header">
+            <span class="panel-label">LIVE REGIME & CONTEXT</span>
+            <span class="panel-status" id="regimeState">--</span>
+          </summary>
+          <div id="regimeLayerWrap" class="panel-body compact"></div>
+        </details>
+
+        <!-- Market Overview Strip -->
+        <section class="panel panel-overview">
+          <div id="overviewGrid" class="metric-bar"></div>
+        </section>
+        
+        <!-- Pre-Market Scanner -->
+        <details class="panel panel-scanner panel-collapsible">
+          <div class="panel-header">
+            <span class="panel-label">GAP SCANNER</span>
+            <button class="btn-action" onclick="runPremarketScan()">SCAN</button>
+          </div>
+          <div id="premarketResults" class="panel-body compact">
+            <div class="void">Initialize scan to detect overnight movers</div>
+          </div>
+        </details>
+        
+        <!-- Scan Status Panel -->
+        <details class="panel panel-status panel-collapsible">
+          <div class="panel-header">
+            <span class="panel-label">SCAN STATUS</span>
+            <span class="panel-status" id="scanStatus">Checking...</span>
+          </div>
+          <div id="scanStatusWrap" class="panel-body compact">
+            <div class="status-grid telemetry-grid">
+              <div class="status-item">
+                <span class="status-label">Last Scan</span>
+                <span class="status-value" id="lastScanTime">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Data Freshness</span>
+                <span class="status-value" id="dataFreshness">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">API Status</span>
+                <span class="status-value" id="apiStatus">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Last Refresh Result</span>
+                <span class="status-value" id="refreshResult">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Refresh Stage</span>
+                <span class="status-value" id="refreshStage">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Refresh Message</span>
+                <span class="status-value" id="refreshMessage">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Decision Context</span>
+                <span class="status-value" id="decisionContextCount">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Outcome Attachments</span>
+                <span class="status-value" id="outcomeAttachmentCount">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Calibration Review</span>
+                <span class="status-value" id="calibrationReviewCount">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Setup Quality Review</span>
+                <span class="status-value" id="setupQualityCount">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Current Action Bias</span>
+                <span class="status-value" id="actionBiasState">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Operator Feedback</span>
+                <span class="status-value" id="operatorFeedbackCount">--</span>
+              </div>
+            </div>
+            <div class="status-actions">
+              <button class="btn-action" onclick="forceRefresh()">↻ Force Refresh</button>
+              <button class="btn-action" onclick="showFilterCriteria()">⚙ Filters</button>
+            </div>
+            <div id="actionBiasFeedbackWrap" style="margin-top: var(--space-sm);"></div>
+          </div>
+        </details>
+        
+        <!-- Leaders Board -->
+        <section class="panel panel-leaders">
+          <div class="panel-header">
+            <span class="panel-label">TRADIER LEADERS</span>
+            <span class="panel-count" id="leadersMeta">--</span>
+          </div>
+          <div id="leadersWrap" class="panel-body"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Zone: Execute (Actions + Tickets) -->
+    <main class="zone" id="zone-execute">
+      <div class="zone-header">
+        <h2 class="zone-title">Execution Center</h2>
+        <p class="zone-subtitle">Ticket workflow · Action items · Order management</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <section class="panel panel-actions">
+          <div class="panel-header">
+            <span class="panel-label">QUICK ACTIONS</span>
+          </div>
+          <div id="actionsWrap" class="panel-body action-grid">
+            <div class="void">Select a leader from Market zone</div>
+          </div>
+        </section>
+        
+        <section class="panel panel-summary">
+          <div class="panel-header">
+            <span class="panel-label">EXECUTION SUMMARY</span>
+          </div>
+          <div id="summaryStripWrap" class="panel-body">
+            <div class="void">No active execution</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Zone: Research -->
+    <main class="zone" id="zone-research">
+      <div class="zone-header">
+        <h2 class="zone-title">Research Desk</h2>
+        <p class="zone-subtitle">Market analysis · Fundamentals · News flow</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <section class="panel panel-research">
+          <div class="panel-header">
+            <span class="panel-label">MARKET RESEARCH</span>
+          </div>
+          <div class="panel-body">
+            <div class="void">Research tools coming soon</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Zone: Journal (History + Analytics) -->
+    <main class="zone" id="zone-journal">
+      <div class="zone-header">
+        <h2 class="zone-title">Trade Journal</h2>
+        <p class="zone-subtitle">Complete history · Performance analytics · Export tools</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <section class="panel panel-analytics">
+          <div class="panel-header">
+            <span class="panel-label">PERFORMANCE</span>
+            <select id="analyticsPeriod" class="select-inline" onchange="updateAnalytics()">
+              <option value="today">Today</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="all" selected>All</option>
+            </select>
+          </div>
+          <div id="analyticsSummary" class="panel-body metric-grid">Loading...</div>
+        </section>
+        
+        <section class="panel panel-history">
+          <div class="panel-header">
+            <span class="panel-label">TRADE HISTORY</span>
+            <button class="btn-action" onclick="exportJournal()">EXPORT</button>
+          </div>
+          <div id="journalEntries" class="panel-body"></div>
+        </section>
+      </div>
+    </main>
+    
+    <!-- Zone: ETH Scalper -->
+    <main class="zone" id="zone-eth-scalper">
+      <div class="zone-header">
+        <h2 class="zone-title">ETH Scalper</h2>
+        <p class="zone-subtitle">Automated ETH/USDC scalping on Base</p>
+      </div>
+      
+      <div class="dashboard-grid">
+        <!-- Stats Row -->
+        <section class="panel panel-stats-row">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">ETH Price</span>
+              <span id="eth-price-display" class="stat-value">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">P&L Today</span>
+              <span id="eth-pnl-today" class="stat-value">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Open Positions</span>
+              <span id="eth-open-positions" class="stat-value">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Daily Trades</span>
+              <span id="eth-daily-trades" class="stat-value">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Wallet ETH</span>
+              <span id="eth-balance" class="stat-value">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Wallet USDC</span>
+              <span id="usdc-balance" class="stat-value">--</span>
             </div>
           </div>
-          <div class="chart-container">
-            <canvas id="price-chart"></canvas>
-            <div id="chart-overlay" class="chart-overlay">
-              <div class="price-marker" id="entry-marker" style="display:none;">
-                <span class="marker-label">ENTRY</span>
-                <span class="marker-price" id="entry-price">--</span>
-              </div>
-              <div class="price-marker target" id="target-marker" style="display:none;">
-                <span class="marker-label">TARGET</span>
-                <span class="marker-price" id="target-price">--</span>
-              </div>
-              <div class="price-marker stop" id="stop-marker" style="display:none;">
-                <span class="marker-label">STOP</span>
-                <span class="marker-price" id="stop-price">--</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
 
-        <div class="widget trading-widget">
-          <div class="widget-header">
-            <h3>QUICK TRADE</h3>
+        <!-- Chart Panel -->
+        <section class="panel panel-chart">
+          <div class="panel-header">
+            <span class="panel-label">ETH/USD LIVE CHART</span>
+            <div class="chart-controls">
+              <button class="btn-sm active">1M</button>
+              <button class="btn-sm">5M</button>
+              <button class="btn-sm">15M</button>
+            </div>
           </div>
-          <div class="trading-panel">
-            <div class="trade-stats">
-              <div class="stat">
-                <span class="stat-label">Available</span>
-                <span id="available-capital" class="stat-value">--</span>
+          <div class="panel-body chart-body">
+            <canvas id="eth-chart"></canvas>
+          </div>
+        </section>
+
+        <!-- Trading Panel -->
+        <section class="panel panel-trading">
+          <div class="panel-header">
+            <span class="panel-label">QUICK TRADE</span>
+            <span id="eth-mode-badge" class="panel-status">--</span>
+          </div>
+          <div class="panel-body trading-body">
+            <div class="trading-stats">
+              <div class="trading-stat">
+                <span class="label">Available Capital</span>
+                <span id="eth-available-capital" class="value">--</span>
               </div>
-              <div class="stat">
-                <span class="stat-label">Gas</span>
-                <span id="gas-price" class="stat-value">--</span>
+              <div class="trading-stat">
+                <span class="label">Gas Price</span>
+                <span id="eth-gas-display" class="value">--</span>
               </div>
-              <div class="stat">
-                <span class="stat-label">1inch Calls</span>
-                <span id="api-calls" class="stat-value">--</span>
+              <div class="trading-stat">
+                <span class="label">1inch Calls</span>
+                <span id="eth-api-calls" class="value">--</span>
               </div>
             </div>
-            <div class="trade-actions">
-              <button id="buy-btn" class="trade-btn buy" onclick="executeBuy()">
+            <div class="trading-actions">
+              <button class="btn-buy" onclick="executeEthBuy()">
                 <span class="btn-label">BUY ETH</span>
                 <span class="btn-sublabel">Market Order</span>
               </button>
-              <button id="sell-btn" class="trade-btn sell" onclick="executeSell()">
+              <button class="btn-sell" onclick="executeEthSell()">
                 <span class="btn-label">SELL ETH</span>
                 <span class="btn-sublabel">Market Order</span>
               </button>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Right Column: Performance & Risk -->
-      <section class="column right-column">
-        <div class="widget pnl-widget">
-          <div class="widget-header">
-            <h3>PERFORMANCE</h3>
+        <!-- Risk Panel -->
+        <section class="panel panel-risk">
+          <div class="panel-header">
+            <span class="panel-label">RISK MONITOR</span>
+            <span id="eth-risk-badge" class="panel-status safe">SAFE</span>
           </div>
-          <div class="pnl-display">
-            <div class="pnl-main">
-              <span id="pnl-today" class="pnl-value">$0.00</span>
-              <span class="pnl-label">Today's P&L</span>
-            </div>
-            <div class="pnl-breakdown">
-              <div class="pnl-row">
-                <span>Total</span>
-                <span id="pnl-total">$0.00</span>
+          <div class="panel-body">
+            <div class="risk-gauges">
+              <div class="risk-gauge">
+                <div class="gauge-header">
+                  <span>Exposure</span>
+                  <span id="eth-exposure-value">0%</span>
+                </div>
+                <div class="gauge-bar">
+                  <div id="eth-exposure-fill" class="gauge-fill low" style="width:0%"></div>
+                </div>
               </div>
-              <div class="pnl-row">
-                <span>Win Rate</span>
-                <span id="win-rate">0%</span>
+              <div class="risk-gauge">
+                <div class="gauge-header">
+                  <span>Daily Loss</span>
+                  <span id="eth-loss-value">$0/$15</span>
+                </div>
+                <div class="gauge-bar">
+                  <div id="eth-loss-fill" class="gauge-fill low" style="width:0%"></div>
+                </div>
               </div>
-              <div class="pnl-row">
-                <span>Trades</span>
-                <span id="trade-count">0</span>
+              <div class="risk-gauge">
+                <div class="gauge-header">
+                  <span>Position Heat</span>
+                  <span id="eth-heat-value">0/2</span>
+                </div>
+                <div class="gauge-bar">
+                  <div id="eth-heat-fill" class="gauge-fill low" style="width:0%"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="widget risk-widget">
-          <div class="widget-header">
-            <h3>RISK MONITOR</h3>
-            <span id="risk-badge" class="badge safe">SAFE</span>
+        <!-- Agents Panel -->
+        <section class="panel panel-agents">
+          <div class="panel-header">
+            <span class="panel-label">AUTONOMOUS AGENTS</span>
           </div>
-          <div class="risk-gauges">
-            <div class="gauge">
-              <div class="gauge-header">
-                <span>Exposure</span>
-                <span id="exposure-value">0%</span>
+          <div class="panel-body">
+            <div class="agents-list">
+              <div class="agent-item">
+                <div class="agent-icon">⟠</div>
+                <div class="agent-info">
+                  <span class="agent-name">ETH Scalper</span>
+                  <span id="eth-agent-status-text" class="agent-status">--</span>
+                </div>
+                <div id="eth-agent-dot" class="agent-dot"></div>
               </div>
-              <div class="gauge-bar">
-                <div id="exposure-fill" class="gauge-fill" style="width:0%"></div>
-              </div>
-            </div>
-            <div class="gauge">
-              <div class="gauge-header">
-                <span>Daily Loss</span>
-                <span id="loss-value">$0/$15</span>
-              </div>
-              <div class="gauge-bar">
-                <div id="loss-fill" class="gauge-fill" style="width:0%"></div>
-              </div>
-            </div>
-            <div class="gauge">
-              <div class="gauge-header">
-                <span>Position Heat</span>
-                <span id="heat-value">0/2</span>
-              </div>
-              <div class="gauge-bar">
-                <div id="heat-fill" class="gauge-fill" style="width:0%"></div>
+              <div class="agent-item">
+                <div class="agent-icon">📈</div>
+                <div class="agent-info">
+                  <span class="agent-name">Tradier Bot</span>
+                  <span id="tradier-agent-status-text" class="agent-status">--</span>
+                </div>
+                <div id="tradier-agent-dot" class="agent-dot"></div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="widget agents-widget">
-          <div class="widget-header">
-            <h3>AUTONOMOUS AGENTS</h3>
+        <!-- Positions Panel -->
+        <section class="panel panel-positions">
+          <div class="panel-header">
+            <span class="panel-label">OPEN POSITIONS</span>
+            <span id="eth-positions-count" class="panel-count">0</span>
           </div>
-          <div class="agents-list">
-            <div class="agent-item">
-              <div class="agent-icon">⟠</div>
-              <div class="agent-info">
-                <span class="agent-name">ETH Scalper</span>
-                <span id="eth-agent-status" class="agent-status">Running</span>
-              </div>
-              <div id="eth-agent-dot" class="status-dot active"></div>
-            </div>
-            <div class="agent-item">
-              <div class="agent-icon">📈</div>
-              <div class="agent-info">
-                <span class="agent-name">Tradier Bot</span>
-                <span id="tradier-agent-status" class="agent-status">Waiting</span>
-              </div>
-              <div id="tradier-agent-dot" class="status-dot waiting"></div>
-            </div>
+          <div id="eth-positions-list" class="panel-body">
+            <div class="void">No open positions</div>
           </div>
-        </div>
+        </section>
 
-        <div class="widget signals-widget">
-          <div class="widget-header">
-            <h3>LIVE SIGNALS</h3>
+        <!-- Signals Panel -->
+        <section class="panel panel-signals">
+          <div class="panel-header">
+            <span class="panel-label">LIVE SIGNALS</span>
           </div>
-          <div id="signals-list" class="signals-list">
-            <div class="empty-state">No active signals</div>
+          <div id="eth-signals-list" class="panel-body">
+            <div class="void">No active signals</div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <!-- Trades Panel -->
+        <section class="panel panel-trades">
+          <div class="panel-header">
+            <span class="panel-label">RECENT TRADES</span>
+          </div>
+          <div id="eth-trades-list" class="panel-body">
+            <div class="void">No recent trades</div>
+          </div>
+        </section>
+
+        <!-- Bot Controls -->
+        <section class="panel panel-controls">
+          <div class="panel-header">
+            <span class="panel-label">BOT CONTROLS</span>
+          </div>
+          <div class="panel-body controls-body">
+            <button class="btn-control" onclick="sendBotCommand('PAUSE')">⏸ Pause</button>
+            <button class="btn-control" onclick="sendBotCommand('RESUME')">▶ Resume</button>
+            <button class="btn-control" onclick="sendBotCommand('STOP')">🛑 Stop</button>
+            <button class="btn-control" onclick="viewBotLogs()">📄 Logs</button>
+          </div>
+        </section>
+      </div>
     </main>
-
-    <!-- Footer Status Bar -->
-    <footer class="status-bar">
-      <div class="status-section">
-        <span class="status-label">WALLET</span>
-        <span id="wallet-address" class="status-value">--</span>
-      </div>
-      <div class="status-section">
-        <span class="status-label">MODE</span>
-        <span id="trading-mode" class="status-value">LIVE</span>
-      </div>
-      <div class="status-section">
-        <span class="status-label">CHAIN</span>
-        <span class="status-value">BASE</span>
-      </div>
-      <div class="status-section">
-        <span class="status-label">LAST UPDATE</span>
-        <span id="last-update" class="status-value">--</span>
-      </div>
-    </footer>
   </div>
-
-  <script src="app.js"></script>
+  
+  <script src="./app.js"></script>
 </body>
 </html>
