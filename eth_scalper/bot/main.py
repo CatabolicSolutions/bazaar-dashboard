@@ -164,22 +164,33 @@ class ETHScalper:
             status = 'stopped' if final else 'running'
             mode = 'paper' if PAPER_TRADING_MODE else 'live'
             
+            # Update wallet state from live on-chain reads
+            wallet = wallet_monitor.get_all_balances()
+            weth_balance = wallet.get('weth', 0.0) if isinstance(wallet, dict) else 0.0
+            inferred_open_positions = len(trade_manager.get_open_positions())
+            live_inventory = {
+                'eth': wallet.get('eth', 0.0),
+                'weth': weth_balance,
+                'usdc': wallet.get('usdc', 0.0),
+                'has_live_weth_inventory': bool(weth_balance and weth_balance > 0),
+            }
+            if weth_balance and weth_balance > 0 and inferred_open_positions == 0:
+                inferred_open_positions = 1
+
             state_manager.update_bot_state(
                 status=status,
                 pnl_today=risk['daily_pnl'],
                 pnl_total=trades.get('total_pnl', 0),
                 requests_used=rate['inch_requests_today'],
                 daily_trades=risk['daily_trades'],
-                open_positions=len(trade_manager.get_open_positions()),
+                open_positions=inferred_open_positions,
                 available_capital=risk['available_capital'],
-                mode=mode
+                mode=mode,
+                live_inventory=live_inventory
             )
             
             # Update positions
             state_manager.update_positions(trade_manager.get_open_positions())
-            
-            # Update wallet state from live on-chain reads
-            wallet = wallet_monitor.get_all_balances()
             state_manager.update_wallet(wallet)
             
         except Exception as e:

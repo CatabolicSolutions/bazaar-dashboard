@@ -25,7 +25,7 @@ class StateManager:
     
     def update_bot_state(self, status: str, pnl_today: float, pnl_total: float, 
                          requests_used: int, daily_trades: int, open_positions: int,
-                         available_capital: float, mode: str = 'live'):
+                         available_capital: float, mode: str = 'live', live_inventory: Optional[Dict] = None):
         """Update bot status for dashboard"""
         state = {
             'status': status,
@@ -41,6 +41,7 @@ class StateManager:
             'daily_trades': daily_trades,
             'open_positions': open_positions,
             'available_capital': round(available_capital, 2),
+            'live_inventory': live_inventory or {},
             'updated_at': datetime.now(timezone.utc).isoformat()
         }
         self.bot_state_file.write_text(json.dumps(state, indent=2))
