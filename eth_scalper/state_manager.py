@@ -21,6 +21,7 @@ class StateManager:
     def __init__(self):
         self.bot_state_file = STATE_DIR / 'bot_state.json'
         self.positions_file = STATE_DIR / 'positions.json'
+        self.persisted_positions_file = STATE_DIR / 'persisted_positions.json'
         self.trades_log = LOGS_DIR / 'trades.jsonl'
         self.signals_log = LOGS_DIR / 'signals.jsonl'
     
@@ -112,6 +113,44 @@ class StateManager:
                 'paper': pos.paper
             })
         self.positions_file.write_text(json.dumps(state, indent=2))
+
+    def persist_live_position(self, position):
+        """Persist durable tracked metadata for live executions."""
+        current = []
+        if self.persisted_positions_file.exists():
+            try:
+                current = json.loads(self.persisted_positions_file.read_text()).get('positions', [])
+            except Exception:
+                current = []
+        current = [p for p in current if p.get('id') != position.id]
+        current.append({
+            'id': position.id,
+            'source': 'tracked_live_execution',
+            'asset': 'WETH' if position.direction == 'long' else 'UNKNOWN',
+            'entry_price': position.entry_price,
+            'target_price': position.target_price,
+            'stop_price': position.stop_price,
+            'max_hold_seconds': HOLD_TIME_MAX_SECONDS,
+            'size_usd': position.size_usd,
+            'status': position.status.value,
+            'entry_time': position.entry_time,
+            'tx_hash': position.tx_hash,
+            'paper': position.paper,
+            'entry_derivation': 'tracked_live_execution',
+            'target_derivation': 'tracked_live_execution',
+            'stop_derivation': 'tracked_live_execution',
+            'max_hold_derivation': 'config',
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        })
+        self.persisted_positions_file.write_text(json.dumps({'positions': current, 'updated_at': datetime.now(timezone.utc).isoformat()}, indent=2))
+
+    def load_persisted_positions(self) -> List[Dict]:
+        if not self.persisted_positions_file.exists():
+            return []
+        try:
+            return json.loads(self.persisted_positions_file.read_text()).get('positions', [])
+        except Exception:
+            return []
     
     def update_wallet(self, wallet: Dict):
         """Persist live wallet balances for dashboard/state consumers."""
@@ -123,6 +162,7 @@ class StateManager:
     def build_reconciled_positions(self, wallet: Dict, tracked_positions: Optional[List] = None) -> List[Dict]:
         """Reconstruct visible live position objects without inventing non-derivable metadata."""
         tracked_positions = tracked_positions or []
+        persisted_positions = self.load_persisted_positions()
         if tracked_positions:
             reconciled = []
             for pos in tracked_positions:
@@ -144,6 +184,8 @@ class StateManager:
             return reconciled
 
         weth_balance = float((wallet or {}).get('weth') or 0.0)
+        if weth_balance > 0 and persisted_positions:
+            return persisted_positions
         if weth_balance > 0:
             return [{
                 'source': 'inventory_reconciliation',

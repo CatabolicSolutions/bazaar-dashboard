@@ -341,6 +341,7 @@ class ETHScalper:
         
         if tx_hash:
             position.tx_hash = tx_hash
+            state_manager.persist_live_position(position)
             print(f"   ✅ SWAP EXECUTED: {tx_hash}")
             print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
             
