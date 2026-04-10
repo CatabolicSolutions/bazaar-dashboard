@@ -50,10 +50,39 @@ AUTO_MANUAL_BUY_FALLBACK_SECONDS = int(os.getenv('AUTO_MANUAL_BUY_FALLBACK_SECON
 HOLD_TIME_MIN_SECONDS = 30
 HOLD_TIME_MAX_SECONDS = 300  # 5 minutes
 
-# Tokens
+# Tokens and Base trading universe
 ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 WETH_ADDRESS = os.getenv('WETH_ADDRESS', '0x4200000000000000000000000000000000000006')
 USDC_ADDRESS = os.getenv('USDC_ADDRESS', '0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913')
+CBETH_ADDRESS = os.getenv('CBETH_ADDRESS', '0x2Ae3F1Ec7F1F5012CFEab0185bfcbB5dA0b3C0b8')
+CBBTC_ADDRESS = os.getenv('CBBTC_ADDRESS', '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf')
+
+BASE_ASSET_UNIVERSE = [
+    {
+        'symbol': 'ETH',
+        'coingecko_id': 'ethereum',
+        'base_token': ETH_ADDRESS,
+        'quote_token': USDC_ADDRESS,
+        'priority': 1,
+        'enabled': True,
+    },
+    {
+        'symbol': 'cbETH',
+        'coingecko_id': 'coinbase-wrapped-staked-eth',
+        'base_token': CBETH_ADDRESS,
+        'quote_token': USDC_ADDRESS,
+        'priority': 2,
+        'enabled': True,
+    },
+    {
+        'symbol': 'cbBTC',
+        'coingecko_id': 'coinbase-wrapped-btc',
+        'base_token': CBBTC_ADDRESS,
+        'quote_token': USDC_ADDRESS,
+        'priority': 3,
+        'enabled': True,
+    },
+]
 
 # Validate required config
 def validate_config():

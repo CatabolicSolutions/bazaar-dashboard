@@ -117,7 +117,11 @@ function renderLeaders() {
         <span class="leader-type ${l.option_type?.toLowerCase()}">${l.option_type}</span>
       </div>
       <div class="leader-details">
-        <span>$${l.strike} ${l.exp}</span>
+        <span>Underlying: $${l.underlying || '--'}</span>
+        <span>Strike: $${l.strike}</span>
+      </div>
+      <div class="leader-details">
+        <span>Exp: ${l.exp}</span>
         <span>Mid: $${((parseFloat(l.bid) + parseFloat(l.ask)) / 2).toFixed(2)}</span>
       </div>
       <div class="leader-strategy">${l.section === 'directional' ? 'Scalp' : 'Credit'}</div>
