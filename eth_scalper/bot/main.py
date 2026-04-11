@@ -404,18 +404,21 @@ class ETHScalper:
         pnl_pct = price_change * 100
         pnl_usd = position.size_usd * price_change
         
-        # Execute reverse swap (USDC back to WETH path first)
+        # Execute reverse swap (WETH back to USDC)
         from execution.live_executor import live_executor
-        from_token = USDC_ADDRESS
-        to_token = WETH_ADDRESS
-        
-        # Approximate USDC amount (position size + P&L)
-        usdc_amount = int((position.size_usd + pnl_usd) * 1e6)
-        
+        from_token = WETH_ADDRESS
+        to_token = USDC_ADDRESS
+
+        executed_units = getattr(position, 'executed_to_amount_units', None)
+        if executed_units is None or executed_units <= 0:
+            print(f"   ❌ Exit blocked - no executed WETH units recorded for {position.id}")
+            return
+        sell_amount = int(executed_units * 1e18)
+
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
             to_token=to_token,
-            amount=usdc_amount
+            amount=sell_amount
         )
         
         if swap_data:
