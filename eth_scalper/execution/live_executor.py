@@ -58,11 +58,12 @@ class LiveExecutor:
                 return {'approved': False, 'allowance': current}
 
             account = Account.from_key(PRIVATE_KEY)
-            nonce = w3.eth.get_transaction_count(WALLET_ADDRESS)
+            nonce = w3.eth.get_transaction_count(WALLET_ADDRESS, 'pending')
             latest_block = w3.eth.get_block('latest')
             base_fee = latest_block.get('baseFeePerGas', w3.eth.gas_price)
-            priority_fee = w3.to_wei(0.001, 'gwei')
-            max_fee = int(base_fee * 2 + priority_fee)
+            network_gas = int(w3.eth.gas_price)
+            priority_fee = max(w3.to_wei(0.005, 'gwei'), int(network_gas * 0.1))
+            max_fee = max(int(base_fee * 3 + priority_fee), network_gas * 2)
             approve_tx = contract.functions.approve(Web3.to_checksum_address(spender), 2**256 - 1).build_transaction({
                 'from': WALLET_ADDRESS,
                 'chainId': CHAIN_ID,
@@ -79,7 +80,10 @@ class LiveExecutor:
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
             logger.info(f"Approval submitted: tx_hash={tx_hash} status={receipt.status}")
             refreshed = contract.functions.allowance(Web3.to_checksum_address(WALLET_ADDRESS), Web3.to_checksum_address(spender)).call()
-            return {'approved': True, 'approval_tx_hash': tx_hash, 'allowance': refreshed, 'status': receipt.status}
+            logger.info(f"Post-approval allowance read: token={token_address} spender={spender} allowance={refreshed}")
+            if refreshed < required_amount:
+                return {'approved': True, 'approval_tx_hash': tx_hash, 'allowance': refreshed, 'status': receipt.status, 'verified_effective': False}
+            return {'approved': True, 'approval_tx_hash': tx_hash, 'allowance': refreshed, 'status': receipt.status, 'verified_effective': True}
         except Exception as e:
             logger.error(f"Allowance ensure failed: {e}")
             return None
@@ -193,11 +197,12 @@ class LiveExecutor:
                 logger.error(f"Private key address mismatch: {account.address} != {WALLET_ADDRESS}")
                 return None
 
-            nonce = w3.eth.get_transaction_count(WALLET_ADDRESS)
+            nonce = w3.eth.get_transaction_count(WALLET_ADDRESS, 'pending')
             latest_block = w3.eth.get_block('latest')
             base_fee = latest_block.get('baseFeePerGas', w3.eth.gas_price)
-            priority_fee = w3.to_wei(0.001, 'gwei')
-            max_fee = max(int(base_fee * 2 + priority_fee), int(tx.get('gasPrice', w3.eth.gas_price)))
+            network_gas = int(w3.eth.gas_price)
+            priority_fee = max(w3.to_wei(0.005, 'gwei'), int(network_gas * 0.1))
+            max_fee = max(int(base_fee * 3 + priority_fee), int(tx.get('gasPrice', network_gas)) * 2, network_gas * 2)
 
             transaction = {
                 'chainId': CHAIN_ID,
