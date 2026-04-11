@@ -203,12 +203,22 @@ class StateManager:
                 lot_units = pos.get('lot_units')
                 if lot_units is None:
                     lot_units = 0.0
-                allocated_units = min(remaining, float(lot_units)) if remaining > 0 else 0.0
-                remaining = max(0.0, remaining - allocated_units)
+                lot_units = float(lot_units)
                 enriched = dict(pos)
-                enriched['lot_units'] = float(lot_units)
+                enriched['lot_units'] = lot_units
+                if lot_units <= 0:
+                    enriched['allocated_units'] = 0.0
+                    enriched['linked_to_wallet_inventory'] = False
+                    enriched['status'] = 'quarantined_zero_unit_tracked_lot'
+                    enriched['allocation_state'] = 'quarantined'
+                    enriched['quarantine_reason'] = 'pre_fix_zero_unit_lot'
+                    reconciled.append(enriched)
+                    continue
+                allocated_units = min(remaining, lot_units) if remaining > 0 else 0.0
+                remaining = max(0.0, remaining - allocated_units)
                 enriched['allocated_units'] = allocated_units
                 enriched['linked_to_wallet_inventory'] = allocated_units > 0
+                enriched['allocation_state'] = 'allocated' if allocated_units > 0 else 'unallocated'
                 reconciled.append(enriched)
             if remaining > 0:
                 reconciled.append({
