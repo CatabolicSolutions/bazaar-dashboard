@@ -289,29 +289,23 @@ class ETHScalper:
 
         print(f"   📊 Position created: {position.id}")
 
-        # Open position
-        success = await trade_manager.open_position(position)
-
-        if success:
-            # Record in risk manager
-            risk_manager.record_trade(signal, size_usd, paper=PAPER_TRADING_MODE)
-            
-            # Start monitoring
-            trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
-            
-            print(f"   ✅ Position opened: {position.id}")
-            
-            # Execute the actual swap
-            if PAPER_TRADING_MODE:
+        # Paper opens immediately. Live opens only after a real entry tx exists.
+        if PAPER_TRADING_MODE:
+            success = await trade_manager.open_position(position)
+            if success:
+                risk_manager.record_trade(signal, size_usd, paper=PAPER_TRADING_MODE)
+                trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
+                print(f"   ✅ Position opened: {position.id}")
                 asyncio.create_task(self._monitor_paper_position(position.id))
             else:
-                # Live trading - execute real swap
-                asyncio.create_task(self._execute_live_trade(position))
-        else:
-            print(f"   ❌ Failed to open position")
+                print(f"   ❌ Failed to open position")
+            return
+
+        asyncio.create_task(self._execute_live_trade(position))
     
     async def _execute_live_trade(self, position):
         """Execute live trade on-chain"""
+        print(f"   🧪 EXECUTOR STATE: enabled={live_executor.enabled} id={id(live_executor)} position={position.id}")
         funded_side = position.signal.get('funded_side', 'ETH')
         if funded_side == 'USDC':
             from_token = USDC_ADDRESS
@@ -348,7 +342,16 @@ class ETHScalper:
                     position.executed_to_amount_units = int(to_amount) / 1e18
             except Exception:
                 position.executed_to_amount_units = None
+
+            success = await trade_manager.open_position(position)
+            if not success:
+                print(f"   ❌ Failed to open position after live tx")
+                return
+
+            risk_manager.record_trade(position.signal, position.size_usd, paper=False)
+            trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
             state_manager.persist_live_position(position)
+            print(f"   ✅ POSITION OPENED WITH LIVE TX: {position.id}")
             print(f"   ✅ SWAP EXECUTED: {tx_hash}")
             print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
             
