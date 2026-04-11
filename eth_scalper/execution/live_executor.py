@@ -35,8 +35,8 @@ class LiveExecutor:
 
     def _get_web3(self):
         rpc_urls: List[str] = [url for url in [
-            BASE_RPC_URL,
             'https://base-rpc.publicnode.com',
+            BASE_RPC_URL,
             'https://mainnet.base.org',
         ] if url]
         last_error = None
@@ -121,6 +121,26 @@ class LiveExecutor:
             amount_out = self._quote_uniswap_v3_exact_input_single(w3, from_token, to_token, amount)
             if amount_out is None or amount_out <= 0:
                 logger.error("Uniswap V3 quote unavailable for fallback unwind")
+                return None
+
+            # Ensure allowance for Uniswap V3 router before building tx
+            allowance_result = self.ensure_allowance(from_token, UNISWAP_V3_SWAP_ROUTER02_BASE, amount)
+            if not allowance_result or (allowance_result.get('status') == 0):
+                logger.error("Approval orchestration failed for Uniswap V3 fallback")
+                return None
+
+            # Re-read allowance after approval to ensure it's effective
+            from eth_account import Account
+            account = Account.from_key(PRIVATE_KEY)
+            abi = [
+                {'name': 'allowance', 'type': 'function', 'stateMutability': 'view',
+                 'inputs': [{'name': 'owner', 'type': 'address'}, {'name': 'spender', 'type': 'address'}],
+                 'outputs': [{'name': '', 'type': 'uint256'}]}
+            ]
+            contract = w3.eth.contract(address=Web3.to_checksum_address(from_token), abi=abi)
+            current_allowance = contract.functions.allowance(Web3.to_checksum_address(WALLET_ADDRESS), Web3.to_checksum_address(UNISWAP_V3_SWAP_ROUTER02_BASE)).call()
+            if current_allowance < amount:
+                logger.error(f"Allowance still insufficient after approval: {current_allowance} < {amount}")
                 return None
 
             effective_slippage = float(slippage if slippage is not None else MAX_SLIPPAGE_PERCENT)
