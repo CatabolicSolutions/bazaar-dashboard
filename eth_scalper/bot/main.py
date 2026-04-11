@@ -418,16 +418,23 @@ class ETHScalper:
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
             to_token=to_token,
-            amount=sell_amount
+            amount=sell_amount,
+            enforce_semantic_unwind=True,
         )
         
-        if swap_data:
-            tx_hash = live_executor.execute_swap(swap_data)
-            if tx_hash:
-                position.exit_tx_hash = tx_hash
-                print(f"   ✅ EXIT SWAP: {tx_hash}")
+        if not swap_data:
+            print(f"   ❌ Exit blocked - no swap data returned")
+            return {'closed': False, 'reason': 'no_swap_data'}
+
+        tx_hash = live_executor.execute_swap(swap_data)
+        if not tx_hash:
+            print(f"   ❌ Exit blocked - sell swap failed")
+            return {'closed': False, 'reason': 'swap_failed'}
+
+        position.exit_tx_hash = tx_hash
+        print(f"   ✅ EXIT SWAP: {tx_hash}")
         
-        # Record the trade
+        # Record the trade only after a real exit tx exists
         closed_position = await trade_manager.close_position(position.id, current_price, reason)
         
         if closed_position:
@@ -441,6 +448,8 @@ class ETHScalper:
             )
             
             print(f"   💰 Trade complete: ${pnl_usd:+.2f} ({pnl_pct:+.2f}%)")
+            return {'closed': True, 'tx_hash': tx_hash, 'pnl_usd': pnl_usd, 'pnl_pct': pnl_pct}
+        return {'closed': False, 'reason': 'close_position_failed'}
     
     async def _monitor_paper_position(self, position_id: str):
         """Monitor paper position and report result"""

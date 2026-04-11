@@ -137,13 +137,14 @@ async def main():
     original_get_swap_data = live_executor.get_swap_data
     approval_tx_hash_holder = {'value': None}
 
-    def instrumented_get_swap_data(from_token, to_token, amount, slippage=None):
+    def instrumented_get_swap_data(from_token, to_token, amount, slippage=None, enforce_semantic_unwind=False):
         before_nonce = w3.eth.get_transaction_count(wallet_monitor.wallet_address, 'latest')
-        swap = original_get_swap_data(from_token, to_token, amount, slippage)
+        swap = original_get_swap_data(from_token, to_token, amount, slippage, enforce_semantic_unwind)
         after_nonce = w3.eth.get_transaction_count(wallet_monitor.wallet_address, 'latest')
         if from_token.lower() == WETH_ADDRESS.lower() and to_token.lower() == USDC_ADDRESS.lower() and swap:
             swap['src_token'] = from_token
             artifacts['sell_request'] = _capture_payload('sell', swap)
+            artifacts['sell_request']['semantic_provider'] = swap.get('semantic_provider')
         pending = w3.eth.get_transaction_count(wallet_monitor.wallet_address, 'pending')
         if after_nonce > before_nonce or pending > after_nonce:
             latest_block = w3.eth.block_number
