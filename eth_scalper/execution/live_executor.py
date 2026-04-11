@@ -27,8 +27,8 @@ class LiveExecutor:
     
     def ensure_allowance(self, token_address: str, spender: str, required_amount: int) -> Optional[Dict]:
         """Ensure ERC20 allowance exists for spender, submitting approve() when needed."""
-        if token_address.lower() in {'0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', WETH_ADDRESS.lower()} and token_address.lower() != USDC_ADDRESS.lower():
-            return {'skipped': True, 'reason': 'native-or-non-usdc path'}
+        if token_address.lower() == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+            return {'skipped': True, 'reason': 'native token path'}
 
         try:
             from web3 import Web3
@@ -107,12 +107,11 @@ class LiveExecutor:
                 timeout=15
             )
             spender = approve_response.json().get('address') if approve_response.ok else '0x1111111254eeb25477b68fb85ed929f73a960582'
-            if from_token.lower() == USDC_ADDRESS.lower():
-                allowance_result = self.ensure_allowance(from_token, spender, amount)
-                logger.info(f"Allowance result: {allowance_result}")
-                if not allowance_result or (allowance_result.get('status') == 0):
-                    logger.error("Approval orchestration failed before swap")
-                    return None
+            allowance_result = self.ensure_allowance(from_token, spender, amount)
+            logger.info(f"Allowance result: {allowance_result}")
+            if not allowance_result or (allowance_result.get('status') == 0):
+                logger.error("Approval orchestration failed before swap")
+                return None
 
             params = {
                 'src': from_token,
