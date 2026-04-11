@@ -28,7 +28,7 @@ class StateManager:
     def update_bot_state(self, status: str, pnl_today: float, pnl_total: float, 
                          requests_used: int, daily_trades: int, open_positions: int,
                          available_capital: float, mode: str = 'live', live_inventory: Optional[Dict] = None,
-                         reconciled_positions: Optional[List[Dict]] = None):
+                         reconciled_positions: Optional[List[Dict]] = None, quarantined_summary: Optional[Dict] = None):
         """Update bot status for dashboard"""
         state = {
             'status': status,
@@ -46,6 +46,7 @@ class StateManager:
             'available_capital': round(available_capital, 2),
             'live_inventory': live_inventory or {},
             'reconciled_positions': reconciled_positions or [],
+            'quarantined_summary': quarantined_summary or {'count': 0, 'ids': []},
             'updated_at': datetime.now(timezone.utc).isoformat()
         }
         self.bot_state_file.write_text(json.dumps(state, indent=2))
@@ -170,6 +171,13 @@ class StateManager:
         state = dict(wallet or {})
         state['updated_at'] = datetime.now(timezone.utc).isoformat()
         wallet_file.write_text(json.dumps(state, indent=2))
+
+    def summarize_quarantined_positions(self, reconciled_positions: List[Dict]) -> Dict:
+        quarantined = [p for p in (reconciled_positions or []) if p.get('allocation_state') == 'quarantined']
+        return {
+            'count': len(quarantined),
+            'ids': [p.get('id') for p in quarantined if p.get('id')],
+        }
 
     def build_reconciled_positions(self, wallet: Dict, tracked_positions: Optional[List] = None) -> List[Dict]:
         """Reconstruct visible live position objects without inventing non-derivable metadata."""
