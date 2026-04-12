@@ -57,6 +57,7 @@ class ETHScalper:
             print("   Safety checks: ENABLED")
             print("   Emergency stop: ARMED")
             live_executor.enable()
+            await self._resume_persisted_live_positions()
         
         print("-" * 60)
         
@@ -268,18 +269,37 @@ class ETHScalper:
                 return
         
         wallet = wallet_monitor.get_all_balances()
-        size_usd = min(MAX_POSITION_USD, max(25.0, wallet.get('estimated_total_usd', 0.0) * 0.4))
+        estimated_total_usd = wallet.get('estimated_total_usd', 0.0)
+        size_usd = min(MAX_POSITION_USD, max(1.0, estimated_total_usd * 0.4))
 
         if not PAPER_TRADING_MODE:
-            eth_balance_usd = wallet.get('eth', 0.0) * signal['price']
+            native_eth_balance = wallet.get('eth', 0.0)
+            native_eth_usd = native_eth_balance * signal['price']
+            weth_balance = wallet.get('weth', 0.0)
+            weth_balance_usd = weth_balance * signal['price']
             usdc_balance = wallet.get('usdc', 0.0)
-            funded_side = 'ETH' if eth_balance_usd >= 25.0 else ('USDC' if usdc_balance >= 25.0 else None)
+
+            if weth_balance_usd >= 1.0:
+                resumed = await self._resume_persisted_live_positions()
+                if resumed:
+                    print(f"   🧭 Existing WETH exposure detected and resumed into active monitoring")
+                    state_manager.log_signal(signal, executed=False, reason="existing_weth_exposure_resumed")
+                    return
+                print(f"   🧭 Existing WETH exposure detected: ${weth_balance_usd:.2f} inventory, but no resumable bound lot exists")
+                state_manager.log_signal(signal, executed=False, reason="existing_weth_exposure_unbound")
+                return
+
+            funded_side = 'ETH' if native_eth_usd >= 1.0 else ('USDC' if usdc_balance >= 1.0 else None)
             if funded_side is None:
-                print(f"   ❌ Live wallet underfunded for entry: need at least $25 deployable, have ~${eth_balance_usd:.2f} ETH and ${usdc_balance:.2f} USDC")
+                print(f"   ❌ Live wallet underfunded for entry: need at least $1 deployable, have ~${native_eth_usd:.2f} native ETH, ${usdc_balance:.2f} USDC, ${weth_balance_usd:.2f} WETH inventory")
                 state_manager.log_signal(signal, executed=False, reason="wallet_underfunded")
                 return
-            size_usd = min(size_usd, eth_balance_usd if funded_side == 'ETH' else usdc_balance)
+            size_usd = min(size_usd, native_eth_usd if funded_side == 'ETH' else usdc_balance)
             signal['funded_side'] = funded_side
+            signal['native_eth_balance'] = native_eth_balance
+            signal['native_eth_usd'] = native_eth_usd
+            signal['weth_inventory_usd'] = weth_balance_usd
+            signal['tradable_usdc_side_usd'] = usdc_balance
 
         # Log the signal as executed
         state_manager.log_signal(signal, executed=True, reason="passed_all_checks")
@@ -303,8 +323,57 @@ class ETHScalper:
 
         asyncio.create_task(self._execute_live_trade(position))
     
+    async def _resume_persisted_live_positions(self):
+        """Load durable live positions and resume monitoring after restart."""
+        try:
+            wallet = wallet_monitor.get_all_balances()
+            reconciled = state_manager.build_reconciled_positions(wallet, trade_manager.get_open_positions())
+            resumed_any = False
+            for item in reconciled:
+                if not item.get('linked_to_wallet_inventory', True):
+                    continue
+                if not item.get('resumable_after_restart'):
+                    continue
+                if item.get('status') not in ('open', 'allocated', 'tracked_trade_manager_state') and item.get('source') != 'inventory_reconciliation':
+                    continue
+                position = trade_manager.get_position(item.get('id')) if item.get('id') else None
+                if position is None:
+                    entry_price = float(item.get('entry_price') or 0) or 2200.0
+                    signal = {
+                        'timestamp': item.get('entry_time') or time.time(),
+                        'direction': 'up',
+                        'price': entry_price,
+                        'type': item.get('source', 'persisted_resume'),
+                    }
+                    position = trade_manager.create_position(signal, float(item.get('size_usd') or (float(item.get('allocated_units') or item.get('lot_units') or 0)) * entry_price), paper=False)
+                    if item.get('id'):
+                        position.id = item.get('id')
+                    position.entry_price = entry_price
+                    position.target_price = float(item.get('target_price') or (entry_price * 1.005))
+                    position.stop_price = float(item.get('stop_price') or (entry_price * 0.997))
+                    position.entry_time = float(item.get('entry_time') or time.time())
+                    position.direction = 'long'
+                    position.tx_hash = item.get('tx_hash')
+                    position.executed_to_amount_units = float(item.get('allocated_units') or item.get('lot_units') or 0)
+                    position.status = position.status.OPEN
+                    position.paper = False
+                    position.signal = signal
+                    position.source = item.get('source', 'persisted_resume')
+                    position.resumable_after_restart = True
+                    trade_manager.positions[position.id] = position
+                if position.id not in trade_manager.active_monitors:
+                    print(f"   ♻️ Resuming persisted live position {position.id} from {item.get('source')}")
+                    asyncio.create_task(self._monitor_live_position(position))
+                    resumed_any = True
+            return resumed_any
+        except Exception as e:
+            print(f"   ❌ Failed to resume persisted live positions: {e}")
+            return False
+
     async def _execute_live_trade(self, position):
         """Execute live trade on-chain"""
+        from web3 import Web3
+        w3 = Web3()
         print(f"   🧪 EXECUTOR STATE: enabled={live_executor.enabled} id={id(live_executor)} position={position.id}")
         funded_side = position.signal.get('funded_side', 'ETH')
         if funded_side == 'USDC':
@@ -314,11 +383,44 @@ class ETHScalper:
             print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC -> WETH...")
         else:
             from_token = ETH_ADDRESS
-            to_token = USDC_ADDRESS
-            amount_eth = position.size_usd / max(position.entry_price, 1)
-            amount_wei = int(amount_eth * 1e18)
-            print(f"   🔄 Getting swap quote for {amount_eth:.6f} ETH...")
-        
+            to_token = WETH_ADDRESS
+            native_eth_available = float(position.signal.get('native_eth_balance') or 0.0)
+            target_amount_eth = min(position.size_usd / max(position.entry_price, 1), native_eth_available)
+            provisional_amount_wei = int(target_amount_eth * 1e18)
+            print(f"   🔄 Getting provisional swap quote for {target_amount_eth:.6f} ETH -> WETH (native available {native_eth_available:.6f})...")
+
+            provisional_swap = live_executor.get_swap_data(
+                from_token=from_token,
+                to_token=to_token,
+                amount=provisional_amount_wei
+            )
+            if not provisional_swap:
+                print(f"   ❌ Failed to get provisional swap quote")
+                return
+
+            wallet = wallet_monitor.get_all_balances()
+            native_eth_balance = float(wallet.get('eth') or 0.0)
+            native_eth_balance_wei = int(native_eth_balance * 1e18)
+            quote_gas = int(((provisional_swap.get('tx') or {}).get('gas') or 250000))
+            gas_price_wei = int(w3.to_wei(max(wallet.get('gas') or 0.006, 0.006), 'gwei'))
+            estimated_gas_cost_wei = quote_gas * gas_price_wei
+            min_gas_buffer_wei = int(0.0003 * 1e18)
+            gas_reserve_wei = max(int(estimated_gas_cost_wei * 3), min_gas_buffer_wei)
+            spendable_wei = max(0, native_eth_balance_wei - gas_reserve_wei)
+
+            print(f"   ⛽ Native ETH balance: {native_eth_balance_wei} wei")
+            print(f"   ⛽ Estimated gas cost: {estimated_gas_cost_wei} wei")
+            print(f"   ⛽ Gas reserve chosen: {gas_reserve_wei} wei")
+            print(f"   ⛽ Final spendable ETH: {spendable_wei} wei")
+
+            if spendable_wei < int(0.0005 * 1e18):
+                print(f"   ❌ Spendable ETH after gas reserve too small: {spendable_wei} wei")
+                return
+
+            amount_wei = min(provisional_amount_wei, spendable_wei)
+            amount_eth = amount_wei / 1e18
+            print(f"   🔄 Getting final swap quote for {amount_eth:.6f} ETH -> WETH after gas reserve...")
+
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
             to_token=to_token,
@@ -350,6 +452,9 @@ class ETHScalper:
 
             risk_manager.record_trade(position.signal, position.size_usd, paper=False)
             trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
+            position.source = 'autonomous_entry'
+            position.resumable_after_restart = True
+            position.max_hold_seconds = trade_manager.max_hold_time
             state_manager.persist_live_position(position)
             print(f"   ✅ POSITION OPENED WITH LIVE TX: {position.id}")
             print(f"   ✅ SWAP EXECUTED: {tx_hash}")
@@ -448,6 +553,14 @@ class ETHScalper:
                 pnl_pct=pnl_pct,
                 gas_cost=2.0,  # Approximate
                 reason=reason
+            )
+            state_manager.mark_position_closed(
+                position=closed_position,
+                exit_price=current_price,
+                exit_time=closed_position.exit_time,
+                pnl_usd=closed_position.pnl_usd,
+                pnl_pct=closed_position.pnl_pct,
+                reason=reason,
             )
             
             print(f"   💰 Trade complete: ${pnl_usd:+.2f} ({pnl_pct:+.2f}%)")

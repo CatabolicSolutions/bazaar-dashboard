@@ -137,18 +137,22 @@ class StateManager:
             lot_units = None
         current.append({
             'id': position.id,
-            'source': 'tracked_live_execution',
+            'source': getattr(position, 'source', None) or 'autonomous_entry',
             'asset': 'WETH' if position.direction == 'long' else 'UNKNOWN',
             'entry_price': position.entry_price,
             'target_price': position.target_price,
             'stop_price': position.stop_price,
-            'max_hold_seconds': HOLD_TIME_MAX_SECONDS,
+            'max_hold_seconds': getattr(position, 'max_hold_seconds', HOLD_TIME_MAX_SECONDS),
             'size_usd': position.size_usd,
             'lot_units': lot_units,
             'status': position.status.value,
             'entry_time': position.entry_time,
             'tx_hash': position.tx_hash,
             'paper': position.paper,
+            'resumable_after_restart': bool(getattr(position, 'resumable_after_restart', False)),
+            'binding_asset': 'WETH',
+            'binding_units': lot_units,
+            'binding_method': 'tx_confirmed_lot_units',
             'entry_derivation': 'tracked_live_execution',
             'target_derivation': 'tracked_live_execution',
             'stop_derivation': 'tracked_live_execution',
@@ -156,6 +160,36 @@ class StateManager:
             'updated_at': datetime.now(timezone.utc).isoformat()
         })
         self.persisted_positions_file.write_text(json.dumps({'positions': current, 'updated_at': datetime.now(timezone.utc).isoformat()}, indent=2))
+
+    def mark_position_closed(self, position, exit_price: float, exit_time: float, pnl_usd: float, pnl_pct: float, reason: str):
+        """Durably update a persisted tracked lot to closed state after live exit."""
+        current = []
+        if self.persisted_positions_file.exists():
+            try:
+                current = json.loads(self.persisted_positions_file.read_text()).get('positions', [])
+            except Exception:
+                current = []
+        updated = []
+        for item in current:
+            if item.get('id') != position.id:
+                updated.append(item)
+                continue
+            closed_item = dict(item)
+            closed_item.update({
+                'status': 'closed',
+                'exit_tx_hash': getattr(position, 'exit_tx_hash', None),
+                'exit_price': exit_price,
+                'exit_time': exit_time,
+                'pnl_usd': pnl_usd,
+                'pnl_pct': pnl_pct,
+                'close_reason': reason,
+                'resumable_after_restart': False,
+                'allocation_state': 'closed',
+                'linked_to_wallet_inventory': False,
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+            })
+            updated.append(closed_item)
+        self.persisted_positions_file.write_text(json.dumps({'positions': updated, 'updated_at': datetime.now(timezone.utc).isoformat()}, indent=2))
 
     def load_persisted_positions(self) -> List[Dict]:
         if not self.persisted_positions_file.exists():
@@ -227,6 +261,7 @@ class StateManager:
                 enriched['allocated_units'] = allocated_units
                 enriched['linked_to_wallet_inventory'] = allocated_units > 0
                 enriched['allocation_state'] = 'allocated' if allocated_units > 0 else 'unallocated'
+                enriched['resumable_after_restart'] = bool(enriched.get('resumable_after_restart')) and allocated_units > 0
                 reconciled.append(enriched)
             if remaining > 0:
                 reconciled.append({
