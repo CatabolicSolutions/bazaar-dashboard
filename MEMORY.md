@@ -29,6 +29,7 @@ Tradier durable truths:
 - output is filtered, ranked, capped, and represented as leaders rather than chain spam
 - normal output standard is summary-only leaders-board posting, not raw dumps
 - direct cross-provider Discord sending from Telegram context is blocked; Discord-context delivery should own final posting
+- VPS deployment: pipeline runs on Bazaar droplet with cron scheduling, health checks, and logs in /home/alfred‑deploy/
 
 ### Kalshi durable state
 Kalshi auth/runtime is functioning.
@@ -91,3 +92,14 @@ When recovering context for Bazaar work, consult in this order:
 - Treat token efficiency and anti-bloat discipline as standing operational mandates, not temporary preferences.
 
 - Bazaar VPS deploy command is cd /var/www/bazaar && git pull origin master && sudo ./deploy/deploy.sh.
+
+### Recent Operational Events (2026-04-12)
+- **Tradier leaders-board pipeline** ran successfully, delivering filtered premium/directional leaders to Discord channel `1483025184775733319`. All posted leaders were fallback-expiry candidates; confidence moderate. No clean directional edge surfaced.
+- **Bazaar droplet eth-scalper service** deployment and verification completed. SSH key `alfred_deploy_key` works for login; sudoers rule added for passwordless service management. Service restarted and verified running with durable lifecycle code (resumable positions). Host proof collected: commit `65cf4dfc2a6355b20fedb3aeed75f49441b4fa5e`. Live wallet underfunded for entry.
+- **New model configuration** inquiry: user asked about running on a newly configured model (awaiting confirmation).
+
+### Recent Operational Events (2026-04-13)
+- **Tradier pipeline VPS deployment** – Fixed broken paths, created wrapper scripts, installed cron scheduling (market‑hours every 15 min), added health‑check and log rotation. Pipeline now runs autonomously on the Bazaar droplet, writing leaders board to `/home/alfred‑deploy/out/tradier_leaders_board.txt`. API connectivity verified. Remaining permission issue: root‑owned `/var/www/bazaar/out/tradier_leaders_board.txt` cannot be overwritten without sudo.
+- **Auto‑execution decision pending** – Human‑in‑the‑loop remains default; toggle for live trades can be added.
+- **Permission fix applied** – User provided sudo; ownership changed for `/var/www/bazaar/out/` and `/var/www/bazaar/logs/`. Updated pipeline script writes directly to central location (`/var/www/bazaar/out/tradier_leaders_board.txt`). Cron job updated to final script. TRADIER_AUTO_EXECUTE=false flag added via wrapper.
+- **Pipeline fully operational** – Cron schedule: `*/15 12-20 * * 1-5` (6 AM‑2 PM MT), hourly health checks, weekly log cleanup. Discord posting via OpenClaw message tool (channel `1483025184775733319`) expected to function.
