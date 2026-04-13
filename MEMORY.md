@@ -99,7 +99,9 @@ When recovering context for Bazaar work, consult in this order:
 - **New model configuration** inquiry: user asked about running on a newly configured model (awaiting confirmation).
 
 ### Recent Operational Events (2026-04-13)
-- **Tradier pipeline VPS deployment** – Fixed broken paths, created wrapper scripts, installed cron scheduling (market‑hours every 15 min), added health‑check and log rotation. Pipeline now runs autonomously on the Bazaar droplet, writing leaders board to `/home/alfred‑deploy/out/tradier_leaders_board.txt`. API connectivity verified. Remaining permission issue: root‑owned `/var/www/bazaar/out/tradier_leaders_board.txt` cannot be overwritten without sudo.
+- **Tradier pipeline VPS deployment** – Fixed broken paths, created wrapper scripts, installed cron scheduling (market‑hours every 15 min), added health‑check and log rotation. Pipeline now runs autonomously on the Bazaar droplet, writing leaders board to `/var/www/bazaar/out/tradier_leaders_board.txt`. API connectivity verified.
 - **Auto‑execution decision pending** – Human‑in‑the‑loop remains default; toggle for live trades can be added.
 - **Permission fix applied** – User provided sudo; ownership changed for `/var/www/bazaar/out/` and `/var/www/bazaar/logs/`. Updated pipeline script writes directly to central location (`/var/www/bazaar/out/tradier_leaders_board.txt`). Cron job updated to final script. TRADIER_AUTO_EXECUTE=false flag added via wrapper.
-- **Pipeline fully operational** – Cron schedule: `*/15 12-20 * * 1-5` (6 AM‑2 PM MT), hourly health checks, weekly log cleanup. Discord posting via OpenClaw message tool (channel `1483025184775733319`) expected to function.
+- **Pipeline fully operational** – Cron schedule: `*/15 12-20 * * 1-5` (6 AM‑2 PM MT), hourly health checks, weekly log cleanup, daily summary at 7 AM MT.
+- **Discord alerting** – Health‑check failures trigger Discord alerts (channel `1483025184775733319`), pending OpenClaw installation on VPS.
+- **Auto‑execution documentation** – Created `AUTO_EXECUTION_README.md` with toggle instructions and risk controls.
