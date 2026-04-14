@@ -105,3 +105,4 @@ When recovering context for Bazaar work, consult in this order:
 - **Pipeline fully operational** – Cron schedule: `*/15 12-20 * * 1-5` (6 AM‑2 PM MT), hourly health checks, weekly log cleanup, daily summary at 7 AM MT.
 - **Discord alerting** – Health‑check failures trigger Discord alerts (channel `1483025184775733319`), pending OpenClaw installation on VPS.
 - **Auto‑execution documentation** – Created `AUTO_EXECUTION_README.md` with toggle instructions and risk controls.
+- **Remaining blockers** – OpenClaw not installed (Discord posting fails); `tradier_execution_state.json` owned by root (blocks auto‑trade dry‑run).
