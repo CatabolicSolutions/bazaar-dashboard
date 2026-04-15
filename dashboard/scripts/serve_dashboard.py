@@ -10,6 +10,9 @@ import requests
 from operator_feedback import append_feedback
 from session_capture import append_event
 import sys
+import position_manager
+import trade_journal
+from datetime import datetime
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -1192,16 +1195,92 @@ class Handler(SimpleHTTPRequestHandler):
             })
 
     def _handle_positions(self):
-        # TODO: combine Tradier and Bloc positions
-        return self.json_response(200, {
-            'positions': []
-        })
+        """Combine Tradier and Bloc positions"""
+        try:
+            # Get Tradier positions via position manager
+            tradier_data = position_manager.get_live_positions()
+            tradier_positions = tradier_data.get('data', {}).get('positions', [])
+            bloc_positions = []
+            # Get Bloc positions from state file
+            positions_path = ROOT / 'eth_scalper' / 'state' / 'positions.json'
+            if positions_path.exists():
+                with open(positions_path) as f:
+                    bloc_data = json.load(f)
+                    if isinstance(bloc_data, list):
+                        bloc_positions = bloc_data
+            # Map Tradier positions to frontend format
+            formatted = []
+            for pos in tradier_positions:
+                side = 'Buy' if pos.get('quantity', 0) > 0 else 'Sell'
+                formatted.append({
+                    'symbol': pos.get('symbol', ''),
+                    'side': side,
+                    'entry': pos.get('entry_price', 0.0),
+                    'current': pos.get('current_price', 0.0),
+                    'pnl': pos.get('pnl_dollar', 0.0)
+                })
+            # Map Bloc positions (assuming same format)
+            for pos in bloc_positions:
+                formatted.append({
+                    'symbol': pos.get('symbol', ''),
+                    'side': pos.get('side', 'Buy'),
+                    'entry': pos.get('entry_price', 0.0),
+                    'current': pos.get('current_price', 0.0),
+                    'pnl': pos.get('pnl', 0.0)
+                })
+            return self.json_response(200, {'positions': formatted})
+        except Exception as e:
+            # Fallback to empty on error
+            return self.json_response(200, {'positions': []})
 
     def _handle_activity(self):
-        # TODO: fetch from trade journal
-        return self.json_response(200, {
-            'activity': []
-        })
+        """Fetch recent trades from trade journal"""
+        try:
+            journal = trade_journal.load_journal()
+            # Sort by entry timestamp descending
+            def get_time(entry):
+                ts = entry.get('entry', {}).get('timestamp')
+                if ts:
+                    try:
+                        return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                    except Exception:
+                        return datetime.min
+                return datetime.min
+            journal.sort(key=get_time, reverse=True)
+            activity = []
+            for entry in journal[:10]:  # limit to 10
+                entry_data = entry.get('entry', {})
+                exit_data = entry.get('exit', {})
+                pnl_data = entry.get('pnl', {})
+                # Determine time
+                ts = entry_data.get('timestamp')
+                if ts:
+                    try:
+                        dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                        time_str = dt.strftime('%H:%M')
+                    except Exception:
+                        time_str = '--:--'
+                else:
+                    time_str = '--:--'
+                # Determine system
+                system = entry.get('signal_source', 'Tradier')
+                # Symbol
+                symbol = entry_data.get('symbol', '')
+                # Side (call/put or buy/sell)
+                side = entry_data.get('option_type', 'Buy')
+                # P&L if closed
+                pnl = pnl_data.get('dollar') if entry.get('status') == 'closed' else None
+                activity.append({
+                    'time': time_str,
+                    'system': system,
+                    'symbol': symbol,
+                    'side': side,
+                    'pnl': pnl
+                })
+            return self.json_response(200, {'activity': activity})
+        except Exception as e:
+            # Fallback to empty
+            return self.json_response(200, {'activity': []})
 
     def _handle_command(self, body):
         try:
