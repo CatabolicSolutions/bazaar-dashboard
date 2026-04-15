@@ -1233,9 +1233,110 @@ class Handler(SimpleHTTPRequestHandler):
             # Fallback to empty on error
             return self.json_response(200, {'positions': []})
 
-    def _handle_activity(self):
-        """Fetch recent trades from trade journal"""
+    def _load_activity_from_logs(self):
+        """Load trade activity from various log files"""
+        activity = []
         try:
+            # 1. Tradier execution audit log
+            audit_path = ROOT / 'out' / 'tradier_execution_audit.jsonl'
+            if audit_path.exists():
+                with open(audit_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                            if entry.get('action') not in ('execute', 'fill'):
+                                continue
+                            # Determine timestamp
+                            ts = entry.get('ts')
+                            if ts:
+                                try:
+                                    dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                                    time_str = dt.strftime('%H:%M')
+                                except Exception:
+                                    time_str = '--:--'
+                            else:
+                                time_str = '--:--'
+                            # Determine system
+                            system = 'Tradier'
+                            # Symbol
+                            symbol = entry.get('symbol', '')
+                            # Side
+                            side = entry.get('side', 'Buy')
+                            # P&L not available in audit log
+                            pnl = None
+                            activity.append({
+                                'time': time_str,
+                                'system': system,
+                                'symbol': symbol,
+                                'side': side,
+                                'pnl': pnl
+                            })
+                        except Exception:
+                            continue
+        except Exception:
+            pass
+        
+        try:
+            # 2. ETH scalper trade logs
+            scalper_log_path = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
+            if scalper_log_path.exists():
+                with open(scalper_log_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                            # Look for trade execution messages
+                            msg = entry.get('message', '')
+                            if 'filled' not in msg.lower() and 'trade' not in msg.lower():
+                                continue
+                            ts = entry.get('timestamp')
+                            if ts:
+                                try:
+                                    dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                                    time_str = dt.strftime('%H:%M')
+                                except Exception:
+                                    time_str = '--:--'
+                            else:
+                                time_str = '--:--'
+                            system = 'Bloc'
+                            # Try to extract symbol from message
+                            symbol = 'ETH'
+                            # Side
+                            side = 'Buy' if 'buy' in msg.lower() else 'Sell'
+                            pnl = None
+                            activity.append({
+                                'time': time_str,
+                                'system': system,
+                                'symbol': symbol,
+                                'side': side,
+                                'pnl': pnl
+                            })
+                        except Exception:
+                            continue
+        except Exception:
+            pass
+        
+        # Sort by time descending (most recent first)
+        def sort_key(item):
+            t = item['time']
+            if t == '--:--':
+                return datetime.min
+            try:
+                return datetime.strptime(t, '%H:%M')
+            except Exception:
+                return datetime.min
+        activity.sort(key=sort_key, reverse=True)
+        return activity[:10]  # limit to 10
+
+    def _handle_activity(self):
+        """Fetch recent trades from trade journal and logs"""
+        try:
+            # First try trade journal
             journal = trade_journal.load_journal()
             # Sort by entry timestamp descending
             def get_time(entry):
@@ -1277,10 +1378,18 @@ class Handler(SimpleHTTPRequestHandler):
                     'side': side,
                     'pnl': pnl
                 })
+            # If journal empty, fallback to logs
+            if not activity:
+                activity = self._load_activity_from_logs()
             return self.json_response(200, {'activity': activity})
         except Exception as e:
-            # Fallback to empty
-            return self.json_response(200, {'activity': []})
+            # Fallback to logs
+            try:
+                activity = self._load_activity_from_logs()
+                return self.json_response(200, {'activity': activity})
+            except Exception:
+                # Final fallback empty
+                return self.json_response(200, {'activity': []})
 
     def _handle_command(self, body):
         try:
