@@ -27,6 +27,7 @@ function switchZone(zone) {
 
 // Load all data
 async function loadData() {
+  console.log('Polling status...');
   await Promise.all([loadSnapshot(), loadEthData()]);
   renderAll();
 }
