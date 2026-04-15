@@ -1124,14 +1124,41 @@ class Handler(SimpleHTTPRequestHandler):
             snapshot = readiness_snapshot()
             pos = positions()
             ords = list_orders()
-            health = 'green' if snapshot.get('ready') else 'red'
+            # Determine health
+            health = 'green' if snapshot.get('ready_for_options_execution') else 'red'
+            # Buying power
+            bp = snapshot.get('option_buying_power', 0.0)
+            # Positions count
+            if isinstance(pos, dict) and 'positions' in pos:
+                if pos['positions'] == 'null':
+                    pos_count = 0
+                elif isinstance(pos['positions'], list):
+                    pos_count = len(pos['positions'])
+                else:
+                    pos_count = 0
+            elif isinstance(pos, list):
+                pos_count = len(pos)
+            else:
+                pos_count = 0
+            # Orders count
+            if isinstance(ords, dict) and 'orders' in ords:
+                orders_data = ords['orders']
+                if isinstance(orders_data, dict) and 'order' in orders_data:
+                    ord_count = len(orders_data['order'])
+                else:
+                    ord_count = 0
+            elif isinstance(ords, list):
+                ord_count = len(ords)
+            else:
+                ord_count = 0
             return self.json_response(200, {
-                'bp': snapshot.get('option_bp', 0.0),
-                'positions': len(pos),
-                'orders': len(ords),
+                'bp': bp,
+                'positions': pos_count,
+                'orders': ord_count,
                 'health': health
             })
         except Exception as e:
+            # Fallback to placeholder
             return self.json_response(200, {
                 'bp': 0.0,
                 'positions': 0,
