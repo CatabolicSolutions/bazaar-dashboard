@@ -10,7 +10,6 @@ import requests
 from operator_feedback import append_feedback
 from session_capture import append_event
 import sys
-sys.path.append(str(ROOT / 'scripts'))
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -18,6 +17,7 @@ def now_iso() -> str:
 # Get the repository root based on this script's location
 SCRIPT_DIR = Path(__file__).parent.resolve()
 ROOT = SCRIPT_DIR.parent.parent
+sys.path.append(str(ROOT / 'scripts'))
 
 # Load environment from .bazaar.env if not already set
 env_file = ROOT / '.bazaar.env'
