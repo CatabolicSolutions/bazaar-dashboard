@@ -9,6 +9,8 @@ from urllib.parse import parse_qs, urlparse
 import requests
 from operator_feedback import append_feedback
 from session_capture import append_event
+import sys
+sys.path.append(str(ROOT / 'scripts'))
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -1116,49 +1118,62 @@ class Handler(SimpleHTTPRequestHandler):
 
 
     def _handle_tradier_status(self):
-        # TODO: fetch real Tradier account status
-        return self.json_response(200, {
-            'bp': 150.0,
-            'positions': 0,
-            'orders': 0,
-            'health': 'green'
-        })
+        try:
+            from tradier_account import readiness_snapshot
+            from tradier_broker_interface import positions, list_orders
+            snapshot = readiness_snapshot()
+            pos = positions()
+            ords = list_orders()
+            health = 'green' if snapshot.get('ready') else 'red'
+            return self.json_response(200, {
+                'bp': snapshot.get('option_bp', 0.0),
+                'positions': len(pos),
+                'orders': len(ords),
+                'health': health
+            })
+        except Exception as e:
+            return self.json_response(200, {
+                'bp': 0.0,
+                'positions': 0,
+                'orders': 0,
+                'health': 'red'
+            })
 
     def _handle_bloc_status(self):
-        # TODO: fetch real Bloc wallet & positions
-        return self.json_response(200, {
-            'usdc': 168.0,
-            'weth': 85.0,
-            'positions': 1,
-            'health': 'green'
-        })
+        try:
+            import json
+            wallet_path = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+            positions_path = ROOT / 'eth_scalper' / 'state' / 'positions.json'
+            wallet = json.loads(wallet_path.read_text()) if wallet_path.exists() else {}
+            positions_data = json.loads(positions_path.read_text()) if positions_path.exists() else {}
+            usdc = wallet.get('usdc', 0.0)
+            weth = wallet.get('eth', 0.0)
+            pos_list = positions_data.get('positions', [])
+            health = 'green'
+            return self.json_response(200, {
+                'usdc': usdc,
+                'weth': weth,
+                'positions': len(pos_list),
+                'health': health
+            })
+        except Exception as e:
+            return self.json_response(200, {
+                'usdc': 0.0,
+                'weth': 0.0,
+                'positions': 0,
+                'health': 'red'
+            })
 
     def _handle_positions(self):
         # TODO: combine Tradier and Bloc positions
         return self.json_response(200, {
-            'positions': [
-                {
-                    'symbol': 'WETH',
-                    'side': 'Buy',
-                    'entry': 2367.0,
-                    'current': 2368.23,
-                    'pnl': 1.23
-                }
-            ]
+            'positions': []
         })
 
     def _handle_activity(self):
         # TODO: fetch from trade journal
         return self.json_response(200, {
-            'activity': [
-                {
-                    'time': '23:45',
-                    'system': 'Bloc',
-                    'symbol': 'WETH',
-                    'side': 'Buy',
-                    'pnl': None
-                }
-            ]
+            'activity': []
         })
 
     def _handle_command(self, body):
