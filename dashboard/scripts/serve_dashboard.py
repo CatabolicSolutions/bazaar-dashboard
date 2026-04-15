@@ -367,6 +367,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_narrative()
         elif self.path == '/api/account':
             return self._handle_account()
+        elif self.path == '/api/tradier/status':
+            return self._handle_tradier_status()
+        elif self.path == '/api/bloc/status':
+            return self._handle_bloc_status()
         elif self.path == '/api/eth-scalper/status':
             return self._handle_eth_scalper_status()
         elif self.path == '/api/eth-scalper/trades':
@@ -1108,6 +1112,12 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             self.json_response(500, {'ok': False, 'error': str(e)})
 
+
+    def _handle_tradier_status(self):
+        return self.json_response(200, {'open_positions': []})
+
+    def _handle_bloc_status(self):
+        return self.json_response(200, {'open_positions': []})
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Serve the Tradier local dashboard.')
