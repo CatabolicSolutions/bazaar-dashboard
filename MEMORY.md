@@ -30,6 +30,7 @@ Tradier durable truths:
 - normal output standard is summary-only leaders-board posting, not raw dumps
 - direct cross-provider Discord sending from Telegram context is blocked; Discord-context delivery should own final posting
 - VPS deployment: pipeline runs on Bazaar droplet with cron scheduling, health checks, and logs in /home/alfred‑deploy/
+- option symbol format is OCC (6‑character underlying + YYMMDD expiration + C/P + 8‑digit strike with 3 decimal places); verified in order_entry.py.
 
 ### Kalshi durable state
 Kalshi auth/runtime is functioning.
@@ -81,6 +82,13 @@ When recovering context for Bazaar work, consult in this order:
 2. `USER.md`
 3. recent daily notes in `memory/`
 4. relevant scripts / committed pipeline files
+
+### Recent Operational Events (2026-04-14)
+- **Dashboard frontend refresh** – Added monitoring panel with Tradier/Bloc status widgets, API endpoints, console logging for status polling. Underlying-history endpoint fixed. Committed and pushed to git; awaiting VPS deployment.
+- **War Room built** – Single‑screen command center deployed (frontend + stubbed endpoints). Replaces dashboard at root.
+- **Real data connected** – Tradier status endpoint now returns live buying power, positions, orders, health. Bloc status endpoint returns live wallet balances. Deployed and verified.
+- **NVDA equity position** – Closed manually 2026‑04‑14. Cash settles T+1 (tomorrow).
+- **Options symbol format verification** – Remaining blocker for auto-trading; need to verify Tradier option order symbol format.
 
 ### Operational mandates - token efficiency protocol
 - Default reply standard is minimal-noise, high-signal execution reporting.
