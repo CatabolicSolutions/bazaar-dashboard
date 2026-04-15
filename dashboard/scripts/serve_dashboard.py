@@ -111,11 +111,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode())
 
-    def do_GET(self):
-        self.refresh_snapshot()
-        if self.path in ('/app', '/app/'):
-            self.path = '/index.html'
-        return super().do_GET()
+
 
     def _run_save(self, script_path, body):
         proc = subprocess.run(
@@ -335,8 +331,8 @@ class Handler(SimpleHTTPRequestHandler):
     
     def do_GET(self):
         self.refresh_snapshot()
-        if self.path in ('/app', '/app/'):
-            self.path = '/index.html'
+        if self.path in ('/', '/war-room', '/war-room/'):
+            self.path = '/war-room/index.html'
         elif self.path == '/api/live-positions':
             return self._handle_live_positions()
         elif self.path == '/api/live-scanner':
@@ -371,6 +367,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_tradier_status()
         elif self.path == '/api/bloc/status':
             return self._handle_bloc_status()
+        elif self.path == '/api/positions':
+            return self._handle_positions()
+        elif self.path == '/api/activity':
+            return self._handle_activity()
         elif self.path == '/api/eth-scalper/status':
             return self._handle_eth_scalper_status()
         elif self.path == '/api/eth-scalper/trades':
@@ -713,6 +713,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_order_submit(body)
         if self.path == '/api/eth-scalper/command':
             return self._handle_eth_scalper_command(body)
+        if self.path == '/api/command':
+            return self._handle_command(body)
         self.send_response(404)
         self.end_headers()
     
@@ -1114,10 +1116,68 @@ class Handler(SimpleHTTPRequestHandler):
 
 
     def _handle_tradier_status(self):
-        return self.json_response(200, {'open_positions': []})
+        # TODO: fetch real Tradier account status
+        return self.json_response(200, {
+            'bp': 150.0,
+            'positions': 0,
+            'orders': 0,
+            'health': 'green'
+        })
 
     def _handle_bloc_status(self):
-        return self.json_response(200, {'open_positions': []})
+        # TODO: fetch real Bloc wallet & positions
+        return self.json_response(200, {
+            'usdc': 168.0,
+            'weth': 85.0,
+            'positions': 1,
+            'health': 'green'
+        })
+
+    def _handle_positions(self):
+        # TODO: combine Tradier and Bloc positions
+        return self.json_response(200, {
+            'positions': [
+                {
+                    'symbol': 'WETH',
+                    'side': 'Buy',
+                    'entry': 2367.0,
+                    'current': 2368.23,
+                    'pnl': 1.23
+                }
+            ]
+        })
+
+    def _handle_activity(self):
+        # TODO: fetch from trade journal
+        return self.json_response(200, {
+            'activity': [
+                {
+                    'time': '23:45',
+                    'system': 'Bloc',
+                    'symbol': 'WETH',
+                    'side': 'Buy',
+                    'pnl': None
+                }
+            ]
+        })
+
+    def _handle_command(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+            command = payload.get('command')
+            if command == 'pause_bloc':
+                # TODO: implement pause
+                return self.json_response(200, {'ok': True, 'message': 'Bloc paused'})
+            elif command == 'pause_tradier':
+                # TODO: implement pause
+                return self.json_response(200, {'ok': True, 'message': 'Tradier paused'})
+            elif command == 'close_all':
+                # TODO: implement emergency close
+                return self.json_response(200, {'ok': True, 'message': 'Emergency close initiated'})
+            else:
+                return self.json_response(400, {'ok': False, 'error': 'Unknown command'})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Serve the Tradier local dashboard.')
