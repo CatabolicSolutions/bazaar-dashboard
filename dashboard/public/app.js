@@ -11,7 +11,9 @@ let currentZone = 'trade';
 document.addEventListener('DOMContentLoaded', () => {
   switchZone('trade');
   loadData();
+  loadSieStatus();
   setInterval(loadData, 3000);
+  setInterval(loadSieStatus, 5000);
   updateClock();
   setInterval(updateClock, 1000);
 });
@@ -331,6 +333,26 @@ function updateClock() {
   const update = document.getElementById('lastUpdate');
   if (clock) clock.textContent = time;
   if (update) update.textContent = time;
+}
+
+// Load SIE status and update reality banner
+async function loadSieStatus() {
+  try {
+    const res = await fetch('/api/sie/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    // Update banner
+    const orderElem = document.getElementById('tradier-order');
+    const ethPriceElem = document.getElementById('eth-price');
+    const momentumElem = document.getElementById('last-momentum');
+    
+    if (orderElem) orderElem.textContent = data.order_id ? `${data.order_id} (NVDA PUT)` : '121832076 (NVDA PUT)';
+    if (ethPriceElem) ethPriceElem.textContent = `$${data.eth_price ? data.eth_price.toFixed(2) : '--'}`;
+    if (momentumElem) momentumElem.textContent = `${data.momentum ? (data.momentum * 100).toFixed(3) : '--'}%`;
+  } catch (e) {
+    console.error('SIE status error:', e);
+  }
 }
 
 window.addEventListener('resize', drawChart);

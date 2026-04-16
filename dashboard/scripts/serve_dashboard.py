@@ -372,6 +372,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_tradier_status()
         elif self.path == '/api/bloc/status':
             return self._handle_bloc_status()
+        elif self.path == '/api/sie/status':
+            return self._handle_sie_status()
         elif self.path == '/api/positions':
             return self._handle_positions()
         elif self.path == '/api/activity':
@@ -1167,6 +1169,75 @@ class Handler(SimpleHTTPRequestHandler):
                 'positions': 0,
                 'orders': 0,
                 'health': 'red'
+            })
+
+    def _handle_sie_status(self):
+        """Get SIE (LIE) status: order ID, ETH price, momentum"""
+        try:
+            import json, re, subprocess
+            from datetime import datetime, timezone
+            
+            # Default values
+            order_id = '121832076'
+            eth_price = 0.0
+            momentum = 0.0
+            quote_id = None
+            
+            # Read LIE log
+            log_path = ROOT / 'lie' / 'lie.log'
+            if log_path.exists():
+                log_content = log_path.read_text()
+                lines = log_content.strip().split('\n')
+                # Look for latest ETH price line
+                for line in reversed(lines):
+                    if 'ETH price:' in line:
+                        match = re.search(r'\$([0-9]+\.?[0-9]*)', line)
+                        if match:
+                            eth_price = float(match.group(1))
+                            break
+                # Look for momentum or volatility signal
+                for line in reversed(lines):
+                    if 'momentum' in line.lower() or 'volatility' in line.lower():
+                        # Try to extract percentage
+                        match = re.search(r'([0-9]+\.?[0-9]*)%', line)
+                        if match:
+                            momentum = float(match.group(1))
+                            break
+                # Look for QuoteID
+                for line in reversed(lines):
+                    if 'QuoteID' in line:
+                        match = re.search(r'QuoteID:\s*([^\s]+)', line)
+                        if match:
+                            quote_id = match.group(1)
+                            break
+            
+            # Get current ETH price from CoinGecko as fallback
+            if eth_price == 0.0:
+                try:
+                    import requests
+                    resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd', timeout=5)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        eth_price = data.get('ethereum', {}).get('usd', 0.0)
+                except Exception:
+                    pass
+            
+            return self.json_response(200, {
+                'order_id': order_id,
+                'eth_price': eth_price,
+                'momentum': momentum,
+                'quote_id': quote_id,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as e:
+            # Fallback
+            return self.json_response(200, {
+                'order_id': '121832076',
+                'eth_price': 0.0,
+                'momentum': 0.0,
+                'quote_id': None,
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+                'error': str(e)
             })
 
     def _handle_bloc_status(self):
