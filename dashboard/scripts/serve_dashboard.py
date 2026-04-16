@@ -1139,6 +1139,9 @@ class Handler(SimpleHTTPRequestHandler):
                     pos_count = 0
                 elif isinstance(pos['positions'], list):
                     pos_count = len(pos['positions'])
+                elif isinstance(pos['positions'], dict):
+                    # Single position wrapped in dict with key 'position'
+                    pos_count = 1
                 else:
                     pos_count = 0
             elif isinstance(pos, list):
@@ -1149,7 +1152,13 @@ class Handler(SimpleHTTPRequestHandler):
             if isinstance(ords, dict) and 'orders' in ords:
                 orders_data = ords['orders']
                 if isinstance(orders_data, dict) and 'order' in orders_data:
-                    ord_count = len(orders_data['order'])
+                    order_item = orders_data['order']
+                    if isinstance(order_item, list):
+                        ord_count = len(order_item)
+                    elif isinstance(order_item, dict):
+                        ord_count = 1
+                    else:
+                        ord_count = 0
                 else:
                     ord_count = 0
             elif isinstance(ords, list):
