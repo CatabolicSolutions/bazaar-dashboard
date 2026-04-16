@@ -240,9 +240,52 @@
         .btn-action.danger:hover {
             background: rgba(239,68,68,0.1);
         }
+    /* Reality Banner */
+    .reality-banner {
+      background: linear-gradient(90deg, #9b2c2c, #6b3826);
+      color: #f5dfbf;
+      padding: 12px 20px;
+      border-bottom: 2px solid #d98d2b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .banner-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .banner-label {
+      opacity: 0.8;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+    .banner-value {
+      font-weight: 700;
+      color: #fff;
+    }
     </style>
 </head>
 <body>
+    <div id="reality-banner" class="reality-banner">
+      <div class="banner-item">
+        <span class="banner-label">LIVE TRADIER ORDER:</span>
+        <span class="banner-value" id="tradier-order">121832076 (NVDA PUT)</span>
+      </div>
+      <div class="banner-item">
+        <span class="banner-label">LIVE ETH PRICE:</span>
+        <span class="banner-value" id="eth-price">$--</span>
+      </div>
+      <div class="banner-item">
+        <span class="banner-label">LAST MOMENTUM:</span>
+        <span class="banner-value" id="last-momentum">--%</span>
+      </div>
+    </div>
     <div class="war-room">
         <div class="header-bar">
             <div class="account-summary">

@@ -33,7 +33,10 @@ const el = {
     activityTableBody: document.getElementById('activity-table-body'),
     btnPauseBloc: document.getElementById('btn-pause-bloc'),
     btnPauseTradier: document.getElementById('btn-pause-tradier'),
-    btnCloseAll: document.getElementById('btn-close-all')
+    btnCloseAll: document.getElementById('btn-close-all'),
+    tradierOrder: document.getElementById('tradier-order'),
+    ethPrice: document.getElementById('eth-price'),
+    lastMomentum: document.getElementById('last-momentum')
 };
 
 // Update clock every second
@@ -146,11 +149,12 @@ function renderActivity() {
 // Poll data from backend
 async function pollData() {
     try {
-        const [tradierRes, blocRes, positionsRes, activityRes] = await Promise.all([
+        const [tradierRes, blocRes, positionsRes, activityRes, sieRes] = await Promise.all([
             fetch(`${API_BASE}/api/tradier/status`).then(r => r.json()),
             fetch(`${API_BASE}/api/bloc/status`).then(r => r.json()),
             fetch(`${API_BASE}/api/positions`).then(r => r.json()),
-            fetch(`${API_BASE}/api/activity`).then(r => r.json())
+            fetch(`${API_BASE}/api/activity`).then(r => r.json()),
+            fetch(`${API_BASE}/api/sie/status`).then(r => r.json())
         ]);
         // Merge into state
         if (tradierRes.bp !== undefined) state.tradier.bp = tradierRes.bp;
@@ -163,6 +167,13 @@ async function pollData() {
         if (blocRes.positions !== undefined) state.bloc.positions = blocRes.positions;
         if (blocRes.health !== undefined) state.bloc.health = blocRes.health;
         
+        // SIE status (reality banner)
+        if (sieRes && sieRes.order_id !== undefined) {
+            el.tradierOrder.textContent = `${sieRes.order_id} (NVDA PUT)`;
+            el.ethPrice.textContent = `$${sieRes.eth_price ? sieRes.eth_price.toFixed(2) : '--'}`;
+            el.lastMomentum.textContent = `${sieRes.momentum ? (sieRes.momentum * 100).toFixed(3) : '--'}%`;
+        }
+
         // Account summary (for now combine bloc balances)
         state.account.usdc = state.bloc.usdc;
         state.account.weth = state.bloc.weth;
