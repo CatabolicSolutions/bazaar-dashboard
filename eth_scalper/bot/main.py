@@ -350,7 +350,9 @@ class ETHScalper:
                 return
 
             base_token = WETH_ADDRESS if signal.get('symbol', 'ETH') == 'ETH' else CBBTC_ADDRESS
+            print(f"   🔎 Requesting quote: size=${size_usd:.2f}, base_token={base_token}, usdc_balance=${usdc_balance:.2f}")
             quote = inch_client.get_quote(USDC_ADDRESS, base_token, int(size_usd * 1e6), use_cache=False)
+            print(f"   🔎 Quote returned: {'yes' if quote else 'no'}")
             if not quote:
                 print("   ❌ Rejected: missing_quote")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='missing_quote')
@@ -371,6 +373,7 @@ class ETHScalper:
             gas_cost_usd = ((estimated_gas_units * max(wallet.get('gas') or 0.006, 0.006) * 1e9) / 1e18) * max(price_feed.get_eth_price() or 2200.0, 1.0)
             friction_pct = (gas_cost_usd / size_usd) * 100 if size_usd > 0 else 999.0
             expected_edge_pct = gross_edge_pct - friction_pct
+            print(f"   🔎 Quote analytics: quoted_units={quoted_units:.8f}, quoted_out_usd=${quoted_out_usd:.2f}, gross_edge={gross_edge_pct:.4f}%, friction={friction_pct:.4f}%, expected_edge={expected_edge_pct:.4f}%")
             signal['quote_age_seconds'] = quote_age_seconds
             signal['gross_edge_pct'] = gross_edge_pct
             signal['expected_edge_pct'] = expected_edge_pct
