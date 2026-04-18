@@ -11,6 +11,7 @@ let state = {
     pnlToday: 0,
     tradier: { bp: 150, positions: 0, orders: 0, health: 'green' },
     bloc: { usdc: 168, weth: 85, positions: 1, health: 'green' },
+    hq: { engine_truth_board: { tradier: {}, bloc: {} } },
     positions: [],
     activity: []
 };
@@ -31,6 +32,24 @@ const el = {
     blocPositions: document.getElementById('bloc-positions'),
     positionsContainer: document.getElementById('positions-container'),
     activityTableBody: document.getElementById('activity-table-body'),
+    truthTradierFunded: document.getElementById('truth-tradier-funded'),
+    truthTradierPathReady: document.getElementById('truth-tradier-path-ready'),
+    truthTradierEdgeProven: document.getElementById('truth-tradier-edge-proven'),
+    truthTradierStatus: document.getElementById('truth-tradier-status'),
+    truthTradierCapital: document.getElementById('truth-tradier-capital'),
+    truthTradierStage: document.getElementById('truth-tradier-stage'),
+    truthTradierAttempt: document.getElementById('truth-tradier-attempt'),
+    truthTradierBlocker: document.getElementById('truth-tradier-blocker'),
+    truthBlocFunded: document.getElementById('truth-bloc-funded'),
+    truthBlocPathReady: document.getElementById('truth-bloc-path-ready'),
+    truthBlocEdgeProven: document.getElementById('truth-bloc-edge-proven'),
+    truthBlocStatus: document.getElementById('truth-bloc-status'),
+    truthBlocCapital: document.getElementById('truth-bloc-capital'),
+    truthBlocAttempt: document.getElementById('truth-bloc-attempt'),
+    truthBlocRejection: document.getElementById('truth-bloc-rejection'),
+    truthBlocSize: document.getElementById('truth-bloc-size'),
+    truthBlocEdge: document.getElementById('truth-bloc-edge'),
+    truthBlocFriction: document.getElementById('truth-bloc-friction'),
     btnPauseBloc: document.getElementById('btn-pause-bloc'),
     btnPauseTradier: document.getElementById('btn-pause-tradier'),
     btnCloseAll: document.getElementById('btn-close-all'),
@@ -149,12 +168,13 @@ function renderActivity() {
 // Poll data from backend
 async function pollData() {
     try {
-        const [tradierRes, blocRes, positionsRes, activityRes, sieRes] = await Promise.all([
+        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes] = await Promise.all([
             fetch(`${API_BASE}/api/tradier/status`).then(r => r.json()),
             fetch(`${API_BASE}/api/bloc/status`).then(r => r.json()),
             fetch(`${API_BASE}/api/positions`).then(r => r.json()),
             fetch(`${API_BASE}/api/activity`).then(r => r.json()),
-            fetch(`${API_BASE}/api/sie/status`).then(r => r.json())
+            fetch(`${API_BASE}/api/sie/status`).then(r => r.json()),
+            fetch(`${API_BASE}/snapshot.json`).then(r => r.json())
         ]);
         // Merge into state
         if (tradierRes.bp !== undefined) state.tradier.bp = tradierRes.bp;
@@ -180,6 +200,7 @@ async function pollData() {
         
         if (positionsRes.positions) state.positions = positionsRes.positions;
         if (activityRes.activity) state.activity = activityRes.activity;
+        if (snapshotRes.hq) state.hq = snapshotRes.hq;
         
         renderAll();
     } catch (err) {
@@ -191,7 +212,31 @@ async function pollData() {
 }
 
 // Initial render
+function renderTruthBoard() {
+    const tradier = (state.hq.engine_truth_board || {}).tradier || {};
+    const bloc = (state.hq.engine_truth_board || {}).bloc || {};
+    el.truthTradierFunded.textContent = String(tradier.funded ?? '--');
+    el.truthTradierPathReady.textContent = String(tradier.path_ready ?? '--');
+    el.truthTradierEdgeProven.textContent = String(tradier.edge_proven ?? '--');
+    el.truthTradierStatus.textContent = tradier.status_label ?? '--';
+    el.truthTradierCapital.textContent = tradier.available_capital_usd ?? '--';
+    el.truthTradierStage.textContent = tradier.last_lifecycle_stage ?? '--';
+    el.truthTradierAttempt.textContent = tradier.last_attempt_status ?? '--';
+    el.truthTradierBlocker.textContent = tradier.top_blocker ?? '--';
+    el.truthBlocFunded.textContent = String(bloc.funded ?? '--');
+    el.truthBlocPathReady.textContent = String(bloc.path_ready ?? '--');
+    el.truthBlocEdgeProven.textContent = String(bloc.edge_proven ?? '--');
+    el.truthBlocStatus.textContent = bloc.status_label ?? '--';
+    el.truthBlocCapital.textContent = bloc.available_capital_usd ?? '--';
+    el.truthBlocAttempt.textContent = bloc.last_attempt_status ?? '--';
+    el.truthBlocRejection.textContent = bloc.last_rejection_reason ?? '--';
+    el.truthBlocSize.textContent = bloc.last_meaningful_attempt_size_usd ?? '--';
+    el.truthBlocEdge.textContent = bloc.last_gross_edge_pct ?? '--';
+    el.truthBlocFriction.textContent = bloc.last_estimated_friction_pct ?? '--';
+}
+
 function renderAll() {
+    renderTruthBoard();
     renderAccount();
     renderTradier();
     renderBloc();
