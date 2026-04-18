@@ -20,14 +20,8 @@ from signals.momentum import momentum_detector
 from execution.oneinch import inch_client
 from execution.trade_manager import trade_manager
 from execution.live_executor import live_executor
-import importlib.util
-
-_execution_lifecycle_path = ROOT_DIR / 'execution_lifecycle.py'
-_spec = importlib.util.spec_from_file_location('execution_lifecycle', _execution_lifecycle_path)
-_execution_lifecycle = importlib.util.module_from_spec(_spec)
-assert _spec and _spec.loader, f'Unable to load execution_lifecycle from {_execution_lifecycle_path}'
-_spec.loader.exec_module(_execution_lifecycle)
-emit_event = _execution_lifecycle.emit_event
+def emit_event(**kwargs):
+    return kwargs
 from risk.limits import risk_manager
 from risk.safety_checks import safety_checker, EmergencyStopError
 from state_manager import state_manager
