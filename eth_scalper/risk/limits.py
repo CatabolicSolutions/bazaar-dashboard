@@ -41,9 +41,14 @@ class RiskManager:
         
         # Check capital availability
         used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
-        available = INITIAL_CAPITAL_USD - used_capital
+        try:
+            from wallet_monitor import wallet_monitor
+            wallet = wallet_monitor.get_all_balances()
+            available = max(0.0, float(wallet.get('usdc') or 0.0) - used_capital)
+        except Exception:
+            available = INITIAL_CAPITAL_USD - used_capital
         
-        if available < MAX_POSITION_USD:
+        if available <= 0:
             return False, f"Insufficient capital: ${available:.2f} available"
         
         return True, "OK"
@@ -133,12 +138,19 @@ class RiskManager:
         """Get current risk status"""
         used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
         
+        try:
+            from wallet_monitor import wallet_monitor
+            wallet = wallet_monitor.get_all_balances()
+            available_capital = max(0.0, float(wallet.get('usdc') or 0.0) - used_capital)
+        except Exception:
+            available_capital = INITIAL_CAPITAL_USD - used_capital
+
         return {
             'daily_pnl': self.daily_pnl,
             'daily_trades': self.daily_trades,
             'open_positions': len(self.open_positions),
             'used_capital': used_capital,
-            'available_capital': INITIAL_CAPITAL_USD - used_capital,
+            'available_capital': available_capital,
             'daily_loss_limit': MAX_DAILY_LOSS_USD,
             'remaining_loss_allowance': MAX_DAILY_LOSS_USD + self.daily_pnl if self.daily_pnl < 0 else MAX_DAILY_LOSS_USD,
             'cooldown_active': time.time() - self.last_trade_time < self.cooldown_seconds

@@ -27,15 +27,16 @@ class MomentumDetector:
             if current_price is None or change_pct is None:
                 continue
 
-            price_movement = abs(change_pct)
-            if price_movement < MIN_PRICE_MOVEMENT_PCT:
-                continue
-
             history = multi_asset_feed.price_history.get(symbol, [])
             midpoint = sum(p for _, p in history[-12:]) / max(1, len(history[-12:])) if history else current_price
             distance_from_mid = ((current_price - midpoint) / midpoint) * 100 if midpoint else 0.0
-            direction = 'up' if change_pct > 0 else 'down'
-            setup = 'sell_strength' if direction == 'up' else 'buy_pullback'
+            at_or_below_mid = current_price <= midpoint
+            price_movement = abs(change_pct)
+            if not at_or_below_mid and price_movement < MIN_PRICE_MOVEMENT_PCT:
+                continue
+
+            direction = 'down' if at_or_below_mid else ('up' if change_pct > 0 else 'down')
+            setup = 'buy_pullback' if at_or_below_mid else ('sell_strength' if direction == 'up' else 'buy_pullback')
 
             stats = {
                 'symbol': symbol,
@@ -64,7 +65,7 @@ class MomentumDetector:
                 'setup': setup,
                 'midpoint_price': midpoint,
                 'distance_from_mid_pct': distance_from_mid,
-                'pullback_bias': direction == 'down' and current_price <= midpoint,
+                'pullback_bias': current_price <= midpoint,
                 'sell_strength_bias': direction == 'up' and current_price >= midpoint,
             }
             if best_signal is None or signal['score'] > best_signal['score']:
