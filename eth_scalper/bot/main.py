@@ -352,11 +352,13 @@ class ETHScalper:
             base_token = WETH_ADDRESS if signal.get('symbol', 'ETH') == 'ETH' else CBBTC_ADDRESS
             quote = inch_client.get_quote(USDC_ADDRESS, base_token, int(size_usd * 1e6), use_cache=False)
             if not quote:
+                print("   ❌ Rejected: missing_quote")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='missing_quote')
                 state_manager.log_signal(signal, executed=False, reason='missing_quote')
                 return
             quote_age_seconds = max(0.0, time.time() - inch_client.last_quote_time)
             if quote_age_seconds > 5.0:
+                print(f"   ❌ Rejected: quote_stale ({quote_age_seconds:.2f}s)")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='quote_stale')
                 state_manager.log_signal(signal, executed=False, reason='quote_stale')
                 return
@@ -378,14 +380,17 @@ class ETHScalper:
             signal['quoted_out_usd'] = quoted_out_usd
 
             if friction_pct >= gross_edge_pct:
+                print(f"   ❌ Rejected: friction_exceeds_edge (friction={friction_pct:.4f}%, gross_edge={gross_edge_pct:.4f}%)")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='friction_exceeds_edge', data={'friction_pct': friction_pct, 'gross_edge_pct': gross_edge_pct})
                 state_manager.log_signal(signal, executed=False, reason='friction_exceeds_edge')
                 return
             if expected_edge_pct < BLOC_MIN_NET_PROFIT_PCT:
+                print(f"   ❌ Rejected: edge_below_net_target (expected_edge={expected_edge_pct:.4f}%, target={BLOC_MIN_NET_PROFIT_PCT:.4f}%)")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct})
                 state_manager.log_signal(signal, executed=False, reason='edge_below_net_target')
                 return
 
+        print(f"   ✅ Qualified for execution: size=${size_usd:.2f}, expected_edge={signal.get('expected_edge_pct')}, funded_side={signal.get('funded_side')}")
         emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='qualified', outcome_type='info', status='success', setup_type=signal.get('type'), data={'size_usd': size_usd})
         state_manager.log_signal(signal, executed=True, reason="passed_all_checks")
 
