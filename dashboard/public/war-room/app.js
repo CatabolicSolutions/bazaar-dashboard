@@ -1,288 +1,314 @@
-// WAR ROOM — Real‑time Command Center
-// Polls status endpoints every 5 seconds, updates UI.
-
-// Config
-const API_BASE = ''; // same origin
+const API_BASE = '';
 const POLL_INTERVAL = 5000;
 
-// State
-let state = {
-    account: { usdc: 168, weth: 85 },
-    pnlToday: 0,
-    tradier: { bp: 150, positions: 0, orders: 0, health: 'green' },
-    bloc: { usdc: 168, weth: 85, positions: 1, health: 'green' },
+const state = {
+    tradier: { bp: 0, positions: 0, orders: 0, health: 'red' },
+    bloc: { usdc: 0, weth: 0, positions: 0, health: 'red' },
     hq: { engine_truth_board: { tradier: {}, bloc: {} } },
     positions: [],
-    activity: []
+    activity: [],
+    sie: {}
 };
 
-// DOM elements
 const el = {
-    clock: document.getElementById('clock'),
-    accountUsdc: document.getElementById('account-usdc'),
-    accountWeth: document.getElementById('account-weth'),
-    pnlToday: document.getElementById('pnl-today'),
-    tradierHealth: document.getElementById('tradier-health'),
-    tradierBp: document.getElementById('tradier-bp'),
-    tradierPositions: document.getElementById('tradier-positions'),
-    tradierOrders: document.getElementById('tradier-orders'),
-    blocHealth: document.getElementById('bloc-health'),
-    blocUsdc: document.getElementById('bloc-usdc'),
-    blocWeth: document.getElementById('bloc-weth'),
-    blocPositions: document.getElementById('bloc-positions'),
-    positionsContainer: document.getElementById('positions-container'),
-    activityTableBody: document.getElementById('activity-table-body'),
-    truthTradierFunded: document.getElementById('truth-tradier-funded'),
-    truthTradierPathReady: document.getElementById('truth-tradier-path-ready'),
-    truthTradierEdgeProven: document.getElementById('truth-tradier-edge-proven'),
-    truthTradierStatus: document.getElementById('truth-tradier-status'),
-    truthTradierCapital: document.getElementById('truth-tradier-capital'),
-    truthTradierStage: document.getElementById('truth-tradier-stage'),
-    truthTradierAttempt: document.getElementById('truth-tradier-attempt'),
-    truthTradierBlocker: document.getElementById('truth-tradier-blocker'),
-    truthBlocFunded: document.getElementById('truth-bloc-funded'),
-    truthBlocPathReady: document.getElementById('truth-bloc-path-ready'),
-    truthBlocEdgeProven: document.getElementById('truth-bloc-edge-proven'),
-    truthBlocStatus: document.getElementById('truth-bloc-status'),
-    truthBlocCapital: document.getElementById('truth-bloc-capital'),
-    truthBlocAttempt: document.getElementById('truth-bloc-attempt'),
-    truthBlocRejection: document.getElementById('truth-bloc-rejection'),
-    truthBlocSize: document.getElementById('truth-bloc-size'),
-    truthBlocEdge: document.getElementById('truth-bloc-edge'),
-    truthBlocFriction: document.getElementById('truth-bloc-friction'),
+    asof: document.getElementById('asof'),
+    headlineDecision: document.getElementById('headline-decision'),
+    headlineReason: document.getElementById('headline-reason'),
+    headlineTradier: document.getElementById('headline-tradier'),
+    headlineTradierSub: document.getElementById('headline-tradier-sub'),
+    headlineBloc: document.getElementById('headline-bloc'),
+    headlineBlocSub: document.getElementById('headline-bloc-sub'),
+    headlineExposure: document.getElementById('headline-exposure'),
+    headlineExposureSub: document.getElementById('headline-exposure-sub'),
+    directiveTitle: document.getElementById('directive-title'),
+    directiveBadge: document.getElementById('directive-badge'),
+    directiveCopy: document.getElementById('directive-copy'),
+    miniTradierCapital: document.getElementById('mini-tradier-capital'),
+    miniBlocCapital: document.getElementById('mini-bloc-capital'),
+    miniReality: document.getElementById('mini-reality'),
+    readinessList: document.getElementById('readiness-list'),
+    nextActions: document.getElementById('next-actions'),
+    positionsList: document.getElementById('positions-list'),
+    activityList: document.getElementById('activity-list'),
     btnPauseBloc: document.getElementById('btn-pause-bloc'),
     btnPauseTradier: document.getElementById('btn-pause-tradier'),
-    btnCloseAll: document.getElementById('btn-close-all'),
-    tradierOrder: document.getElementById('tradier-order'),
-    ethPrice: document.getElementById('eth-price'),
-    lastMomentum: document.getElementById('last-momentum')
+    btnCloseAll: document.getElementById('btn-close-all')
 };
 
-// Update clock every second
-function updateClock() {
-    const now = new Date();
-    const time = now.toLocaleTimeString('en-US', { hour12: false });
-    el.clock.textContent = time;
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// Format currency
-function formatCurrency(amount) {
-    if (typeof amount !== 'number') return '$0.00';
-    return '$' + amount.toFixed(2);
+function fmtMoney(v, digits = 2) {
+    if (typeof v !== 'number' || Number.isNaN(v)) return '--';
+    return `$${v.toFixed(digits)}`;
 }
 
-// Render account summary
-function renderAccount() {
-    el.accountUsdc.textContent = formatCurrency(state.account.usdc) + ' USDC';
-    el.accountWeth.textContent = formatCurrency(state.account.weth) + ' WETH';
-    el.pnlToday.textContent = (state.pnlToday >= 0 ? '+' : '') + formatCurrency(state.pnlToday);
+function fmtBool(v) {
+    if (v === true) return 'Yes';
+    if (v === false) return 'No';
+    return '--';
 }
 
-// Render Tradier panel
-function renderTradier() {
-    el.tradierBp.textContent = formatCurrency(state.tradier.bp);
-    el.tradierPositions.textContent = state.tradier.positions;
-    el.tradierOrders.textContent = state.tradier.orders;
-    el.tradierHealth.className = 'health-dot ' + (state.tradier.health === 'green' ? '' : 'red');
+function cleanLabel(v) {
+    if (!v) return '--';
+    return String(v).replaceAll('_', ' ');
 }
 
-// Render Bloc panel
-function renderBloc() {
-    el.blocUsdc.textContent = formatCurrency(state.bloc.usdc);
-    el.blocWeth.textContent = formatCurrency(state.bloc.weth);
-    el.blocPositions.textContent = state.bloc.positions;
-    el.blocHealth.className = 'health-dot ' + (state.bloc.health === 'green' ? '' : 'red');
+function titleCase(v) {
+    const s = cleanLabel(v);
+    return s === '--' ? s : s.replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// Render positions
+function truth() {
+    return state.hq?.engine_truth_board || { tradier: {}, bloc: {} };
+}
+
+function readinessScore(path) {
+    if (!path) return 0;
+    let score = 0;
+    if (path.funded) score += 1;
+    if (path.path_ready) score += 1;
+    if (path.edge_proven) score += 1;
+    return score;
+}
+
+function computeDirective() {
+    const t = truth().tradier || {};
+    const b = truth().bloc || {};
+    const activePositions = Array.isArray(state.positions) ? state.positions.length : 0;
+
+    if (activePositions > 0) {
+        return {
+            title: 'Manage live risk',
+            badge: 'Live Risk',
+            badgeClass: 'badge-red',
+            copy: `There ${activePositions === 1 ? 'is' : 'are'} ${activePositions} active ${activePositions === 1 ? 'position' : 'positions'} on the board. Monitor exits, unrealized P&L, and forced-close readiness before looking for fresh entries.`
+        };
+    }
+
+    if (t.path_ready && t.funded && !t.edge_proven) {
+        return {
+            title: 'Tradier operational, edge not yet validated',
+            badge: 'Await Edge',
+            badgeClass: 'badge-amber',
+            copy: t.top_blocker
+                ? `Tradier is structurally ready, but the last execution failed on a hard constraint: ${t.top_blocker}. Fix sizing and only take the next setup if notional fits buying power.`
+                : 'Tradier is structurally ready. Next step is disciplined selection and sizing, not more scaffolding.'
+        };
+    }
+
+    if (b.path_ready && b.funded && !b.edge_proven) {
+        return {
+            title: 'Bloc funded, but no proven edge',
+            badge: 'No Trade',
+            badgeClass: 'badge-amber',
+            copy: 'Bloc has capital and plumbing, but the edge filter is not yet earning trust. Prioritize contract selection quality, fair-value anchoring, and friction-aware execution checks.'
+        };
+    }
+
+    return {
+        title: 'Monitor and refine',
+        badge: 'Monitoring',
+        badgeClass: 'badge-amber',
+        copy: 'No urgent live action is required. Keep the stack honest, surface blockers clearly, and improve the highest-return path.'
+    };
+}
+
+function buildNextActions() {
+    const t = truth().tradier || {};
+    const b = truth().bloc || {};
+    const actions = [];
+
+    if (t.top_blocker) {
+        actions.push({
+            title: 'Fix Tradier sizing mismatch',
+            copy: `Last attempt failed because ${t.top_blocker}. Lower ticket notional so the next live candidate can clear buying power.`
+        });
+    }
+
+    if (b.funded && !b.edge_proven) {
+        actions.push({
+            title: 'Do not force a Bloc trade',
+            copy: 'Keep Bloc in no-trade mode until a contract survives probability, friction, and clarity checks.'
+        });
+    }
+
+    if ((state.positions || []).length === 0) {
+        actions.push({
+            title: 'Use dashboard for go or no-go, not decoration',
+            copy: 'Focus on capital, blockers, readiness, and next action. Ignore vanity metrics unless they change a decision.'
+        });
+    }
+
+    actions.push({
+        title: 'Review latest activity for false progress',
+        copy: 'Look for repeated rejects, stale statuses, or any workflow that appears alive but is not actually producing tradable opportunities.'
+    });
+
+    return actions.slice(0, 4);
+}
+
+function renderHeadline() {
+    const t = truth().tradier || {};
+    const b = truth().bloc || {};
+    const directive = computeDirective();
+    const activePositions = Array.isArray(state.positions) ? state.positions.length : 0;
+
+    el.asof.textContent = `Updated ${new Date().toLocaleString()}`;
+    el.headlineDecision.textContent = directive.title;
+    el.headlineReason.textContent = directive.copy;
+
+    el.headlineTradier.textContent = `${readinessScore(t)}/3 ready`;
+    el.headlineTradierSub.textContent = `${titleCase(t.status_label)} • ${fmtMoney(t.available_capital_usd)}`;
+
+    el.headlineBloc.textContent = `${readinessScore(b)}/3 ready`;
+    el.headlineBlocSub.textContent = `${titleCase(b.status_label)} • ${fmtMoney(b.available_capital_usd, 2)}`;
+
+    el.headlineExposure.textContent = `${activePositions} ${activePositions === 1 ? 'position' : 'positions'}`;
+    el.headlineExposureSub.textContent = activePositions > 0 ? 'Live risk requires supervision' : 'No active risk detected';
+
+    el.directiveTitle.textContent = directive.title;
+    el.directiveBadge.textContent = directive.badge;
+    el.directiveBadge.className = `decision-badge ${directive.badgeClass}`;
+    el.directiveCopy.textContent = directive.copy;
+
+    el.miniTradierCapital.textContent = fmtMoney(t.available_capital_usd);
+    el.miniBlocCapital.textContent = fmtMoney(b.available_capital_usd, 2);
+    const eth = typeof state.sie.eth_price === 'number' ? `$${state.sie.eth_price.toFixed(2)}` : '--';
+    const mom = typeof state.sie.momentum === 'number' ? `${(state.sie.momentum * 100).toFixed(2)}%` : '--';
+    el.miniReality.textContent = `ETH ${eth} | Mom ${mom}`;
+}
+
+function renderReadiness() {
+    const systems = [
+        { key: 'Tradier', data: truth().tradier || {}, capital: state.tradier.bp },
+        { key: 'Bloc', data: truth().bloc || {}, capital: state.bloc.usdc }
+    ];
+
+    el.readinessList.innerHTML = systems.map(({ key, data, capital }) => `
+        <div class="ops-item">
+            <div class="ops-item-head">
+                <div class="ops-name">${key}</div>
+                <div class="decision-badge ${data.edge_proven ? 'badge-green' : (data.path_ready ? 'badge-amber' : 'badge-red')}">${readinessScore(data)}/3 ready</div>
+            </div>
+            <div class="ops-summary">${titleCase(data.status_label)}. ${data.edge_proven ? 'System has proven edge.' : 'Not yet cleared for confident scaling.'}</div>
+            <div class="kv">
+                <div><span>Funded</span>${fmtBool(data.funded)}</div>
+                <div><span>Path ready</span>${fmtBool(data.path_ready)}</div>
+                <div><span>Edge proven</span>${fmtBool(data.edge_proven)}</div>
+                <div><span>Capital</span>${fmtMoney(data.available_capital_usd ?? capital, 2)}</div>
+                <div><span>Last stage</span>${titleCase(data.last_lifecycle_stage)}</div>
+                <div><span>Last attempt</span>${titleCase(data.last_attempt_status)}</div>
+            </div>
+            <div class="blocker"><strong>Top blocker:</strong> ${data.top_blocker || data.last_rejection_reason || 'None currently surfaced'}</div>
+        </div>
+    `).join('');
+}
+
+function renderNextActions() {
+    const actions = buildNextActions();
+    el.nextActions.innerHTML = actions.map((item, idx) => `
+        <div class="next-action">
+            <div class="num">${idx + 1}</div>
+            <div class="action-copy"><strong>${item.title}</strong>${item.copy}</div>
+        </div>
+    `).join('');
+}
+
 function renderPositions() {
-    if (state.positions.length === 0) {
-        el.positionsContainer.innerHTML = '<div style="color: var(--text-dim); text-align: center; padding: 32px;">No active positions</div>';
+    const positions = Array.isArray(state.positions) ? state.positions : [];
+    if (!positions.length) {
+        el.positionsList.innerHTML = '<div class="positions-empty">No active positions. That is good if edge is absent, bad if the engine should be live and is silently stalled.</div>';
         return;
     }
-    let html = '';
-    state.positions.forEach(pos => {
-        const pnlColor = pos.pnl >= 0 ? 'var(--green)' : 'var(--red)';
-        html += `
-            <div class="position-card">
-                <div class="position-header">
-                    <span class="position-symbol">${pos.symbol} ${pos.side}</span>
-                    <span class="position-side">${pos.side}</span>
+
+    el.positionsList.innerHTML = positions.map((pos) => {
+        const pnl = typeof pos.pnl === 'number' ? `${pos.pnl >= 0 ? '+' : ''}${fmtMoney(pos.pnl)}` : '--';
+        return `
+            <div class="position-row">
+                <div class="position-top">
+                    <div>${pos.symbol || '--'} ${pos.side || ''}</div>
+                    <div class="${typeof pos.pnl === 'number' ? (pos.pnl >= 0 ? 'good' : 'bad') : ''}">${pnl}</div>
                 </div>
-                <div class="position-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Entry</span>
-                        <span class="detail-value">${formatCurrency(pos.entry)}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">P&L</span>
-                        <span class="detail-value" style="color: ${pnlColor};">${pos.pnl >= 0 ? '+' : ''}${formatCurrency(pos.pnl)}</span>
-                    </div>
-                </div>
-                <div class="position-actions">
-                    <button class="btn-close" data-symbol="${pos.symbol}" data-side="${pos.side}">Close</button>
+                <div class="meta-row">
+                    <span>Entry: ${fmtMoney(pos.entry)}</span>
+                    <span>Size: ${pos.size ?? '--'}</span>
+                    <span>Status: ${titleCase(pos.status)}</span>
                 </div>
             </div>
         `;
-    });
-    el.positionsContainer.innerHTML = html;
-    // Attach close button handlers
-    document.querySelectorAll('.btn-close').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const symbol = this.dataset.symbol;
-            const side = this.dataset.side;
-            if (confirm(`Close ${symbol} ${pos.side} position?`)) {
-                // Call close endpoint
-                fetch(`${API_BASE}/api/close`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol, side })
-                }).then(res => res.json()).then(data => {
-                    console.log('Close response:', data);
-                    pollData(); // Refresh
-                }).catch(err => console.error('Close failed:', err));
-            }
-        });
-    });
+    }).join('');
 }
 
-// Render activity table
 function renderActivity() {
-    let html = '';
-    state.activity.forEach(row => {
-        html += `
-            <tr>
-                <td>${row.time}</td>
-                <td>${row.system}</td>
-                <td>${row.symbol}</td>
-                <td>${row.side}</td>
-                <td>${row.pnl === null ? '--' : (row.pnl >= 0 ? '+' : '') + formatCurrency(row.pnl)}</td>
-            </tr>
-        `;
-    });
-    el.activityTableBody.innerHTML = html;
-}
-
-// Poll data from backend
-async function pollData() {
-    try {
-        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes] = await Promise.all([
-            fetch(`${API_BASE}/api/tradier/status`).then(r => r.json()),
-            fetch(`${API_BASE}/api/bloc/status`).then(r => r.json()),
-            fetch(`${API_BASE}/api/positions`).then(r => r.json()),
-            fetch(`${API_BASE}/api/activity`).then(r => r.json()),
-            fetch(`${API_BASE}/api/sie/status`).then(r => r.json()),
-            fetch(`${API_BASE}/snapshot.json`).then(r => r.json())
-        ]);
-        // Merge into state
-        if (tradierRes.bp !== undefined) state.tradier.bp = tradierRes.bp;
-        if (tradierRes.positions !== undefined) state.tradier.positions = tradierRes.positions;
-        if (tradierRes.orders !== undefined) state.tradier.orders = tradierRes.orders;
-        if (tradierRes.health !== undefined) state.tradier.health = tradierRes.health;
-        
-        if (blocRes.usdc !== undefined) state.bloc.usdc = blocRes.usdc;
-        if (blocRes.weth !== undefined) state.bloc.weth = blocRes.weth;
-        if (blocRes.positions !== undefined) state.bloc.positions = blocRes.positions;
-        if (blocRes.health !== undefined) state.bloc.health = blocRes.health;
-        
-        // SIE status (reality banner)
-        if (sieRes && sieRes.order_id !== undefined) {
-            el.tradierOrder.textContent = `${sieRes.order_id} (NVDA PUT)`;
-            el.ethPrice.textContent = `$${sieRes.eth_price ? sieRes.eth_price.toFixed(2) : '--'}`;
-            el.lastMomentum.textContent = `${sieRes.momentum ? (sieRes.momentum * 100).toFixed(3) : '--'}%`;
-        }
-
-        // Account summary (for now combine bloc balances)
-        state.account.usdc = state.bloc.usdc;
-        state.account.weth = state.bloc.weth;
-        
-        if (positionsRes.positions) state.positions = positionsRes.positions;
-        if (activityRes.activity) state.activity = activityRes.activity;
-        if (snapshotRes.hq) state.hq = snapshotRes.hq;
-        
-        renderAll();
-    } catch (err) {
-        console.error('Poll error:', err);
-        // Set health to red
-        el.tradierHealth.className = 'health-dot red';
-        el.blocHealth.className = 'health-dot red';
+    const activity = Array.isArray(state.activity) ? state.activity : [];
+    if (!activity.length) {
+        el.activityList.innerHTML = '<div class="activity-empty">No recent activity available.</div>';
+        return;
     }
-}
 
-// Initial render
-function renderTruthBoard() {
-    const tradier = (state.hq.engine_truth_board || {}).tradier || {};
-    const bloc = (state.hq.engine_truth_board || {}).bloc || {};
-    el.truthTradierFunded.textContent = String(tradier.funded ?? '--');
-    el.truthTradierPathReady.textContent = String(tradier.path_ready ?? '--');
-    el.truthTradierEdgeProven.textContent = String(tradier.edge_proven ?? '--');
-    el.truthTradierStatus.textContent = tradier.status_label ?? '--';
-    el.truthTradierCapital.textContent = tradier.available_capital_usd ?? '--';
-    el.truthTradierStage.textContent = tradier.last_lifecycle_stage ?? '--';
-    el.truthTradierAttempt.textContent = tradier.last_attempt_status ?? '--';
-    el.truthTradierBlocker.textContent = tradier.top_blocker ?? '--';
-    el.truthBlocFunded.textContent = String(bloc.funded ?? '--');
-    el.truthBlocPathReady.textContent = String(bloc.path_ready ?? '--');
-    el.truthBlocEdgeProven.textContent = String(bloc.edge_proven ?? '--');
-    el.truthBlocStatus.textContent = bloc.status_label ?? '--';
-    el.truthBlocCapital.textContent = bloc.available_capital_usd ?? '--';
-    el.truthBlocAttempt.textContent = bloc.last_attempt_status ?? '--';
-    el.truthBlocRejection.textContent = bloc.last_rejection_reason ?? '--';
-    el.truthBlocSize.textContent = bloc.last_meaningful_attempt_size_usd ?? '--';
-    el.truthBlocEdge.textContent = bloc.last_gross_edge_pct ?? '--';
-    el.truthBlocFriction.textContent = bloc.last_estimated_friction_pct ?? '--';
+    el.activityList.innerHTML = activity.slice(0, 8).map((row) => `
+        <div class="activity-row">
+            <div class="activity-top">
+                <div>${row.system || '--'} • ${row.symbol || '--'}</div>
+                <div>${row.time || '--'}</div>
+            </div>
+            <div class="meta-row">
+                <span>Side: ${row.side || '--'}</span>
+                <span>P&L: ${row.pnl == null ? '--' : `${row.pnl >= 0 ? '+' : ''}${fmtMoney(row.pnl)}`}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
 function renderAll() {
-    renderTruthBoard();
-    renderAccount();
-    renderTradier();
-    renderBloc();
+    renderHeadline();
+    renderReadiness();
+    renderNextActions();
     renderPositions();
     renderActivity();
 }
 
-// Button actions
-el.btnPauseBloc.addEventListener('click', () => {
-    fetch(`${API_BASE}/api/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'pause_bloc' })
-    }).then(res => res.json()).then(data => {
-        console.log('Pause Bloc:', data);
-        alert('Bloc paused');
-    }).catch(err => console.error('Command failed:', err));
-});
+async function pollData() {
+    try {
+        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes] = await Promise.all([
+            fetch(`${API_BASE}/api/tradier/status`).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE}/api/bloc/status`).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE}/api/positions`).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE}/api/activity`).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE}/api/sie/status`).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE}/snapshot.json`).then(r => r.json()).catch(() => ({}))
+        ]);
 
-el.btnPauseTradier.addEventListener('click', () => {
-    fetch(`${API_BASE}/api/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'pause_tradier' })
-    }).then(res => res.json()).then(data => {
-        console.log('Pause Tradier:', data);
-        alert('Tradier paused');
-    }).catch(err => console.error('Command failed:', err));
-});
+        state.tradier = { ...state.tradier, ...tradierRes };
+        state.bloc = { ...state.bloc, ...blocRes };
+        state.positions = positionsRes.positions || [];
+        state.activity = activityRes.activity || [];
+        state.sie = sieRes || {};
+        if (snapshotRes.hq) state.hq = snapshotRes.hq;
 
-el.btnCloseAll.addEventListener('click', () => {
-    if (confirm('Emergency close ALL positions? This cannot be undone.')) {
-        fetch(`${API_BASE}/api/command`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: 'close_all' })
-        }).then(res => res.json()).then(data => {
-            console.log('Close all:', data);
-            alert('Emergency close initiated');
-        }).catch(err => console.error('Command failed:', err));
+        renderAll();
+    } catch (err) {
+        console.error('Poll error:', err);
     }
+}
+
+function sendCommand(command, successText) {
+    fetch(`${API_BASE}/api/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+    }).then(r => r.json())
+      .then(() => alert(successText))
+      .catch(err => {
+          console.error('Command failed:', err);
+          alert('Command failed');
+      });
+}
+
+el.btnPauseBloc.addEventListener('click', () => sendCommand('pause_bloc', 'Bloc paused'));
+el.btnPauseTradier.addEventListener('click', () => sendCommand('pause_tradier', 'Tradier paused'));
+el.btnCloseAll.addEventListener('click', () => {
+    if (confirm('Emergency close ALL positions?')) sendCommand('close_all', 'Emergency close initiated');
 });
 
-// Start polling
-setInterval(pollData, POLL_INTERVAL);
-pollData();
-
-// Initial render
 renderAll();
+pollData();
+setInterval(pollData, POLL_INTERVAL);

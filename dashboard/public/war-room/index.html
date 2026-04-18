@@ -3,453 +3,444 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WAR ROOM — Trading Command Center</title>
+    <title>WAR ROOM — Bazaar Operator Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0a0a0a;
-            --surface: #141414;
-            --border: #2a2a2a;
-            --text: #f0f0f0;
-            --text-dim: #888;
-            --green: #10b981;
+            --bg: #0b0f14;
+            --surface: #111827;
+            --surface-2: #0f172a;
+            --card: #151f30;
+            --border: #22304a;
+            --text: #e5edf7;
+            --text-dim: #94a3b8;
+            --green: #22c55e;
             --red: #ef4444;
-            --yellow: #f59e0b;
-            --blue: #3b82f6;
+            --amber: #f59e0b;
+            --blue: #38bdf8;
+            --violet: #8b5cf6;
             --font-sans: 'Inter', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background: var(--bg);
+            background: linear-gradient(180deg, #08111d 0%, #0b0f14 100%);
             color: var(--text);
             font-family: var(--font-sans);
             font-size: 14px;
-            line-height: 1.5;
-            height: 100vh;
-            overflow: hidden;
-            padding: 16px;
-        }
-        .war-room {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            gap: 16px;
-        }
-        .header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-        }
-        .account-summary {
-            display: flex;
-            gap: 24px;
-            font-family: var(--font-mono);
-        }
-        .account-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .account-value {
-            font-weight: 600;
-            color: var(--green);
-        }
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 2fr;
-            gap: 16px;
-            flex: 1;
-            min-height: 0;
-        }
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .panel-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-size: 13px;
-            color: var(--text-dim);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .panel-body {
-            padding: 16px;
-            flex: 1;
-            overflow: auto;
-        }
-        .health-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--green);
-        }
-        .health-dot.red { background: var(--red); }
-        .system-metrics {
-            font-family: var(--font-mono);
-            font-size: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-        }
-        .metric-label {
-            color: var(--text-dim);
-        }
-        .metric-value {
-            font-weight: 600;
-        }
-        .positions-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .position-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            line-height: 1.45;
             padding: 12px;
-            font-family: var(--font-mono);
         }
-        .position-header {
+        .shell {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card {
+            background: rgba(17, 24, 39, 0.96);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+        }
+        .hero {
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .eyebrow {
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        h1 {
+            font-size: 26px;
+            line-height: 1.05;
+            margin-bottom: 4px;
+        }
+        .subline {
+            color: var(--text-dim);
+            max-width: 760px;
+        }
+        .asof {
+            font-family: var(--font-mono);
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+        .status-strip {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0,1fr));
+            gap: 10px;
+        }
+        .pill-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(148,163,184,0.14);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .pill-label {
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+        .pill-value {
+            font-size: 18px;
+            font-weight: 800;
+        }
+        .pill-sub {
+            color: var(--text-dim);
+            margin-top: 4px;
+            font-size: 12px;
+        }
+        .decision {
+            padding: 14px;
+            border: 1px solid rgba(56,189,248,0.22);
+            background: linear-gradient(180deg, rgba(56,189,248,0.08), rgba(56,189,248,0.03));
+            border-radius: 12px;
+            display: grid;
+            gap: 10px;
+        }
+        .decision-head {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
+        }
+        .decision-title {
+            font-size: 19px;
+            font-weight: 800;
+        }
+        .decision-badge {
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .badge-green { color: #bbf7d0; background: rgba(34,197,94,0.16); }
+        .badge-red { color: #fecaca; background: rgba(239,68,68,0.16); }
+        .badge-amber { color: #fde68a; background: rgba(245,158,11,0.16); }
+        .decision-copy {
+            font-size: 15px;
+            color: var(--text);
+        }
+        .decision-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 10px;
+        }
+        .mini-stat {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .mini-stat .label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+        .mini-stat .value { font-weight: 800; font-size: 16px; margin-top: 4px; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 12px;
+        }
+        .stack {
+            display: grid;
+            gap: 12px;
+        }
+        .section {
+            padding: 14px;
+        }
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .section-sub {
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+        .ops-list {
+            display: grid;
+            gap: 10px;
+        }
+        .ops-item {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(148,163,184,0.14);
+        }
+        .ops-item-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 8px;
         }
-        .position-symbol {
-            font-weight: 700;
-            font-size: 15px;
+        .ops-name {
+            font-weight: 800;
+            font-size: 16px;
         }
-        .position-side {
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            background: var(--blue);
-        }
-        .position-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .detail-item {
-            display: flex;
-            flex-direction: column;
-        }
-        .detail-label {
-            font-size: 11px;
+        .ops-summary {
             color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            margin-bottom: 10px;
         }
-        .detail-value {
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .position-actions {
-            display: flex;
-            justify-content: flex-end;
-        }
-        .btn-close {
-            background: var(--red);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-family: var(--font-sans);
-            font-weight: 600;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .activity-panel {
-            grid-column: 1 / -1;
-            height: 200px;
-        }
-        .activity-table {
-            width: 100%;
-            border-collapse: collapse;
+        .kv {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 8px;
             font-family: var(--font-mono);
+            font-size: 12px;
+        }
+        .kv div {
+            background: rgba(255,255,255,0.02);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(148,163,184,0.08);
+        }
+        .kv span { display: block; color: var(--text-dim); margin-bottom: 3px; }
+        .blocker {
+            color: #fecaca;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.18);
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
             font-size: 13px;
         }
-        .activity-table th {
-            text-align: left;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-dim);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .next-action-list {
+            display: grid;
+            gap: 10px;
         }
-        .activity-table td {
-            padding: 8px 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .activity-table tr:hover {
-            background: rgba(255,255,255,0.03);
-        }
-        .quick-actions {
+        .next-action {
             display: flex;
-            gap: 12px;
-            padding: 16px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            justify-content: center;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(148,163,184,0.12);
         }
-        .btn-action {
-            padding: 10px 20px;
-            border: 1px solid var(--border);
+        .next-action .num {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: var(--blue);
+            color: #08111d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 12px;
+            flex: 0 0 22px;
+            margin-top: 1px;
+        }
+        .action-copy { color: var(--text); }
+        .action-copy strong { display: block; margin-bottom: 2px; }
+        .positions-empty, .activity-empty {
+            color: var(--text-dim);
+            padding: 8px 0;
+        }
+        .positions-list, .activity-list {
+            display: grid;
+            gap: 10px;
+        }
+        .position-row, .activity-row {
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(148,163,184,0.12);
+        }
+        .position-top, .activity-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        .meta-row {
+            color: var(--text-dim);
+            font-size: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .toolbar {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 10px;
+        }
+        .toolbtn {
+            padding: 12px;
+            border-radius: 10px;
             background: transparent;
             color: var(--text);
-            border-radius: 6px;
-            font-family: var(--font-sans);
-            font-weight: 600;
-            font-size: 13px;
+            border: 1px solid rgba(148,163,184,0.18);
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
         }
-        .btn-action:hover {
-            background: rgba(255,255,255,0.05);
+        .toolbtn.danger {
+            color: #fecaca;
+            border-color: rgba(239,68,68,0.28);
+            background: rgba(239,68,68,0.06);
         }
-        .btn-action.danger {
-            border-color: var(--red);
-            color: var(--red);
+        .mono { font-family: var(--font-mono); }
+        .good { color: var(--green); }
+        .bad { color: var(--red); }
+        .warn { color: var(--amber); }
+        @media (max-width: 900px) {
+            .status-strip, .decision-grid, .grid, .toolbar { grid-template-columns: 1fr; }
+            .hero-top, .section-head, .ops-item-head, .position-top, .activity-top { flex-direction: column; align-items: flex-start; }
+            .kv { grid-template-columns: 1fr; }
+            h1 { font-size: 22px; }
+            body { padding: 10px; }
         }
-        .btn-action.danger:hover {
-            background: rgba(239,68,68,0.1);
-        }
-    /* Reality Banner */
-    .reality-banner {
-      background: linear-gradient(90deg, #9b2c2c, #6b3826);
-      color: #f5dfbf;
-      padding: 12px 20px;
-      border-bottom: 2px solid #d98d2b;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 14px;
-      font-weight: 600;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    }
-    .banner-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .banner-label {
-      opacity: 0.8;
-      text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 0.05em;
-    }
-    .banner-value {
-      font-weight: 700;
-      color: #fff;
-    }
     </style>
 </head>
 <body>
-    <div id="reality-banner" class="reality-banner">
-      <div class="banner-item">
-        <span class="banner-label">LIVE TRADIER ORDER:</span>
-        <span class="banner-value" id="tradier-order">121832076 (NVDA PUT)</span>
-      </div>
-      <div class="banner-item">
-        <span class="banner-label">LIVE ETH PRICE:</span>
-        <span class="banner-value" id="eth-price">$--</span>
-      </div>
-      <div class="banner-item">
-        <span class="banner-label">LAST MOMENTUM:</span>
-        <span class="banner-value" id="last-momentum">--%</span>
-      </div>
-    </div>
-    <section class="panel" id="engine-truth-board">
-      <div class="panel-header">
-        <div>
-          <div class="eyebrow">HQ</div>
-          <h2>Engine Truth Board</h2>
-        </div>
-      </div>
-      <div class="grid-2">
-        <div class="metric-card">
-          <div class="metric-label">Tradier Funded</div><div id="truth-tradier-funded" class="metric-value">--</div>
-          <div class="metric-label">Path Ready</div><div id="truth-tradier-path-ready" class="metric-value">--</div>
-          <div class="metric-label">Edge Proven</div><div id="truth-tradier-edge-proven" class="metric-value">--</div>
-          <div class="metric-label">Status</div><div id="truth-tradier-status" class="metric-value">--</div>
-          <div class="metric-label">Capital</div><div id="truth-tradier-capital" class="metric-value">--</div>
-          <div class="metric-label">Last Stage</div><div id="truth-tradier-stage" class="metric-value">--</div>
-          <div class="metric-label">Last Attempt</div><div id="truth-tradier-attempt" class="metric-value">--</div>
-          <div class="metric-label">Top Blocker</div><div id="truth-tradier-blocker" class="metric-value">--</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Bloc Funded</div><div id="truth-bloc-funded" class="metric-value">--</div>
-          <div class="metric-label">Path Ready</div><div id="truth-bloc-path-ready" class="metric-value">--</div>
-          <div class="metric-label">Edge Proven</div><div id="truth-bloc-edge-proven" class="metric-value">--</div>
-          <div class="metric-label">Status</div><div id="truth-bloc-status" class="metric-value">--</div>
-          <div class="metric-label">Capital</div><div id="truth-bloc-capital" class="metric-value">--</div>
-          <div class="metric-label">Last Attempt</div><div id="truth-bloc-attempt" class="metric-value">--</div>
-          <div class="metric-label">Rejection</div><div id="truth-bloc-rejection" class="metric-value">--</div>
-          <div class="metric-label">Attempt Size</div><div id="truth-bloc-size" class="metric-value">--</div>
-          <div class="metric-label">Gross Edge %</div><div id="truth-bloc-edge" class="metric-value">--</div>
-          <div class="metric-label">Friction %</div><div id="truth-bloc-friction" class="metric-value">--</div>
-        </div>
-      </div>
-    </section>
-    <div class="war-room">
-        <div class="header-bar">
-            <div class="account-summary">
-                <div class="account-item">
-                    <span>Account:</span>
-                    <span class="account-value" id="account-usdc">$168 USDC</span>
-                    <span>+</span>
-                    <span class="account-value" id="account-weth">$85 WETH</span>
+    <div class="shell">
+        <section class="card hero">
+            <div class="hero-top">
+                <div>
+                    <div class="eyebrow">Bazaar of Fortunes</div>
+                    <h1>War Room Operator Console</h1>
+                    <div class="subline" id="hero-subline">Decision-first command view for readiness, capital, blockers, and live execution posture.</div>
                 </div>
-                <div class="account-item">
-                    <span>P&L Today:</span>
-                    <span class="account-value" id="pnl-today">+$0.00</span>
+                <div class="asof" id="asof">syncing...</div>
+            </div>
+
+            <div class="status-strip">
+                <div class="pill-card">
+                    <div class="pill-label">Primary Decision</div>
+                    <div class="pill-value" id="headline-decision">Assessing...</div>
+                    <div class="pill-sub" id="headline-reason">Waiting for live state</div>
+                </div>
+                <div class="pill-card">
+                    <div class="pill-label">Tradier Readiness</div>
+                    <div class="pill-value mono" id="headline-tradier">--</div>
+                    <div class="pill-sub" id="headline-tradier-sub">--</div>
+                </div>
+                <div class="pill-card">
+                    <div class="pill-label">Bloc Readiness</div>
+                    <div class="pill-value mono" id="headline-bloc">--</div>
+                    <div class="pill-sub" id="headline-bloc-sub">--</div>
+                </div>
+                <div class="pill-card">
+                    <div class="pill-label">Live Exposure</div>
+                    <div class="pill-value mono" id="headline-exposure">0 positions</div>
+                    <div class="pill-sub" id="headline-exposure-sub">No active risk detected</div>
                 </div>
             </div>
-            <div class="clock" id="clock">--:--:--</div>
-        </div>
 
-        <div class="main-grid">
-            <!-- TRADIER Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <span>TRADIER</span>
-                    <div class="health-dot" id="tradier-health"></div>
+            <div class="decision">
+                <div class="decision-head">
+                    <div>
+                        <div class="eyebrow">Operator directive</div>
+                        <div class="decision-title" id="directive-title">Stand by</div>
+                    </div>
+                    <div class="decision-badge badge-amber" id="directive-badge">Monitoring</div>
                 </div>
-                <div class="panel-body">
-                    <div class="system-metrics">
-                        <div class="metric-row">
-                            <span class="metric-label">BP</span>
-                            <span class="metric-value" id="tradier-bp">$150</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Positions</span>
-                            <span class="metric-value" id="tradier-positions">0</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Orders</span>
-                            <span class="metric-value" id="tradier-orders">0</span>
-                        </div>
+                <div class="decision-copy" id="directive-copy">Pulling live system truth.</div>
+                <div class="decision-grid">
+                    <div class="mini-stat">
+                        <div class="label">Tradier capital</div>
+                        <div class="value mono" id="mini-tradier-capital">--</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">Bloc capital</div>
+                        <div class="value mono" id="mini-bloc-capital">--</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">Reality feed</div>
+                        <div class="value mono" id="mini-reality">ETH -- | Mom --</div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- BLOC Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <span>BLOC</span>
-                    <div class="health-dot" id="bloc-health"></div>
-                </div>
-                <div class="panel-body">
-                    <div class="system-metrics">
-                        <div class="metric-row">
-                            <span class="metric-label">USDC</span>
-                            <span class="metric-value" id="bloc-usdc">$168</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">WETH</span>
-                            <span class="metric-value" id="bloc-weth">$85</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Positions</span>
-                            <span class="metric-value" id="bloc-positions">1</span>
+        <div class="grid">
+            <div class="stack">
+                <section class="card section">
+                    <div class="section-head">
+                        <div>
+                            <div class="section-title">System readiness</div>
+                            <div class="section-sub">Condensed truth for each execution path</div>
                         </div>
                     </div>
-                </div>
-            </div>
+                    <div class="ops-list" id="readiness-list"></div>
+                </section>
 
-            <!-- ACTIVE POSITIONS Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <span>ACTIVE POSITIONS</span>
-                </div>
-                <div class="panel-body" id="positions-container">
-                    <!-- Position cards will be inserted here -->
-                    <div class="position-card">
-                        <div class="position-header">
-                            <span class="position-symbol">WETH Long</span>
-                            <span class="position-side">Buy</span>
-                        </div>
-                        <div class="position-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Entry</span>
-                                <span class="detail-value">$2367</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">P&L</span>
-                                <span class="detail-value" style="color: var(--green);">+$1.23</span>
-                            </div>
-                        </div>
-                        <div class="position-actions">
-                            <button class="btn-close">Close</button>
+                <section class="card section">
+                    <div class="section-head">
+                        <div>
+                            <div class="section-title">Active positions</div>
+                            <div class="section-sub">Only live risk that needs attention</div>
                         </div>
                     </div>
-                </div>
+                    <div id="positions-list" class="positions-list"></div>
+                </section>
             </div>
 
-            <!-- RECENT ACTIVITY Panel -->
-            <div class="panel activity-panel">
-                <div class="panel-header">
-                    <span>RECENT ACTIVITY (last 10 trades)</span>
-                </div>
-                <div class="panel-body">
-                    <table class="activity-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>System</th>
-                                <th>Symbol</th>
-                                <th>Side</th>
-                                <th>P&L</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activity-table-body">
-                            <tr>
-                                <td>23:45</td>
-                                <td>Bloc</td>
-                                <td>WETH</td>
-                                <td>Buy</td>
-                                <td>--</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+            <div class="stack">
+                <section class="card section">
+                    <div class="section-head">
+                        <div>
+                            <div class="section-title">Next best actions</div>
+                            <div class="section-sub">What to do next, in order</div>
+                        </div>
+                    </div>
+                    <div class="next-action-list" id="next-actions"></div>
+                </section>
 
-        <div class="quick-actions">
-            <button class="btn-action" id="btn-pause-bloc">Pause Bloc</button>
-            <button class="btn-action" id="btn-pause-tradier">Pause Tradier</button>
-            <button class="btn-action danger" id="btn-close-all">Emergency Close All</button>
+                <section class="card section">
+                    <div class="section-head">
+                        <div>
+                            <div class="section-title">Recent activity</div>
+                            <div class="section-sub">Latest execution and journal trail</div>
+                        </div>
+                    </div>
+                    <div id="activity-list" class="activity-list"></div>
+                </section>
+
+                <section class="card section">
+                    <div class="section-head">
+                        <div>
+                            <div class="section-title">Quick controls</div>
+                            <div class="section-sub">Operator interrupts</div>
+                        </div>
+                    </div>
+                    <div class="toolbar">
+                        <button class="toolbtn" id="btn-pause-bloc">Pause Bloc</button>
+                        <button class="toolbtn" id="btn-pause-tradier">Pause Tradier</button>
+                        <button class="toolbtn danger" id="btn-close-all">Emergency Close All</button>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=3"></script>
 </body>
 </html>
