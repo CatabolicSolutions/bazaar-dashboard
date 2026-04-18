@@ -24,10 +24,13 @@ class MomentumDetector:
             symbol = asset['symbol']
             current_price = prices.get(symbol)
             change_pct = multi_asset_feed.get_price_change_60s(symbol)
-            if current_price is None or change_pct is None:
+            if current_price is None:
                 continue
 
             history = multi_asset_feed.price_history.get(symbol, [])
+             
+            if change_pct is None:
+                change_pct = 0.0
             midpoint = sum(p for _, p in history[-12:]) / max(1, len(history[-12:])) if history else current_price
             distance_from_mid = ((current_price - midpoint) / midpoint) * 100 if midpoint else 0.0
             at_or_below_mid = current_price <= midpoint
@@ -50,8 +53,11 @@ class MomentumDetector:
                 'recent_prices': [p for _, p in history[-12:]],
             }
             score = self._calculate_score(stats)
-            if score < MIN_SIGNAL_SCORE:
+            if score < MIN_SIGNAL_SCORE and not at_or_below_mid:
                 continue
+
+            if at_or_below_mid:
+                score = max(score, MIN_SIGNAL_SCORE)
 
             signal = {
                 'timestamp': time.time(),

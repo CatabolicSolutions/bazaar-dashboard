@@ -207,6 +207,7 @@ class ETHScalper:
                 inferred_open_positions = 1
             reconciled_positions = state_manager.build_reconciled_positions(wallet, tracked_positions)
 
+            deployable_capital = float(wallet.get('usdc', 0.0) or 0.0)
             state_manager.update_bot_state(
                 status=status,
                 pnl_today=risk['daily_pnl'],
@@ -214,7 +215,7 @@ class ETHScalper:
                 requests_used=rate['inch_requests_today'],
                 daily_trades=risk['daily_trades'],
                 open_positions=inferred_open_positions,
-                available_capital=risk['available_capital'],
+                available_capital=deployable_capital,
                 mode=mode,
                 live_inventory=live_inventory,
                 reconciled_positions=reconciled_positions
@@ -746,7 +747,7 @@ class ETHScalper:
         print(f"Daily P&L: ${risk['daily_pnl']:+.2f} / ${risk['daily_loss_limit']:.2f} limit")
         print(f"Daily Trades: {risk['daily_trades']}")
         print(f"Open Positions: {risk['open_positions']}")
-        print(f"Available Capital: ${risk['available_capital']:.2f}")
+        print(f"Available Capital: ${wallet['usdc']:.2f}")
         print(f"Wallet: {wallet['eth']:.4f} ETH, ${wallet['usdc']:.2f} USDC")
         print(f"Recent Win Rate: {momentum['recent_win_rate']:.1%}")
         print(f"1inch Requests: {rate['inch_requests_today']}/{rate['inch_limit']}")
