@@ -297,8 +297,11 @@ class ETHScalper:
                 synthetic_position.source = 'inventory_reconciliation'
                 synthetic_position.resumable_after_restart = True
                 synthetic_position.max_hold_seconds = trade_manager.max_hold_time
+                synthetic_position.status = synthetic_position.status.OPEN
                 trade_manager.positions[synthetic_position.id] = synthetic_position
                 state_manager.persist_live_position(synthetic_position)
+                state_manager.update_positions(trade_manager.get_open_positions())
+                print(f"   ✅ Promoted orphan WETH inventory into managed live position: {synthetic_position.id}")
                 asyncio.create_task(self._monitor_live_position(synthetic_position))
                 state_manager.log_signal(signal, executed=False, reason="existing_weth_inventory_promoted_to_managed_position")
                 return
