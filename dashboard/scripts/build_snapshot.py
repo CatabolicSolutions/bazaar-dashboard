@@ -11,8 +11,10 @@ BOARD = ROOT / 'out' / 'tradier_leaders_board.txt'
 ACTIVE = ROOT / 'dashboard' / 'state' / 'active_positions.json'
 QUEUE = ROOT / 'dashboard' / 'state' / 'execution_queue.json'
 ACTION_FEEDBACK = ROOT / 'dashboard' / 'state' / 'action_feedback.json'
-TRADIER_EXECUTION_STATE = ROOT / 'dashboard' / 'state' / 'tradier_execution_state.json'
-TRADIER_AUDIT_LOG = ROOT / 'dashboard' / 'state' / 'tradier_audit_log.json'
+TRADIER_EXECUTION_STATE = ROOT / 'out' / 'runtime_state' / 'tradier_execution_state.json'
+TRADIER_AUDIT_LOG = ROOT / 'out' / 'runtime_state' / 'tradier_audit_log.json'
+LEGACY_TRADIER_EXECUTION_STATE = ROOT / 'dashboard' / 'state' / 'tradier_execution_state.json'
+LEGACY_TRADIER_AUDIT_LOG = ROOT / 'dashboard' / 'state' / 'tradier_audit_log.json'
 NEAR_MISS = ROOT / 'dashboard' / 'state' / 'near_miss_candidates.json'
 ETH_SCALPER_BOT_STATE = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
 ETH_SCALPER_POSITIONS = ROOT / 'eth_scalper' / 'state' / 'positions.json'
@@ -39,6 +41,14 @@ def read_text(path):
 def read_json(path):
     if path.exists():
         return json.loads(path.read_text())
+    return {}
+
+
+def read_json_with_fallback(primary, fallback):
+    if primary.exists():
+        return json.loads(primary.read_text())
+    if fallback.exists():
+        return json.loads(fallback.read_text())
     return {}
 
 
@@ -238,10 +248,12 @@ tradier_execution_audit_rows = read_jsonl_tail(TRADIER_EXECUTION_AUDIT)
 refresh_log_tail = read_text_tail(BAZAAR_REFRESH_LOG)
 tradier_auto_trade_tail = read_text_tail(TRADIER_AUTO_TRADE_LOG)
 bloc_status = build_bloc_status(bloc_bot_state, bloc_wallet, bloc_positions, bloc_signal_rows, bloc_error_lines)
-trading_desk_status = build_trading_desk_status(read_json(TRADIER_EXECUTION_STATE), read_json(TRADIER_AUDIT_LOG), tradier_execution_audit_rows, refresh_log_tail + tradier_auto_trade_tail)
+tradier_execution_state = read_json_with_fallback(TRADIER_EXECUTION_STATE, LEGACY_TRADIER_EXECUTION_STATE)
+tradier_audit_log = read_json_with_fallback(TRADIER_AUDIT_LOG, LEGACY_TRADIER_AUDIT_LOG)
+trading_desk_status = build_trading_desk_status(tradier_execution_state, tradier_audit_log, tradier_execution_audit_rows, refresh_log_tail + tradier_auto_trade_tail)
 operator_journal = build_operator_journal(bloc_status, trading_desk_status, bloc_signal_rows, tradier_execution_audit_rows)
 
-tradier_latest_intent = (read_json(TRADIER_EXECUTION_STATE).get('intents', []) or [None])[-1] if isinstance(read_json(TRADIER_EXECUTION_STATE), dict) else None
+tradier_latest_intent = (tradier_execution_state.get('intents', []) or [None])[-1] if isinstance(tradier_execution_state, dict) else None
 tradier_latest_audit = tradier_execution_audit_rows[-1] if tradier_execution_audit_rows else None
 bloc_latest_signal = bloc_signal_rows[-1] if bloc_signal_rows else None
 bloc_funded = bool((bloc_wallet or {}).get('usdc', 0) >= 25 or (bloc_wallet or {}).get('weth', 0) > 0 or (bloc_wallet or {}).get('eth', 0) > 0)
@@ -267,8 +279,8 @@ snapshot = {
     },
     'activePositions': read_json(ACTIVE),
     'executionQueue': read_json(QUEUE),
-    'tradierExecution': read_json(TRADIER_EXECUTION_STATE),
-    'tradierAudit': read_json(TRADIER_AUDIT_LOG),
+    'tradierExecution': tradier_execution_state,
+    'tradierAudit': tradier_audit_log,
     'blocStatus': bloc_status,
     'tradingDeskStatus': trading_desk_status,
     'autonomyMonitor': {

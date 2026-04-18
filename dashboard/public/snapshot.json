@@ -1,340 +1,31 @@
 {
-  "updatedAt": "2026-04-17T20:45:36.064529+00:00",
+  "updatedAt": "2026-04-18T13:40:53.467774+00:00",
   "systemHealth": {
     "tradierBoardPresent": true,
-    "tradierBoardUpdatedAt": "2026-04-17T20:45:18.948377+00:00",
-    "tradierApiKeyLoaded": true,
+    "tradierBoardUpdatedAt": "2026-04-18T13:29:21.397827+00:00",
+    "tradierApiKeyLoaded": false,
     "refreshStatus": {
-      "ok": false,
-      "stage": "starting",
-      "message": "Refresh cycle starting",
-      "snapshotMtime": "2026-04-17T20:30:36.197421Z",
-      "boardMtime": "2026-04-17T20:30:19.716827Z",
-      "updatedAt": "2026-04-17T20:45:00.214766Z"
+      "ok": true,
+      "stage": "complete",
+      "message": "Refresh cycle completed",
+      "snapshotMtime": "2026-04-17T20:45:36.081804Z",
+      "boardMtime": "2026-04-17T20:45:18.948377Z",
+      "updatedAt": "2026-04-17T20:46:08.330712Z"
     },
-    "latestCommit": "276102c Auto-refresh: 2026-04-17T20:31:09Z"
+    "latestCommit": "dc79821 Redesign War Room as operator console"
   },
   "tradier": {
-    "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\nVIX: 17.48\n\nDirectional / Scalping Leaders\n1. AAPL CALL | Underlying 270.23 | Strike 267.50 | Exp 2026-04-24 | 7DTE | \u0394 0.6323 | Bid/Ask 5.10/5.20\n   Candidate ID: AAPL-2026-04-24-CALL-267.5\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n2. AMD CALL | Underlying 278.39 | Strike 272.50 | Exp 2026-04-24 | 7DTE | \u0394 0.6351 | Bid/Ask 10.85/11.30\n   Candidate ID: AMD-2026-04-24-CALL-272.5\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n3. SPY CALL | Underlying 710.14 | Strike 706.00 | Exp 2026-04-24 | 7DTE | \u0394 0.6386 | Bid/Ask 8.00/8.32\n   Candidate ID: SPY-2026-04-24-CALL-706\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n4. AMD CALL | Underlying 278.39 | Strike 270.00 | Exp 2026-05-01 | 14DTE | \u0394 0.6406 | Bid/Ask 15.75/16.45\n   Candidate ID: AMD-2026-05-01-CALL-270\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n5. NVDA PUT | Underlying 201.68 | Strike 205.00 | Exp 2026-04-24 | 7DTE | \u0394 -0.6446 | Bid/Ask 5.15/5.25\n   Candidate ID: NVDA-2026-04-24-PUT-205\n   Thesis: best near-ATM momentum leader in current pass\n   Entry: only on confirmation / momentum continuation\n   Invalidation: fail on momentum / hard stop discipline required\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists\n   Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry\n   Risk: defined-risk premium outlay; avoid size creep\n\nPremium / Credit Leaders\n1. SPY PUT | Underlying 710.14 | Strike 686.00 | Exp 2026-05-01 | 14DTE | \u0394 -0.1397 | Bid/Ask 1.83/1.86\n   Candidate ID: SPY-2026-05-01-PUT-686\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n2. QQQ PUT | Underlying 648.85 | Strike 620.00 | Exp 2026-05-01 | 14DTE | \u0394 -0.1394 | Bid/Ask 2.34/2.42\n   Candidate ID: QQQ-2026-05-01-PUT-620\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n3. XSP PUT | Underlying 712.61 | Strike 688.00 | Exp 2026-05-01 | 14DTE | \u0394 -0.1389 | Bid/Ask 1.78/2.05\n   Candidate ID: XSP-2026-05-01-PUT-688\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n4. TSLA CALL | Underlying 400.62 | Strike 452.50 | Exp 2026-05-01 | 14DTE | \u0394 0.1412 | Bid/Ask 2.80/2.86\n   Candidate ID: TSLA-2026-05-01-CALL-452.5\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n5. IWM PUT | Underlying 275.78 | Strike 262.50 | Exp 2026-05-01 | 14DTE | \u0394 -0.1376 | Bid/Ask 1.00/1.07\n   Candidate ID: IWM-2026-05-01-PUT-262.5\n   Thesis: best OTM premium candidate in the current delta/liquidity band\n   Entry: only as a defined-risk spread, not naked premium\n   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup\n   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained\n   Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry\n   Risk: manage in R; premium collection is not a license to overstay\n\nRun Notes\n- Leaders emitted: 32\n- Fallback-expiry leaders: 0\n- All leaders matched requested expiry intent directly\n\n",
-    "leaders": [
-      {
-        "section": "directional",
-        "details": [
-          "Candidate ID: AAPL-2026-04-24-CALL-267.5",
-          "Thesis: best near-ATM momentum leader in current pass",
-          "Entry: only on confirmation / momentum continuation",
-          "Invalidation: fail on momentum / hard stop discipline required",
-          "Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-          "Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-          "Risk: defined-risk premium outlay; avoid size creep"
-        ],
-        "symbol": "AAPL",
-        "option_type": "CALL",
-        "underlying": "270.23",
-        "strike": "267.50",
-        "exp": "2026-04-24",
-        "label": "7DTE",
-        "delta": "0.6323",
-        "bid": "5.10",
-        "ask": "5.20",
-        "fallback": false,
-        "headline": "1. AAPL CALL | Underlying 270.23 | Strike 267.50 | Exp 2026-04-24 | 7DTE | \u0394 0.6323 | Bid/Ask 5.10/5.20",
-        "candidate id": "AAPL-2026-04-24-CALL-267.5",
-        "thesis": "best near-ATM momentum leader in current pass",
-        "entry": "only on confirmation / momentum continuation",
-        "invalidation": "fail on momentum / hard stop discipline required",
-        "targets": "T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-        "confidence": "7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-        "risk": "defined-risk premium outlay; avoid size creep"
-      },
-      {
-        "section": "directional",
-        "details": [
-          "Candidate ID: AMD-2026-04-24-CALL-272.5",
-          "Thesis: best near-ATM momentum leader in current pass",
-          "Entry: only on confirmation / momentum continuation",
-          "Invalidation: fail on momentum / hard stop discipline required",
-          "Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-          "Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-          "Risk: defined-risk premium outlay; avoid size creep"
-        ],
-        "symbol": "AMD",
-        "option_type": "CALL",
-        "underlying": "278.39",
-        "strike": "272.50",
-        "exp": "2026-04-24",
-        "label": "7DTE",
-        "delta": "0.6351",
-        "bid": "10.85",
-        "ask": "11.30",
-        "fallback": false,
-        "headline": "2. AMD CALL | Underlying 278.39 | Strike 272.50 | Exp 2026-04-24 | 7DTE | \u0394 0.6351 | Bid/Ask 10.85/11.30",
-        "candidate id": "AMD-2026-04-24-CALL-272.5",
-        "thesis": "best near-ATM momentum leader in current pass",
-        "entry": "only on confirmation / momentum continuation",
-        "invalidation": "fail on momentum / hard stop discipline required",
-        "targets": "T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-        "confidence": "7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-        "risk": "defined-risk premium outlay; avoid size creep"
-      },
-      {
-        "section": "directional",
-        "details": [
-          "Candidate ID: SPY-2026-04-24-CALL-706",
-          "Thesis: best near-ATM momentum leader in current pass",
-          "Entry: only on confirmation / momentum continuation",
-          "Invalidation: fail on momentum / hard stop discipline required",
-          "Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-          "Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-          "Risk: defined-risk premium outlay; avoid size creep"
-        ],
-        "symbol": "SPY",
-        "option_type": "CALL",
-        "underlying": "710.14",
-        "strike": "706.00",
-        "exp": "2026-04-24",
-        "label": "7DTE",
-        "delta": "0.6386",
-        "bid": "8.00",
-        "ask": "8.32",
-        "fallback": false,
-        "headline": "3. SPY CALL | Underlying 710.14 | Strike 706.00 | Exp 2026-04-24 | 7DTE | \u0394 0.6386 | Bid/Ask 8.00/8.32",
-        "candidate id": "SPY-2026-04-24-CALL-706",
-        "thesis": "best near-ATM momentum leader in current pass",
-        "entry": "only on confirmation / momentum continuation",
-        "invalidation": "fail on momentum / hard stop discipline required",
-        "targets": "T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-        "confidence": "7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-        "risk": "defined-risk premium outlay; avoid size creep"
-      },
-      {
-        "section": "directional",
-        "details": [
-          "Candidate ID: AMD-2026-05-01-CALL-270",
-          "Thesis: best near-ATM momentum leader in current pass",
-          "Entry: only on confirmation / momentum continuation",
-          "Invalidation: fail on momentum / hard stop discipline required",
-          "Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-          "Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-          "Risk: defined-risk premium outlay; avoid size creep"
-        ],
-        "symbol": "AMD",
-        "option_type": "CALL",
-        "underlying": "278.39",
-        "strike": "270.00",
-        "exp": "2026-05-01",
-        "label": "14DTE",
-        "delta": "0.6406",
-        "bid": "15.75",
-        "ask": "16.45",
-        "fallback": false,
-        "headline": "4. AMD CALL | Underlying 278.39 | Strike 270.00 | Exp 2026-05-01 | 14DTE | \u0394 0.6406 | Bid/Ask 15.75/16.45",
-        "candidate id": "AMD-2026-05-01-CALL-270",
-        "thesis": "best near-ATM momentum leader in current pass",
-        "entry": "only on confirmation / momentum continuation",
-        "invalidation": "fail on momentum / hard stop discipline required",
-        "targets": "T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-        "confidence": "7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-        "risk": "defined-risk premium outlay; avoid size creep"
-      },
-      {
-        "section": "directional",
-        "details": [
-          "Candidate ID: NVDA-2026-04-24-PUT-205",
-          "Thesis: best near-ATM momentum leader in current pass",
-          "Entry: only on confirmation / momentum continuation",
-          "Invalidation: fail on momentum / hard stop discipline required",
-          "Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-          "Confidence: 7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-          "Risk: defined-risk premium outlay; avoid size creep"
-        ],
-        "symbol": "NVDA",
-        "option_type": "PUT",
-        "underlying": "201.68",
-        "strike": "205.00",
-        "exp": "2026-04-24",
-        "label": "7DTE",
-        "delta": "-0.6446",
-        "bid": "5.15",
-        "ask": "5.25",
-        "fallback": false,
-        "headline": "5. NVDA PUT | Underlying 201.68 | Strike 205.00 | Exp 2026-04-24 | 7DTE | \u0394 -0.6446 | Bid/Ask 5.15/5.25",
-        "candidate id": "NVDA-2026-04-24-PUT-205",
-        "thesis": "best near-ATM momentum leader in current pass",
-        "entry": "only on confirmation / momentum continuation",
-        "invalidation": "fail on momentum / hard stop discipline required",
-        "targets": "T1 quick scale, T2 momentum extension, T3 runner only if trend persists",
-        "confidence": "7/10 \u2014 liquidity/structure driven, downgraded if fallback expiry",
-        "risk": "defined-risk premium outlay; avoid size creep"
-      },
-      {
-        "section": "premium",
-        "details": [
-          "Candidate ID: SPY-2026-05-01-PUT-686",
-          "Thesis: best OTM premium candidate in the current delta/liquidity band",
-          "Entry: only as a defined-risk spread, not naked premium",
-          "Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup",
-          "Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-          "Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-          "Risk: manage in R; premium collection is not a license to overstay"
-        ],
-        "symbol": "SPY",
-        "option_type": "PUT",
-        "underlying": "710.14",
-        "strike": "686.00",
-        "exp": "2026-05-01",
-        "label": "14DTE",
-        "delta": "-0.1397",
-        "bid": "1.83",
-        "ask": "1.86",
-        "fallback": false,
-        "headline": "1. SPY PUT | Underlying 710.14 | Strike 686.00 | Exp 2026-05-01 | 14DTE | \u0394 -0.1397 | Bid/Ask 1.83/1.86",
-        "candidate id": "SPY-2026-05-01-PUT-686",
-        "thesis": "best OTM premium candidate in the current delta/liquidity band",
-        "entry": "only as a defined-risk spread, not naked premium",
-        "invalidation": "abandon if structure requires chasing or volatility regime shifts against the setup",
-        "targets": "T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-        "confidence": "8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-        "risk": "manage in R; premium collection is not a license to overstay"
-      },
-      {
-        "section": "premium",
-        "details": [
-          "Candidate ID: QQQ-2026-05-01-PUT-620",
-          "Thesis: best OTM premium candidate in the current delta/liquidity band",
-          "Entry: only as a defined-risk spread, not naked premium",
-          "Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup",
-          "Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-          "Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-          "Risk: manage in R; premium collection is not a license to overstay"
-        ],
-        "symbol": "QQQ",
-        "option_type": "PUT",
-        "underlying": "648.85",
-        "strike": "620.00",
-        "exp": "2026-05-01",
-        "label": "14DTE",
-        "delta": "-0.1394",
-        "bid": "2.34",
-        "ask": "2.42",
-        "fallback": false,
-        "headline": "2. QQQ PUT | Underlying 648.85 | Strike 620.00 | Exp 2026-05-01 | 14DTE | \u0394 -0.1394 | Bid/Ask 2.34/2.42",
-        "candidate id": "QQQ-2026-05-01-PUT-620",
-        "thesis": "best OTM premium candidate in the current delta/liquidity band",
-        "entry": "only as a defined-risk spread, not naked premium",
-        "invalidation": "abandon if structure requires chasing or volatility regime shifts against the setup",
-        "targets": "T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-        "confidence": "8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-        "risk": "manage in R; premium collection is not a license to overstay"
-      },
-      {
-        "section": "premium",
-        "details": [
-          "Candidate ID: XSP-2026-05-01-PUT-688",
-          "Thesis: best OTM premium candidate in the current delta/liquidity band",
-          "Entry: only as a defined-risk spread, not naked premium",
-          "Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup",
-          "Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-          "Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-          "Risk: manage in R; premium collection is not a license to overstay"
-        ],
-        "symbol": "XSP",
-        "option_type": "PUT",
-        "underlying": "712.61",
-        "strike": "688.00",
-        "exp": "2026-05-01",
-        "label": "14DTE",
-        "delta": "-0.1389",
-        "bid": "1.78",
-        "ask": "2.05",
-        "fallback": false,
-        "headline": "3. XSP PUT | Underlying 712.61 | Strike 688.00 | Exp 2026-05-01 | 14DTE | \u0394 -0.1389 | Bid/Ask 1.78/2.05",
-        "candidate id": "XSP-2026-05-01-PUT-688",
-        "thesis": "best OTM premium candidate in the current delta/liquidity band",
-        "entry": "only as a defined-risk spread, not naked premium",
-        "invalidation": "abandon if structure requires chasing or volatility regime shifts against the setup",
-        "targets": "T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-        "confidence": "8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-        "risk": "manage in R; premium collection is not a license to overstay"
-      },
-      {
-        "section": "premium",
-        "details": [
-          "Candidate ID: TSLA-2026-05-01-CALL-452.5",
-          "Thesis: best OTM premium candidate in the current delta/liquidity band",
-          "Entry: only as a defined-risk spread, not naked premium",
-          "Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup",
-          "Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-          "Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-          "Risk: manage in R; premium collection is not a license to overstay"
-        ],
-        "symbol": "TSLA",
-        "option_type": "CALL",
-        "underlying": "400.62",
-        "strike": "452.50",
-        "exp": "2026-05-01",
-        "label": "14DTE",
-        "delta": "0.1412",
-        "bid": "2.80",
-        "ask": "2.86",
-        "fallback": false,
-        "headline": "4. TSLA CALL | Underlying 400.62 | Strike 452.50 | Exp 2026-05-01 | 14DTE | \u0394 0.1412 | Bid/Ask 2.80/2.86",
-        "candidate id": "TSLA-2026-05-01-CALL-452.5",
-        "thesis": "best OTM premium candidate in the current delta/liquidity band",
-        "entry": "only as a defined-risk spread, not naked premium",
-        "invalidation": "abandon if structure requires chasing or volatility regime shifts against the setup",
-        "targets": "T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-        "confidence": "8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-        "risk": "manage in R; premium collection is not a license to overstay"
-      },
-      {
-        "section": "premium",
-        "details": [
-          "Candidate ID: IWM-2026-05-01-PUT-262.5",
-          "Thesis: best OTM premium candidate in the current delta/liquidity band",
-          "Entry: only as a defined-risk spread, not naked premium",
-          "Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup",
-          "Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-          "Confidence: 8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-          "Risk: manage in R; premium collection is not a license to overstay"
-        ],
-        "symbol": "IWM",
-        "option_type": "PUT",
-        "underlying": "275.78",
-        "strike": "262.50",
-        "exp": "2026-05-01",
-        "label": "14DTE",
-        "delta": "-0.1376",
-        "bid": "1.00",
-        "ask": "1.07",
-        "fallback": false,
-        "headline": "5. IWM PUT | Underlying 275.78 | Strike 262.50 | Exp 2026-05-01 | 14DTE | \u0394 -0.1376 | Bid/Ask 1.00/1.07",
-        "candidate id": "IWM-2026-05-01-PUT-262.5",
-        "thesis": "best OTM premium candidate in the current delta/liquidity band",
-        "entry": "only as a defined-risk spread, not naked premium",
-        "invalidation": "abandon if structure requires chasing or volatility regime shifts against the setup",
-        "targets": "T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained",
-        "confidence": "8/10 \u2014 clean spread/delta profile, downgraded if fallback expiry",
-        "risk": "manage in R; premium collection is not a license to overstay"
-      }
-    ],
+    "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\n\nNo Trade\n- No clean leaders passed the current filters\n- Best action: wait for cleaner structure or rerun on the next cycle\n\n",
+    "leaders": [],
     "overview": {
-      "leaderCount": 10,
-      "directionalCount": 5,
-      "premiumCount": 5,
+      "leaderCount": 0,
+      "directionalCount": 0,
+      "premiumCount": 0,
       "fallbackCount": 0,
-      "vix": "17.48",
-      "runNotes": [
-        "Leaders emitted: 32",
-        "Fallback-expiry leaders: 0",
-        "All leaders matched requested expiry intent directly"
-      ]
+      "vix": null,
+      "runNotes": []
     },
-    "runNotes": [
-      "Leaders emitted: 32",
-      "Fallback-expiry leaders: 0",
-      "All leaders matched requested expiry intent directly"
-    ],
+    "runNotes": [],
     "nearMisses": {
       "updatedAt": "2026-04-17T20:45:35.980044Z",
       "count": 6398,
@@ -565,7 +256,7 @@
     ]
   },
   "tradierExecution": {
-    "updatedAt": "2026-04-10T01:22:37.368474+00:00",
+    "updatedAt": "2026-04-17T04:42:14.989659+00:00",
     "intents": [
       {
         "mode": "cash_day",
@@ -1722,6 +1413,302 @@
           }
         ],
         "updated_at": "2026-04-10T01:22:36.851637+00:00"
+      },
+      {
+        "mode": "cash_day_trade",
+        "strategy_type": "long_put",
+        "symbol": "NVDA",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": 0.65,
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "NVDA-2026-04-22-PUT-187.5",
+        "notes": "manual gate-passing preview proof",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "Scalping Buy",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
+        "origin": "system_generated",
+        "decision_state": "proposed",
+        "decision_actor": "system",
+        "decision_note": "Created from leaders board candidate",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_d683abd27a10",
+        "created_at": "2026-04-17T04:22:23.173814+00:00",
+        "status": "queued",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+            "timestamp": "2026-04-17T04:22:23.174214+00:00"
+          }
+        ],
+        "updated_at": "2026-04-17T04:22:23.174220+00:00"
+      },
+      {
+        "mode": "cash_day_trade",
+        "strategy_type": "long_put",
+        "symbol": "NVDA",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": 0.65,
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "NVDA-2026-04-22-PUT-187.5",
+        "notes": "manual gate-passing preview proof",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "Scalping Buy",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
+        "origin": "system_generated",
+        "decision_state": "proposed",
+        "decision_actor": "system",
+        "decision_note": "Created from leaders board candidate",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_2a379e1b9851",
+        "created_at": "2026-04-17T04:22:34.688552+00:00",
+        "status": "queued",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+            "timestamp": "2026-04-17T04:22:34.689088+00:00"
+          }
+        ],
+        "updated_at": "2026-04-17T04:22:34.689093+00:00"
+      },
+      {
+        "mode": "cash_day_trade",
+        "strategy_type": "long_put",
+        "symbol": "NVDA",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": 0.65,
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "NVDA-2026-04-22-PUT-187.5",
+        "notes": "manual gate-passing preview proof",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "Scalping Buy",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
+        "origin": "system_generated",
+        "decision_state": "approved",
+        "decision_actor": "alfred",
+        "decision_note": "Manual preview proof authorization",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_3d93faeb0cd0",
+        "created_at": "2026-04-17T04:23:01.957188+00:00",
+        "status": "approved",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+            "timestamp": "2026-04-17T04:23:01.957672+00:00"
+          },
+          {
+            "from": "queued",
+            "to": "previewed",
+            "actor": "alfred",
+            "note": "Synthetic preview transition for approval compatibility",
+            "timestamp": "2026-04-17T04:23:02.504193+00:00"
+          },
+          {
+            "from": "previewed",
+            "to": "approved",
+            "actor": "alfred",
+            "note": "Manual preview proof authorization",
+            "timestamp": "2026-04-17T04:23:02.504208+00:00"
+          }
+        ],
+        "updated_at": "2026-04-17T04:23:02.504210+00:00"
+      },
+      {
+        "mode": "cash_day_trade",
+        "strategy_type": "long_put",
+        "symbol": "NVDA",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": 0.65,
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "NVDA-2026-04-22-PUT-187.5",
+        "notes": "manual gate-passing preview proof",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "Scalping Buy",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
+        "origin": "system_generated",
+        "decision_state": "proposed",
+        "decision_actor": "system",
+        "decision_note": "Created from leaders board candidate",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_52e47228e702",
+        "created_at": "2026-04-17T04:23:32.645236+00:00",
+        "status": "queued",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+            "timestamp": "2026-04-17T04:23:32.645811+00:00"
+          }
+        ],
+        "updated_at": "2026-04-17T04:23:32.645817+00:00"
+      },
+      {
+        "mode": "cash_day_trade",
+        "strategy_type": "long_put",
+        "symbol": "NVDA",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "side": "buy",
+        "qty": 1,
+        "limit_price": 0.625,
+        "time_in_force": "day",
+        "source": "leader",
+        "candidate_id": "NVDA-2026-04-22-PUT-187.5",
+        "notes": "internal blessed path proof",
+        "allocation_bucket": "cash_day_core",
+        "position_relationship": "open_new_position",
+        "position_id": null,
+        "strategy_family": "Scalping Buy",
+        "strategy_source": "tradier_leaders_board",
+        "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
+        "origin": "system_generated",
+        "decision_state": "proposed",
+        "decision_actor": "system",
+        "decision_note": "Created from leaders board candidate",
+        "readiness_state": "not_ready",
+        "readiness_reason": "Awaiting preview and authorization prerequisites",
+        "outcome_state": "no_outcome",
+        "outcome_reason": "",
+        "effected_qty": null,
+        "escalation_state": "no_escalation",
+        "escalation_reason": "",
+        "timing_state": "no_timing_pressure",
+        "timing_reason": "",
+        "external_reference_state": "no_external_reference",
+        "external_reference_id": null,
+        "external_reference_system": "",
+        "external_reference_note": "",
+        "attempt_state": "no_attempt",
+        "attempt_count": 0,
+        "latest_attempt_id": null,
+        "latest_attempt_note": "",
+        "reconciliation_state": "not_reconciled",
+        "reconciliation_note": "",
+        "intent_id": "intent_eb6afca4a8b5",
+        "created_at": "2026-04-17T04:42:14.065509+00:00",
+        "status": "previewed",
+        "transition_history": [
+          {
+            "from": "candidate",
+            "to": "queued",
+            "actor": "alfred",
+            "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+            "timestamp": "2026-04-17T04:42:14.066191+00:00"
+          },
+          {
+            "from": "queued",
+            "to": "previewed",
+            "actor": "alfred",
+            "note": "Broker preview created",
+            "timestamp": "2026-04-17T04:42:14.989495+00:00"
+          }
+        ],
+        "updated_at": "2026-04-17T04:42:14.989500+00:00"
       }
     ],
     "previews": [
@@ -1784,6 +1771,26 @@
         "warnings": [],
         "preview_id": "preview_3a431a31728f",
         "timestamp": "2026-03-31T04:59:04.720506+00:00"
+      },
+      {
+        "intent_id": "intent_eb6afca4a8b5",
+        "broker_payload_summary": {
+          "class": "option",
+          "symbol": "NVDA",
+          "option_symbol": "NVDA260422P00187500",
+          "side": "buy_to_open",
+          "quantity": 1,
+          "type": "limit",
+          "duration": "day",
+          "tag": "alfred-cash-day-trade-intent-eb6afca4a8b5",
+          "price": 0.62
+        },
+        "estimated_cost": null,
+        "fees": null,
+        "buying_power_effect": null,
+        "warnings": [],
+        "preview_id": "preview_292b0f8fd5a5",
+        "timestamp": "2026-04-17T04:42:14.988665+00:00"
       }
     ],
     "orders": [
@@ -1808,36 +1815,7 @@
         "order_id": "order_291ffd5534a8"
       }
     ],
-    "positions": [
-      {
-        "mode": "cash_day",
-        "symbol": "SPY",
-        "contract": "SPY 400 PUT 2026-03-31",
-        "qty": 1,
-        "entry_price": "0.01",
-        "current_status": "open",
-        "invalidation": "",
-        "targets": "",
-        "notes": "",
-        "opened_at": "2026-03-31T04:53:26.018184+00:00",
-        "closed_at": null,
-        "position_id": "position_8a51e9329000"
-      },
-      {
-        "mode": "cash_day",
-        "symbol": "SPY",
-        "contract": "SPY 395 PUT 2026-03-31",
-        "qty": 1,
-        "entry_price": "0.01",
-        "current_status": "open",
-        "invalidation": "",
-        "targets": "",
-        "notes": "",
-        "opened_at": "2026-03-31T04:59:05.013780+00:00",
-        "closed_at": null,
-        "position_id": "position_5fe86edf93b5"
-      }
-    ],
+    "positions": [],
     "riskDecisions": [
       {
         "intent_id": "intent_7947e9a091f7",
@@ -2232,6 +2210,266 @@
         },
         "disposition": "rejected",
         "timestamp": "2026-04-10T01:22:37.368294+00:00"
+      },
+      {
+        "intent_id": "intent_d683abd27a10",
+        "mode": "cash_day_trade",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day_trade",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "account_type": "margin",
+          "cash_account_day_trading_mode": false,
+          "open_positions_count": 0,
+          "market_regime": "unclassified",
+          "confidence_score": 0,
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "review_only": false,
+          "estimated_notional": 65.0,
+          "buying_power_reference": 127.79,
+          "manual_limit_drift": {
+            "mark_price": 0.65,
+            "limit_price": 0.65,
+            "max_drift_pct": 0.05,
+            "drift_pct": 0.0
+          }
+        },
+        "decision_card": {
+          "symbol": "NVDA",
+          "direction": "buy",
+          "contract": "NVDA 187.5 PUT 2026-04-22",
+          "setup_type": "long put",
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "market_regime": "unclassified",
+          "confidence": 0,
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "why_not": [],
+          "rejection_reason": "",
+          "disposition": "accepted for execution"
+        },
+        "disposition": "accepted for execution",
+        "timestamp": "2026-04-17T04:22:23.761668+00:00"
+      },
+      {
+        "intent_id": "intent_2a379e1b9851",
+        "mode": "cash_day_trade",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day_trade",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "account_type": "margin",
+          "cash_account_day_trading_mode": false,
+          "open_positions_count": 0,
+          "market_regime": "unclassified",
+          "confidence_score": 0,
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "review_only": false,
+          "estimated_notional": 65.0,
+          "buying_power_reference": 127.79,
+          "manual_limit_drift": {
+            "mark_price": 0.65,
+            "limit_price": 0.65,
+            "max_drift_pct": 0.05,
+            "drift_pct": 0.0
+          }
+        },
+        "decision_card": {
+          "symbol": "NVDA",
+          "direction": "buy",
+          "contract": "NVDA 187.5 PUT 2026-04-22",
+          "setup_type": "long put",
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "market_regime": "unclassified",
+          "confidence": 0,
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "why_not": [],
+          "rejection_reason": "",
+          "disposition": "accepted for execution"
+        },
+        "disposition": "accepted for execution",
+        "timestamp": "2026-04-17T04:22:35.318055+00:00"
+      },
+      {
+        "intent_id": "intent_3d93faeb0cd0",
+        "mode": "cash_day_trade",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day_trade",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "account_type": "margin",
+          "cash_account_day_trading_mode": false,
+          "open_positions_count": 0,
+          "market_regime": "unclassified",
+          "confidence_score": 0,
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "review_only": false,
+          "estimated_notional": 65.0,
+          "buying_power_reference": 127.79,
+          "manual_limit_drift": {
+            "mark_price": 0.65,
+            "limit_price": 0.65,
+            "max_drift_pct": 0.05,
+            "drift_pct": 0.0
+          }
+        },
+        "decision_card": {
+          "symbol": "NVDA",
+          "direction": "buy",
+          "contract": "NVDA 187.5 PUT 2026-04-22",
+          "setup_type": "long put",
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "market_regime": "unclassified",
+          "confidence": 0,
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "why_not": [],
+          "rejection_reason": "",
+          "disposition": "accepted for execution"
+        },
+        "disposition": "accepted for execution",
+        "timestamp": "2026-04-17T04:23:02.500640+00:00"
+      },
+      {
+        "intent_id": "intent_52e47228e702",
+        "mode": "cash_day_trade",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day_trade",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "account_type": "margin",
+          "cash_account_day_trading_mode": false,
+          "open_positions_count": 0,
+          "market_regime": "unclassified",
+          "confidence_score": 0,
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "review_only": false,
+          "estimated_notional": 65.0,
+          "buying_power_reference": 127.79,
+          "manual_limit_drift": {
+            "mark_price": 0.65,
+            "limit_price": 0.65,
+            "max_drift_pct": 0.05,
+            "drift_pct": 0.0
+          }
+        },
+        "decision_card": {
+          "symbol": "NVDA",
+          "direction": "buy",
+          "contract": "NVDA 187.5 PUT 2026-04-22",
+          "setup_type": "long put",
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "market_regime": "unclassified",
+          "confidence": 0,
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "why_not": [],
+          "rejection_reason": "",
+          "disposition": "accepted for execution"
+        },
+        "disposition": "accepted for execution",
+        "timestamp": "2026-04-17T04:23:33.136030+00:00"
+      },
+      {
+        "intent_id": "intent_eb6afca4a8b5",
+        "mode": "cash_day_trade",
+        "allowed": true,
+        "reasons": [],
+        "checks": {
+          "mode": "cash_day_trade",
+          "strategy_allowed": true,
+          "qty_within_cap": true,
+          "time_in_force_day_only": true,
+          "account_ready_flag": true,
+          "account_type": "margin",
+          "cash_account_day_trading_mode": false,
+          "open_positions_count": 0,
+          "market_regime": "unclassified",
+          "confidence_score": 0,
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "review_only": false,
+          "estimated_notional": 62.5,
+          "buying_power_reference": 127.79,
+          "manual_limit_drift": {
+            "mark_price": 0.625,
+            "limit_price": 0.625,
+            "max_drift_pct": 0.05,
+            "drift_pct": 0.0
+          }
+        },
+        "decision_card": {
+          "symbol": "NVDA",
+          "direction": "buy",
+          "contract": "NVDA 187.5 PUT 2026-04-22",
+          "setup_type": "long put",
+          "entry_logic": "leader-driven entry",
+          "trigger_condition": "candidate selected by automation",
+          "invalidation_logic": "premium stop / thesis break",
+          "target_exit_logic": "intraday target or timeout exit",
+          "market_regime": "unclassified",
+          "confidence": 0,
+          "risk_classification": "smallest_size_cash_account",
+          "why_now": "candidate passed pre-trade gates",
+          "why_not": [],
+          "rejection_reason": "",
+          "disposition": "accepted for execution"
+        },
+        "disposition": "accepted for execution",
+        "timestamp": "2026-04-17T04:42:14.678337+00:00"
       }
     ],
     "decisionCards": [
@@ -2254,11 +2492,101 @@
         ],
         "rejection_reason": "estimated notional 1127.00 exceeds buying power reference 197.78",
         "disposition": "rejected"
+      },
+      {
+        "intent_id": "intent_d683abd27a10",
+        "symbol": "NVDA",
+        "direction": "buy",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "setup_type": "long put",
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "market_regime": "unclassified",
+        "confidence": 0,
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "candidate passed pre-trade gates",
+        "why_not": [],
+        "rejection_reason": "",
+        "disposition": "accepted for execution"
+      },
+      {
+        "intent_id": "intent_2a379e1b9851",
+        "symbol": "NVDA",
+        "direction": "buy",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "setup_type": "long put",
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "market_regime": "unclassified",
+        "confidence": 0,
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "candidate passed pre-trade gates",
+        "why_not": [],
+        "rejection_reason": "",
+        "disposition": "accepted for execution"
+      },
+      {
+        "intent_id": "intent_3d93faeb0cd0",
+        "symbol": "NVDA",
+        "direction": "buy",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "setup_type": "long put",
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "market_regime": "unclassified",
+        "confidence": 0,
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "candidate passed pre-trade gates",
+        "why_not": [],
+        "rejection_reason": "",
+        "disposition": "accepted for execution"
+      },
+      {
+        "intent_id": "intent_52e47228e702",
+        "symbol": "NVDA",
+        "direction": "buy",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "setup_type": "long put",
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "market_regime": "unclassified",
+        "confidence": 0,
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "candidate passed pre-trade gates",
+        "why_not": [],
+        "rejection_reason": "",
+        "disposition": "accepted for execution"
+      },
+      {
+        "intent_id": "intent_eb6afca4a8b5",
+        "symbol": "NVDA",
+        "direction": "buy",
+        "contract": "NVDA 187.5 PUT 2026-04-22",
+        "setup_type": "long put",
+        "entry_logic": "leader-driven entry",
+        "trigger_condition": "candidate selected by automation",
+        "invalidation_logic": "premium stop / thesis break",
+        "target_exit_logic": "intraday target or timeout exit",
+        "market_regime": "unclassified",
+        "confidence": 0,
+        "risk_classification": "smallest_size_cash_account",
+        "why_now": "candidate passed pre-trade gates",
+        "why_not": [],
+        "rejection_reason": "",
+        "disposition": "accepted for execution"
       }
     ]
   },
   "tradierAudit": {
-    "updatedAt": "2026-04-10T01:22:37.369992+00:00",
+    "updatedAt": "2026-04-17T04:42:14.991972+00:00",
     "events": [
       {
         "timestamp": "2026-03-31T04:29:18.652840+00:00",
@@ -2808,6 +3136,228 @@
             "disposition": "rejected"
           }
         }
+      },
+      {
+        "timestamp": "2026-04-17T04:22:23.176032+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_d683abd27a10",
+        "summary": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+        "extra": {
+          "candidate_id": "NVDA-2026-04-22-PUT-187.5"
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:22:23.764510+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_d683abd27a10",
+        "summary": "Risk evaluation completed: accepted for execution",
+        "extra": {
+          "allowed": true,
+          "disposition": "accepted for execution",
+          "reasons": [],
+          "decision_card": {
+            "symbol": "NVDA",
+            "direction": "buy",
+            "contract": "NVDA 187.5 PUT 2026-04-22",
+            "setup_type": "long put",
+            "entry_logic": "leader-driven entry",
+            "trigger_condition": "candidate selected by automation",
+            "invalidation_logic": "premium stop / thesis break",
+            "target_exit_logic": "intraday target or timeout exit",
+            "market_regime": "unclassified",
+            "confidence": 0,
+            "risk_classification": "smallest_size_cash_account",
+            "why_now": "candidate passed pre-trade gates",
+            "why_not": [],
+            "rejection_reason": "",
+            "disposition": "accepted for execution"
+          }
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:22:34.690689+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_2a379e1b9851",
+        "summary": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+        "extra": {
+          "candidate_id": "NVDA-2026-04-22-PUT-187.5"
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:22:35.321413+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_2a379e1b9851",
+        "summary": "Risk evaluation completed: accepted for execution",
+        "extra": {
+          "allowed": true,
+          "disposition": "accepted for execution",
+          "reasons": [],
+          "decision_card": {
+            "symbol": "NVDA",
+            "direction": "buy",
+            "contract": "NVDA 187.5 PUT 2026-04-22",
+            "setup_type": "long put",
+            "entry_logic": "leader-driven entry",
+            "trigger_condition": "candidate selected by automation",
+            "invalidation_logic": "premium stop / thesis break",
+            "target_exit_logic": "intraday target or timeout exit",
+            "market_regime": "unclassified",
+            "confidence": 0,
+            "risk_classification": "smallest_size_cash_account",
+            "why_now": "candidate passed pre-trade gates",
+            "why_not": [],
+            "rejection_reason": "",
+            "disposition": "accepted for execution"
+          }
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:23:01.959789+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_3d93faeb0cd0",
+        "summary": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+        "extra": {
+          "candidate_id": "NVDA-2026-04-22-PUT-187.5"
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:23:02.503132+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_3d93faeb0cd0",
+        "summary": "Risk evaluation completed: accepted for execution",
+        "extra": {
+          "allowed": true,
+          "disposition": "accepted for execution",
+          "reasons": [],
+          "decision_card": {
+            "symbol": "NVDA",
+            "direction": "buy",
+            "contract": "NVDA 187.5 PUT 2026-04-22",
+            "setup_type": "long put",
+            "entry_logic": "leader-driven entry",
+            "trigger_condition": "candidate selected by automation",
+            "invalidation_logic": "premium stop / thesis break",
+            "target_exit_logic": "intraday target or timeout exit",
+            "market_regime": "unclassified",
+            "confidence": 0,
+            "risk_classification": "smallest_size_cash_account",
+            "why_now": "candidate passed pre-trade gates",
+            "why_not": [],
+            "rejection_reason": "",
+            "disposition": "accepted for execution"
+          }
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:23:02.506236+00:00",
+        "actor": "alfred",
+        "action": "intent_approved",
+        "target_id": "intent_3d93faeb0cd0",
+        "summary": "Manual preview proof authorization"
+      },
+      {
+        "timestamp": "2026-04-17T04:23:32.648859+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_52e47228e702",
+        "summary": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+        "extra": {
+          "candidate_id": "NVDA-2026-04-22-PUT-187.5"
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:23:33.138528+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_52e47228e702",
+        "summary": "Risk evaluation completed: accepted for execution",
+        "extra": {
+          "allowed": true,
+          "disposition": "accepted for execution",
+          "reasons": [],
+          "decision_card": {
+            "symbol": "NVDA",
+            "direction": "buy",
+            "contract": "NVDA 187.5 PUT 2026-04-22",
+            "setup_type": "long put",
+            "entry_logic": "leader-driven entry",
+            "trigger_condition": "candidate selected by automation",
+            "invalidation_logic": "premium stop / thesis break",
+            "target_exit_logic": "intraday target or timeout exit",
+            "market_regime": "unclassified",
+            "confidence": 0,
+            "risk_classification": "smallest_size_cash_account",
+            "why_now": "candidate passed pre-trade gates",
+            "why_not": [],
+            "rejection_reason": "",
+            "disposition": "accepted for execution"
+          }
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:42:14.068507+00:00",
+        "actor": "alfred",
+        "action": "intent_created",
+        "target_id": "intent_eb6afca4a8b5",
+        "summary": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+        "extra": {
+          "candidate_id": "NVDA-2026-04-22-PUT-187.5"
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:42:14.682009+00:00",
+        "actor": "alfred",
+        "action": "risk_evaluated",
+        "target_id": "intent_eb6afca4a8b5",
+        "summary": "Risk evaluation completed: accepted for execution",
+        "extra": {
+          "allowed": true,
+          "disposition": "accepted for execution",
+          "reasons": [],
+          "decision_card": {
+            "symbol": "NVDA",
+            "direction": "buy",
+            "contract": "NVDA 187.5 PUT 2026-04-22",
+            "setup_type": "long put",
+            "entry_logic": "leader-driven entry",
+            "trigger_condition": "candidate selected by automation",
+            "invalidation_logic": "premium stop / thesis break",
+            "target_exit_logic": "intraday target or timeout exit",
+            "market_regime": "unclassified",
+            "confidence": 0,
+            "risk_classification": "smallest_size_cash_account",
+            "why_now": "candidate passed pre-trade gates",
+            "why_not": [],
+            "rejection_reason": "",
+            "disposition": "accepted for execution"
+          }
+        }
+      },
+      {
+        "timestamp": "2026-04-17T04:42:14.991967+00:00",
+        "actor": "alfred",
+        "action": "preview_created",
+        "target_id": "intent_eb6afca4a8b5",
+        "summary": "Broker preview created",
+        "extra": {
+          "payload": {
+            "class": "option",
+            "symbol": "NVDA",
+            "option_symbol": "NVDA260422P00187500",
+            "side": "buy_to_open",
+            "quantity": 1,
+            "type": "limit",
+            "duration": "day",
+            "tag": "alfred-cash-day-trade-intent-eb6afca4a8b5",
+            "price": 0.62
+          }
+        }
       }
     ]
   },
@@ -2850,22 +3400,22 @@
   "tradingDeskStatus": {
     "lastEvaluatedCandidate": {
       "mode": "cash_day_trade",
-      "strategy_type": "long_call",
-      "symbol": "SPY",
-      "contract": "SPY 675.0 CALL 2026-04-23",
+      "strategy_type": "long_put",
+      "symbol": "NVDA",
+      "contract": "NVDA 187.5 PUT 2026-04-22",
       "side": "buy",
       "qty": 1,
-      "limit_price": 11.27,
+      "limit_price": 0.625,
       "time_in_force": "day",
       "source": "leader",
-      "candidate_id": "SPY-2026-04-23-CALL-675",
-      "notes": "auto-trade runner",
+      "candidate_id": "NVDA-2026-04-22-PUT-187.5",
+      "notes": "internal blessed path proof",
       "allocation_bucket": "cash_day_core",
       "position_relationship": "open_new_position",
       "position_id": null,
       "strategy_family": "Scalping Buy",
       "strategy_source": "tradier_leaders_board",
-      "strategy_run_id": "SPY-2026-04-23-CALL-675",
+      "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
       "origin": "system_generated",
       "decision_state": "proposed",
       "decision_actor": "system",
@@ -2889,26 +3439,33 @@
       "latest_attempt_note": "",
       "reconciliation_state": "not_reconciled",
       "reconciliation_note": "",
-      "intent_id": "intent_f7186fe09fbe",
-      "created_at": "2026-04-10T01:22:36.851195+00:00",
-      "status": "queued",
+      "intent_id": "intent_eb6afca4a8b5",
+      "created_at": "2026-04-17T04:42:14.065509+00:00",
+      "status": "previewed",
       "transition_history": [
         {
           "from": "candidate",
           "to": "queued",
           "actor": "alfred",
-          "note": "Created cash_day_trade intent from SPY-2026-04-23-CALL-675",
-          "timestamp": "2026-04-10T01:22:36.851632+00:00"
+          "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
+          "timestamp": "2026-04-17T04:42:14.066191+00:00"
+        },
+        {
+          "from": "queued",
+          "to": "previewed",
+          "actor": "alfred",
+          "note": "Broker preview created",
+          "timestamp": "2026-04-17T04:42:14.989495+00:00"
         }
       ],
-      "updated_at": "2026-04-10T01:22:36.851637+00:00"
+      "updated_at": "2026-04-17T04:42:14.989500+00:00"
     },
     "decisionCard": {
-      "intent_id": "intent_f7186fe09fbe",
-      "symbol": "SPY",
+      "intent_id": "intent_eb6afca4a8b5",
+      "symbol": "NVDA",
       "direction": "buy",
-      "contract": "SPY 675.0 CALL 2026-04-23",
-      "setup_type": "long call",
+      "contract": "NVDA 187.5 PUT 2026-04-22",
+      "setup_type": "long put",
       "entry_logic": "leader-driven entry",
       "trigger_condition": "candidate selected by automation",
       "invalidation_logic": "premium stop / thesis break",
@@ -2916,15 +3473,13 @@
       "market_regime": "unclassified",
       "confidence": 0,
       "risk_classification": "smallest_size_cash_account",
-      "why_now": "",
-      "why_not": [
-        "estimated notional 1127.00 exceeds buying power reference 197.78"
-      ],
-      "rejection_reason": "estimated notional 1127.00 exceeds buying power reference 197.78",
-      "disposition": "rejected"
+      "why_now": "candidate passed pre-trade gates",
+      "why_not": [],
+      "rejection_reason": "",
+      "disposition": "accepted for execution"
     },
-    "decisionResult": "rejected",
-    "rejectionReason": "estimated notional 1127.00 exceeds buying power reference 197.78",
+    "decisionResult": "accepted for execution",
+    "rejectionReason": null,
     "previewState": {
       "ts": "2026-04-16T22:42:14.987593-06:00",
       "action": "preview",
@@ -3009,16 +3564,16 @@
       }
     },
     "automationEnabled": true,
-    "lastCycleRun": "  'updatedAt': datetime.utcnow().isoformat() + 'Z',",
+    "lastCycleRun": "=== Bazaar refresh cycle complete: 2026-04-17T14:46:09-06:00 ===",
     "refreshTail": [
-      "   920bb93..276102c  master -> master",
-      "=== Bazaar refresh cycle complete: 2026-04-17T14:31:10-06:00 ===",
-      "=== Bazaar refresh cycle start: 2026-04-17T14:45:00-06:00 ===",
       "<stdin>:10: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).",
       "<stdin>:11: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).",
       "<stdin>:12: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
-      "/home/catabolic_solutions/.openclaw/workspace/scripts/tradier_near_miss_report.py:228: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
-      "  'updatedAt': datetime.utcnow().isoformat() + 'Z',"
+      "[master 110eabf] Auto-refresh: 2026-04-17T20:46:08Z",
+      " 2 files changed, 239 insertions(+), 242 deletions(-)",
+      "To https://github.com/CatabolicSolutions/bazaar-dashboard.git",
+      "   276102c..110eabf  master -> master",
+      "=== Bazaar refresh cycle complete: 2026-04-17T14:46:09-06:00 ==="
     ],
     "auditRows": [
       {
@@ -3265,7 +3820,7 @@
     ]
   },
   "autonomyMonitor": {
-    "lastCycleRun": "  'updatedAt': datetime.utcnow().isoformat() + 'Z',",
+    "lastCycleRun": "=== Bazaar refresh cycle complete: 2026-04-17T14:46:09-06:00 ===",
     "nextCycle": "cron / 15-minute refresh cadence",
     "heartbeat": {
       "bloc": "running",
@@ -3807,18 +4362,18 @@
   "hq": {
     "engine_truth_board": {
       "tradier": {
-        "funded": true,
+        "funded": false,
         "path_ready": true,
         "edge_proven": false,
         "status_label": "ready_for_first_live_deployment",
         "available_capital_usd": 127.88,
-        "last_lifecycle_stage": "queued",
-        "last_attempt_status": "rejected",
-        "last_rejection_reason": "estimated notional 1127.00 exceeds buying power reference 197.78",
+        "last_lifecycle_stage": "previewed",
+        "last_attempt_status": "accepted for execution",
+        "last_rejection_reason": null,
         "last_preview_ok": true,
         "last_closed_trade_net_pnl_usd": null,
-        "top_blocker": "estimated notional 1127.00 exceeds buying power reference 197.78",
-        "updated_at": "2026-04-17T20:45:36.082054+00:00"
+        "top_blocker": null,
+        "updated_at": "2026-04-18T13:40:53.486173+00:00"
       },
       "bloc": {
         "funded": false,
@@ -3834,21 +4389,21 @@
         "last_estimated_friction_pct": null,
         "last_closed_trade_net_pnl_usd": null,
         "top_blocker": null,
-        "updated_at": "2026-04-17T20:45:36.082065+00:00"
+        "updated_at": "2026-04-18T13:40:53.486187+00:00"
       }
     }
   },
   "decisionContext": {
-    "updatedAt": "2026-04-17T20:45:36.082682+00:00",
-    "totalLoggedThisRun": 18,
-    "qualifiedTradeCount": 10,
+    "updatedAt": "2026-04-18T13:40:53.486751+00:00",
+    "totalLoggedThisRun": 9,
+    "qualifiedTradeCount": 0,
     "nearMissCount": 8,
-    "noTradeEnvironmentLogged": false
+    "noTradeEnvironmentLogged": true
   },
   "decisionOutcomeAttachments": {
-    "updatedAt": "2026-04-17T20:30:36.604824+00:00",
+    "updatedAt": "2026-04-17T20:45:36.495731+00:00",
     "newAttachments": 54,
-    "totalAttachments": 20520,
+    "totalAttachments": 20574,
     "horizons": [
       "short",
       "medium",
@@ -3862,13 +4417,13 @@
   "confidenceCalibration": {
     "qualifiedTrades": {
       "high": {
-        "unfavorable": 1047,
-        "favorable": 679,
+        "unfavorable": 1057,
+        "favorable": 674,
         "unresolved": 15
       },
       "medium": {
-        "favorable": 1140,
-        "unfavorable": 1075,
+        "favorable": 1149,
+        "unfavorable": 1071,
         "unresolved": 15
       },
       "low": {
@@ -3878,23 +4433,23 @@
     },
     "nearMisses": {
       "unresolved": 602,
-      "worsened": 1910,
-      "mixed": 672
+      "worsened": 1913,
+      "mixed": 677
     },
     "qualificationReasonReview": {
       "Near-ATM delta (0.35-0.80) for directional exposure": {
-        "favorable": 1050,
-        "unfavorable": 925,
+        "favorable": 1057,
+        "unfavorable": 923,
         "unresolved": 15
       },
       "7-14 DTE for optimal gamma/theta balance": {
-        "favorable": 1050,
-        "unfavorable": 925,
+        "favorable": 1057,
+        "unfavorable": 923,
         "unresolved": 15
       },
       "Tight bid-ask spread for clean entry/exit": {
-        "favorable": 1050,
-        "unfavorable": 925,
+        "favorable": 1057,
+        "unfavorable": 923,
         "unresolved": 15
       },
       "Tight bid-ask spread (3.0%)": {
@@ -3902,32 +4457,32 @@
         "unfavorable": 12
       },
       "Tight bid-ask spread (1.0%)": {
-        "favorable": 46,
-        "unfavorable": 25
+        "favorable": 44,
+        "unfavorable": 27
       },
       "Tight bid-ask spread (4.6%)": {
         "favorable": 15,
         "unfavorable": 11
       },
       "OTM delta (~0.14) for defined-risk premium": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       },
       "Spread structure limits max loss": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       },
       "Time decay working in your favor": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       },
       "Tight bid-ask spread (1.6%)": {
         "unfavorable": 73,
         "favorable": 41,
-        "unresolved": 1
+        "unresolved": 2
       },
       "Tight bid-ask spread (3.2%)": {
         "unfavorable": 20,
@@ -3946,18 +4501,16 @@
         "favorable": 9
       },
       "Tight bid-ask spread (4.7%)": {
-        "favorable": 20,
-        "unfavorable": 14,
-        "unresolved": 1
+        "favorable": 21,
+        "unfavorable": 14
       },
       "Tight bid-ask spread (4.4%)": {
-        "favorable": 16,
-        "unfavorable": 24
+        "favorable": 15,
+        "unfavorable": 25
       },
       "Tight bid-ask spread (4.8%)": {
-        "unfavorable": 14,
-        "favorable": 17,
-        "unresolved": 1
+        "unfavorable": 15,
+        "favorable": 17
       },
       "Tight bid-ask spread (2.4%)": {
         "unfavorable": 21,
@@ -3968,13 +4521,12 @@
         "unfavorable": 12
       },
       "Fallback expiry - confidence adjusted": {
-        "unfavorable": 168,
-        "favorable": 90
+        "unfavorable": 166,
+        "favorable": 92
       },
       "Tight bid-ask spread (2.0%)": {
         "favorable": 34,
-        "unfavorable": 30,
-        "unresolved": 1
+        "unfavorable": 31
       },
       "Tight bid-ask spread (2.3%)": {
         "favorable": 26,
@@ -3991,55 +4543,54 @@
       "Tight bid-ask spread (3.4%)": {
         "unfavorable": 26,
         "favorable": 8,
-        "unresolved": 1
+        "unresolved": 2
       },
       "Tight bid-ask spread (1.2%)": {
-        "unfavorable": 38,
-        "favorable": 48,
-        "unresolved": 1
+        "unfavorable": 39,
+        "favorable": 48
       },
       "Tight bid-ask spread (1.5%)": {
-        "favorable": 37,
-        "unfavorable": 52
+        "favorable": 38,
+        "unfavorable": 51
       },
       "Tight bid-ask spread (3.7%)": {
         "favorable": 13,
         "unfavorable": 11
       },
       "Tight bid-ask spread (2.5%)": {
-        "favorable": 26,
-        "unfavorable": 23
+        "favorable": 25,
+        "unfavorable": 24
       },
       "Tight bid-ask spread (1.7%)": {
         "favorable": 22,
         "unfavorable": 57
       },
       "Tight bid-ask spread (0.7%)": {
-        "unfavorable": 33,
-        "favorable": 29
+        "unfavorable": 32,
+        "favorable": 30
       },
       "Tight bid-ask spread (2.1%)": {
-        "favorable": 42,
-        "unfavorable": 21,
-        "unresolved": 1
+        "favorable": 43,
+        "unfavorable": 20,
+        "unresolved": 2
       },
       "Tight bid-ask spread (1.4%)": {
         "favorable": 62,
         "unfavorable": 65
       },
       "Tight bid-ask spread (0.9%)": {
-        "unfavorable": 28,
-        "favorable": 31
+        "unfavorable": 29,
+        "favorable": 30
       },
       "Tight bid-ask spread (1.9%)": {
-        "favorable": 43,
-        "unfavorable": 43,
+        "favorable": 44,
+        "unfavorable": 44,
         "unresolved": 5
       },
       "Tight bid-ask spread (4.3%)": {
         "favorable": 16,
         "unfavorable": 20,
-        "unresolved": 2
+        "unresolved": 3
       },
       "Tight bid-ask spread (1.1%)": {
         "favorable": 43,
@@ -4062,13 +4613,13 @@
         "favorable": 12
       },
       "Tight bid-ask spread (0.5%)": {
-        "favorable": 21,
-        "unfavorable": 7
+        "favorable": 22,
+        "unfavorable": 6
       },
       "Tight bid-ask spread (3.9%)": {
         "favorable": 11,
         "unfavorable": 7,
-        "unresolved": 1
+        "unresolved": 2
       },
       "Tight bid-ask spread (4.9%)": {
         "favorable": 19,
@@ -4077,7 +4628,7 @@
       "Tight bid-ask spread (4.1%)": {
         "favorable": 15,
         "unfavorable": 16,
-        "unresolved": 2
+        "unresolved": 3
       },
       "Tight bid-ask spread (0.6%)": {
         "favorable": 19,
@@ -4102,13 +4653,13 @@
       },
       "Tight bid-ask spread (2.6%)": {
         "favorable": 27,
-        "unfavorable": 15,
-        "unresolved": 2
+        "unfavorable": 16,
+        "unresolved": 1
       },
       "Tight bid-ask spread (1.3%)": {
         "favorable": 35,
-        "unfavorable": 34,
-        "unresolved": 2
+        "unfavorable": 35,
+        "unresolved": 1
       },
       "Tight bid-ask spread (0.8%)": {
         "favorable": 20,
@@ -4122,41 +4673,41 @@
     "rejectionReasonReview": {
       "reward/risk / distance outside scalping tolerance": {
         "unresolved": 602,
-        "worsened": 1910,
-        "mixed": 672
+        "worsened": 1913,
+        "mixed": 677
       }
     },
     "sourceCounts": {
-      "decisionRecords": 7164,
-      "outcomeAttachments": 20520
+      "decisionRecords": 7182,
+      "outcomeAttachments": 20574
     }
   },
   "setupQuality": {
     "setupClasses": {
       "directional_momentum": {
-        "favorable": 1050,
+        "favorable": 1057,
         "unresolved": 617,
-        "worsened": 1910,
-        "unfavorable": 925,
-        "mixed": 672
+        "worsened": 1913,
+        "unfavorable": 923,
+        "mixed": 677
       },
       "premium_credit": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       }
     },
     "setupClassByConfidence": {
       "directional_momentum": {
         "medium": {
-          "favorable": 1050,
-          "unfavorable": 916,
+          "favorable": 1057,
+          "unfavorable": 914,
           "unresolved": 15
         },
         "high": {
           "unresolved": 602,
-          "worsened": 1910,
-          "mixed": 672
+          "worsened": 1913,
+          "mixed": 677
         },
         "low": {
           "unfavorable": 9
@@ -4164,30 +4715,30 @@
       },
       "premium_credit": {
         "high": {
-          "unfavorable": 1047,
-          "favorable": 679,
+          "unfavorable": 1057,
+          "favorable": 674,
           "unresolved": 15
         },
         "medium": {
-          "unfavorable": 159,
-          "favorable": 90
+          "unfavorable": 157,
+          "favorable": 92
         }
       }
     },
     "qualificationReasonQuality": {
       "Near-ATM delta (0.35-0.80) for directional exposure": {
-        "favorable": 1050,
-        "unfavorable": 925,
+        "favorable": 1057,
+        "unfavorable": 923,
         "unresolved": 15
       },
       "7-14 DTE for optimal gamma/theta balance": {
-        "favorable": 1050,
-        "unfavorable": 925,
+        "favorable": 1057,
+        "unfavorable": 923,
         "unresolved": 15
       },
       "Tight bid-ask spread for clean entry/exit": {
-        "favorable": 1050,
-        "unfavorable": 925,
+        "favorable": 1057,
+        "unfavorable": 923,
         "unresolved": 15
       },
       "Tight bid-ask spread (3.0%)": {
@@ -4195,32 +4746,32 @@
         "unfavorable": 12
       },
       "Tight bid-ask spread (1.0%)": {
-        "favorable": 46,
-        "unfavorable": 25
+        "favorable": 44,
+        "unfavorable": 27
       },
       "Tight bid-ask spread (4.6%)": {
         "favorable": 15,
         "unfavorable": 11
       },
       "OTM delta (~0.14) for defined-risk premium": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       },
       "Spread structure limits max loss": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       },
       "Time decay working in your favor": {
-        "unfavorable": 1206,
-        "favorable": 769,
+        "unfavorable": 1214,
+        "favorable": 766,
         "unresolved": 15
       },
       "Tight bid-ask spread (1.6%)": {
         "unfavorable": 73,
         "favorable": 41,
-        "unresolved": 1
+        "unresolved": 2
       },
       "Tight bid-ask spread (3.2%)": {
         "unfavorable": 20,
@@ -4239,18 +4790,16 @@
         "favorable": 9
       },
       "Tight bid-ask spread (4.7%)": {
-        "favorable": 20,
-        "unfavorable": 14,
-        "unresolved": 1
+        "favorable": 21,
+        "unfavorable": 14
       },
       "Tight bid-ask spread (4.4%)": {
-        "favorable": 16,
-        "unfavorable": 24
+        "favorable": 15,
+        "unfavorable": 25
       },
       "Tight bid-ask spread (4.8%)": {
-        "unfavorable": 14,
-        "favorable": 17,
-        "unresolved": 1
+        "unfavorable": 15,
+        "favorable": 17
       },
       "Tight bid-ask spread (2.4%)": {
         "unfavorable": 21,
@@ -4261,13 +4810,12 @@
         "unfavorable": 12
       },
       "Fallback expiry - confidence adjusted": {
-        "unfavorable": 168,
-        "favorable": 90
+        "unfavorable": 166,
+        "favorable": 92
       },
       "Tight bid-ask spread (2.0%)": {
         "favorable": 34,
-        "unfavorable": 30,
-        "unresolved": 1
+        "unfavorable": 31
       },
       "Tight bid-ask spread (2.3%)": {
         "favorable": 26,
@@ -4284,55 +4832,54 @@
       "Tight bid-ask spread (3.4%)": {
         "unfavorable": 26,
         "favorable": 8,
-        "unresolved": 1
+        "unresolved": 2
       },
       "Tight bid-ask spread (1.2%)": {
-        "unfavorable": 38,
-        "favorable": 48,
-        "unresolved": 1
+        "unfavorable": 39,
+        "favorable": 48
       },
       "Tight bid-ask spread (1.5%)": {
-        "favorable": 37,
-        "unfavorable": 52
+        "favorable": 38,
+        "unfavorable": 51
       },
       "Tight bid-ask spread (3.7%)": {
         "favorable": 13,
         "unfavorable": 11
       },
       "Tight bid-ask spread (2.5%)": {
-        "favorable": 26,
-        "unfavorable": 23
+        "favorable": 25,
+        "unfavorable": 24
       },
       "Tight bid-ask spread (1.7%)": {
         "favorable": 22,
         "unfavorable": 57
       },
       "Tight bid-ask spread (0.7%)": {
-        "unfavorable": 33,
-        "favorable": 29
+        "unfavorable": 32,
+        "favorable": 30
       },
       "Tight bid-ask spread (2.1%)": {
-        "favorable": 42,
-        "unfavorable": 21,
-        "unresolved": 1
+        "favorable": 43,
+        "unfavorable": 20,
+        "unresolved": 2
       },
       "Tight bid-ask spread (1.4%)": {
         "favorable": 62,
         "unfavorable": 65
       },
       "Tight bid-ask spread (0.9%)": {
-        "unfavorable": 28,
-        "favorable": 31
+        "unfavorable": 29,
+        "favorable": 30
       },
       "Tight bid-ask spread (1.9%)": {
-        "favorable": 43,
-        "unfavorable": 43,
+        "favorable": 44,
+        "unfavorable": 44,
         "unresolved": 5
       },
       "Tight bid-ask spread (4.3%)": {
         "favorable": 16,
         "unfavorable": 20,
-        "unresolved": 2
+        "unresolved": 3
       },
       "Tight bid-ask spread (1.1%)": {
         "favorable": 43,
@@ -4355,13 +4902,13 @@
         "favorable": 12
       },
       "Tight bid-ask spread (0.5%)": {
-        "favorable": 21,
-        "unfavorable": 7
+        "favorable": 22,
+        "unfavorable": 6
       },
       "Tight bid-ask spread (3.9%)": {
         "favorable": 11,
         "unfavorable": 7,
-        "unresolved": 1
+        "unresolved": 2
       },
       "Tight bid-ask spread (4.9%)": {
         "favorable": 19,
@@ -4370,7 +4917,7 @@
       "Tight bid-ask spread (4.1%)": {
         "favorable": 15,
         "unfavorable": 16,
-        "unresolved": 2
+        "unresolved": 3
       },
       "Tight bid-ask spread (0.6%)": {
         "favorable": 19,
@@ -4395,13 +4942,13 @@
       },
       "Tight bid-ask spread (2.6%)": {
         "favorable": 27,
-        "unfavorable": 15,
-        "unresolved": 2
+        "unfavorable": 16,
+        "unresolved": 1
       },
       "Tight bid-ask spread (1.3%)": {
         "favorable": 35,
-        "unfavorable": 34,
-        "unresolved": 2
+        "unfavorable": 35,
+        "unresolved": 1
       },
       "Tight bid-ask spread (0.8%)": {
         "favorable": 20,
@@ -4415,35 +4962,35 @@
     "rejectionReasonQuality": {
       "reward/risk / distance outside scalping tolerance": {
         "unresolved": 602,
-        "worsened": 1910,
-        "mixed": 672
+        "worsened": 1913,
+        "mixed": 677
       }
     },
     "ranking": [
       {
         "setupClass": "premium_credit",
-        "score": -437,
+        "score": -448,
         "counts": {
-          "unfavorable": 1206,
-          "favorable": 769,
+          "unfavorable": 1214,
+          "favorable": 766,
           "unresolved": 15
         }
       },
       {
         "setupClass": "directional_momentum",
-        "score": -1785,
+        "score": -1779,
         "counts": {
-          "favorable": 1050,
+          "favorable": 1057,
           "unresolved": 617,
-          "worsened": 1910,
-          "unfavorable": 925,
-          "mixed": 672
+          "worsened": 1913,
+          "unfavorable": 923,
+          "mixed": 677
         }
       }
     ],
     "sampleSize": {
-      "decisions": 7164,
-      "attachments": 20520,
+      "decisions": 7182,
+      "attachments": 20574,
       "note": "Early pattern ranking only; not statistically mature."
     }
   },
@@ -4452,49 +4999,49 @@
       {
         "setupClass": "premium_credit",
         "preference": "de-emphasized",
-        "score": -437,
-        "sample": 1990,
+        "score": -448,
+        "sample": 1995,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
-          "unfavorable": 1206,
-          "favorable": 769,
+          "unfavorable": 1214,
+          "favorable": 766,
           "unresolved": 15
         },
         "confidenceBands": {
           "high": {
-            "unfavorable": 1047,
-            "favorable": 679,
+            "unfavorable": 1057,
+            "favorable": 674,
             "unresolved": 15
           },
           "medium": {
-            "unfavorable": 159,
-            "favorable": 90
+            "unfavorable": 157,
+            "favorable": 92
           }
         }
       },
       {
         "setupClass": "directional_momentum",
         "preference": "de-emphasized",
-        "score": -1785,
-        "sample": 5174,
+        "score": -1779,
+        "sample": 5187,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
-          "favorable": 1050,
+          "favorable": 1057,
           "unresolved": 617,
-          "worsened": 1910,
-          "unfavorable": 925,
-          "mixed": 672
+          "worsened": 1913,
+          "unfavorable": 923,
+          "mixed": 677
         },
         "confidenceBands": {
           "medium": {
-            "favorable": 1050,
-            "unfavorable": 916,
+            "favorable": 1057,
+            "unfavorable": 914,
             "unresolved": 15
           },
           "high": {
             "unresolved": 602,
-            "worsened": 1910,
-            "mixed": 672
+            "worsened": 1913,
+            "mixed": 677
           },
           "low": {
             "unfavorable": 9
@@ -4508,49 +5055,49 @@
       {
         "setupClass": "premium_credit",
         "preference": "de-emphasized",
-        "score": -437,
-        "sample": 1990,
+        "score": -448,
+        "sample": 1995,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
-          "unfavorable": 1206,
-          "favorable": 769,
+          "unfavorable": 1214,
+          "favorable": 766,
           "unresolved": 15
         },
         "confidenceBands": {
           "high": {
-            "unfavorable": 1047,
-            "favorable": 679,
+            "unfavorable": 1057,
+            "favorable": 674,
             "unresolved": 15
           },
           "medium": {
-            "unfavorable": 159,
-            "favorable": 90
+            "unfavorable": 157,
+            "favorable": 92
           }
         }
       },
       {
         "setupClass": "directional_momentum",
         "preference": "de-emphasized",
-        "score": -1785,
-        "sample": 5174,
+        "score": -1779,
+        "sample": 5187,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
-          "favorable": 1050,
+          "favorable": 1057,
           "unresolved": 617,
-          "worsened": 1910,
-          "unfavorable": 925,
-          "mixed": 672
+          "worsened": 1913,
+          "unfavorable": 923,
+          "mixed": 677
         },
         "confidenceBands": {
           "medium": {
-            "favorable": 1050,
-            "unfavorable": 916,
+            "favorable": 1057,
+            "unfavorable": 914,
             "unresolved": 15
           },
           "high": {
             "unresolved": 602,
-            "worsened": 1910,
-            "mixed": 672
+            "worsened": 1913,
+            "mixed": 677
           },
           "low": {
             "unfavorable": 9
@@ -4561,65 +5108,65 @@
     "qualificationReasonSignals": [
       {
         "reason": "Near-ATM delta (0.35-0.80) for directional exposure",
-        "score": 125,
+        "score": 134,
         "counts": {
-          "favorable": 1050,
-          "unfavorable": 925,
+          "favorable": 1057,
+          "unfavorable": 923,
           "unresolved": 15
         }
       },
       {
         "reason": "7-14 DTE for optimal gamma/theta balance",
-        "score": 125,
+        "score": 134,
         "counts": {
-          "favorable": 1050,
-          "unfavorable": 925,
+          "favorable": 1057,
+          "unfavorable": 923,
           "unresolved": 15
         }
       },
       {
         "reason": "Tight bid-ask spread for clean entry/exit",
-        "score": 125,
+        "score": 134,
         "counts": {
-          "favorable": 1050,
-          "unfavorable": 925,
+          "favorable": 1057,
+          "unfavorable": 923,
           "unresolved": 15
         }
       },
       {
-        "reason": "Tight bid-ask spread (1.0%)",
-        "score": 21,
-        "counts": {
-          "favorable": 46,
-          "unfavorable": 25
-        }
-      },
-      {
         "reason": "Tight bid-ask spread (2.1%)",
-        "score": 21,
+        "score": 23,
         "counts": {
-          "favorable": 42,
-          "unfavorable": 21,
-          "unresolved": 1
+          "favorable": 43,
+          "unfavorable": 20,
+          "unresolved": 2
         }
       },
       {
-        "reason": "Tight bid-ask spread (2.4%)",
-        "score": 14,
+        "reason": "Tight bid-ask spread (1.0%)",
+        "score": 17,
         "counts": {
-          "unfavorable": 21,
-          "favorable": 35
+          "favorable": 44,
+          "unfavorable": 27
+        }
+      },
+      {
+        "reason": "Tight bid-ask spread (0.5%)",
+        "score": 16,
+        "counts": {
+          "favorable": 22,
+          "unfavorable": 6
         }
       }
     ],
     "rejectionReasonSignals": [
       {
         "reason": "reward/risk / distance outside scalping tolerance",
-        "score": -1910,
+        "score": -1913,
         "counts": {
           "unresolved": 602,
-          "worsened": 1910,
-          "mixed": 672
+          "worsened": 1913,
+          "mixed": 677
         }
       }
     ],
