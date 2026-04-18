@@ -152,16 +152,21 @@ def persist_decision_context(snapshot: dict) -> dict:
     if not leaders:
         records.append(build_no_trade_record(snapshot))
 
-    with DECISION_LOG.open('a', encoding='utf-8') as f:
-        for record in records:
-            f.write(json.dumps(record) + '\n')
-
     summary = {
         'updatedAt': datetime.now(timezone.utc).isoformat(),
         'totalLoggedThisRun': len(records),
         'qualifiedTradeCount': len(leaders),
         'nearMissCount': len(near_misses),
         'noTradeEnvironmentLogged': not bool(leaders),
+        'writeOk': True,
     }
-    DECISION_SUMMARY.write_text(json.dumps(summary, indent=2))
+
+    try:
+        with DECISION_LOG.open('a', encoding='utf-8') as f:
+            for record in records:
+                f.write(json.dumps(record) + '\n')
+        DECISION_SUMMARY.write_text(json.dumps(summary, indent=2))
+    except PermissionError:
+        summary['writeOk'] = False
+        summary['writeError'] = 'permission_denied'
     return summary

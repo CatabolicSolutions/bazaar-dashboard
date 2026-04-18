@@ -259,8 +259,18 @@ class AutonomousTrader:
         
         # Calculate position size
         available = account.get('cash_available', 0)
-        position_size = min(available * 0.25, 500)  # 25% of cash or $500 max
+        position_size = min(available * 0.25, 175)  # hard cap aligned to project mandate
         qty = max(1, int(position_size / signal['mid_price']))
+
+        if signal['mid_price'] > 1.50:
+            print(f"   ❌ REJECTED: option premium {signal['mid_price']:.2f} exceeds mandate cap")
+            return
+
+        if signal['mid_price'] * qty * 100 > 175:
+            qty = max(0, int(175 / (signal['mid_price'] * 100)))
+        if qty < 1:
+            print(f"   ❌ REJECTED: no valid quantity within mandate notional cap for {signal['contract']}")
+            return
         
         # Create leader dict for execution service
         leader = {
@@ -282,9 +292,13 @@ class AutonomousTrader:
                 limit_price=signal['mid_price'],
                 notes=f"Autonomous entry - confidence {signal['confidence']}/10"
             )
+
+            decision = self.service.evaluate_risk(intent_dict, mark_price=signal['mid_price'])
+            if not decision.get('allowed'):
+                print(f"   ❌ REJECTED BY RISK: {decision.get('reasons')}")
+                return
             
-            # Skip risk evaluation and approval - go straight to execution
-            # This is the autonomous path
+            # This is the autonomous path, but it still must clear risk gates
             intent_id = intent_dict['intent_id']
             print(f"   📋 Intent created: {intent_id}")
             

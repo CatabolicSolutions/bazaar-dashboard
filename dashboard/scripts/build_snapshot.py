@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import subprocess
 from decision_context import persist_decision_context
 
@@ -128,20 +128,43 @@ def build_bloc_status(bot_state, wallet_state, positions_state, signal_rows, err
     }
 
 
+def parse_iso(ts):
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
+    except Exception:
+        return None
+
+
+def is_fresh(ts, max_age_hours=12):
+    parsed = parse_iso(ts)
+    if not parsed:
+        return False
+    now = datetime.now(timezone.utc)
+    return parsed >= now - timedelta(hours=max_age_hours)
+
+
+def latest_fresh(items, timestamp_key, max_age_hours=12):
+    fresh = [item for item in items if is_fresh(item.get(timestamp_key), max_age_hours=max_age_hours)]
+    return fresh[-1] if fresh else None
+
+
 def build_trading_desk_status(execution_state, audit_state, execution_audit_rows, refresh_lines):
     intents = execution_state.get('intents', []) if isinstance(execution_state, dict) else []
     decisions = execution_state.get('riskDecisions', []) if isinstance(execution_state, dict) else []
     decision_cards = execution_state.get('decisionCards', []) if isinstance(execution_state, dict) else []
-    latest_intent = intents[-1] if intents else None
-    latest_decision = decisions[-1] if decisions else None
-    latest_card = decision_cards[-1] if decision_cards else None
+    latest_intent = latest_fresh(intents, 'created_at')
+    latest_decision = latest_fresh(decisions, 'timestamp')
+    latest_card = latest_fresh(decision_cards, 'captured_at') or (decision_cards[-1] if decision_cards and latest_decision and (decision_cards[-1].get('contract') == latest_intent.get('contract') if latest_intent else False) else None)
     latest_audit = execution_audit_rows[-1] if execution_audit_rows else None
     refresh_tail = [line for line in refresh_lines if line.strip()][-8:]
+    state_is_stale = latest_intent is None and latest_decision is None
     return {
         'lastEvaluatedCandidate': latest_intent,
         'decisionCard': latest_card,
-        'decisionResult': latest_decision.get('disposition') if latest_decision else None,
-        'rejectionReason': (latest_decision.get('reasons') or [None])[0] if latest_decision else None,
+        'decisionResult': None if state_is_stale else (latest_decision.get('disposition') if latest_decision else None),
+        'rejectionReason': None if state_is_stale else ((latest_decision.get('reasons') or [None])[0] if latest_decision else None),
         'previewState': latest_audit if latest_audit and latest_audit.get('action') == 'preview' else None,
         'liveOrderState': latest_audit if latest_audit and latest_audit.get('action') == 'place' else None,
         'fillState': latest_audit,
@@ -149,6 +172,8 @@ def build_trading_desk_status(execution_state, audit_state, execution_audit_rows
         'lastCycleRun': refresh_tail[-1] if refresh_tail else None,
         'refreshTail': refresh_tail,
         'auditRows': execution_audit_rows,
+        'stateFresh': not state_is_stale,
+        'stateStaleReason': 'execution_state_older_than_12h' if state_is_stale else None,
     }
 
 
@@ -253,7 +278,7 @@ tradier_audit_log = read_json_with_fallback(TRADIER_AUDIT_LOG, LEGACY_TRADIER_AU
 trading_desk_status = build_trading_desk_status(tradier_execution_state, tradier_audit_log, tradier_execution_audit_rows, refresh_log_tail + tradier_auto_trade_tail)
 operator_journal = build_operator_journal(bloc_status, trading_desk_status, bloc_signal_rows, tradier_execution_audit_rows)
 
-tradier_latest_intent = (tradier_execution_state.get('intents', []) or [None])[-1] if isinstance(tradier_execution_state, dict) else None
+tradier_latest_intent = trading_desk_status.get('lastEvaluatedCandidate')
 tradier_latest_audit = tradier_execution_audit_rows[-1] if tradier_execution_audit_rows else None
 bloc_latest_signal = bloc_signal_rows[-1] if bloc_signal_rows else None
 bloc_funded = bool((bloc_wallet or {}).get('usdc', 0) >= 25 or (bloc_wallet or {}).get('weth', 0) > 0 or (bloc_wallet or {}).get('eth', 0) > 0)
@@ -311,11 +336,11 @@ snapshot = {
                 'status_label': 'ready_for_first_live_deployment',
                 'available_capital_usd': (read_json(Path('/home/catabolic_solutions/.openclaw/workspace/out/tradier_account_state.json')) or {}).get('cash_available'),
                 'last_lifecycle_stage': tradier_latest_intent.get('status') if tradier_latest_intent else None,
-                'last_attempt_status': trading_desk_status.get('decisionResult'),
+                'last_attempt_status': trading_desk_status.get('decisionResult') or ('stale' if not trading_desk_status.get('stateFresh') else None),
                 'last_rejection_reason': trading_desk_status.get('rejectionReason'),
                 'last_preview_ok': bool(trading_desk_status.get('previewState')),
                 'last_closed_trade_net_pnl_usd': None,
-                'top_blocker': trading_desk_status.get('rejectionReason'),
+                'top_blocker': trading_desk_status.get('rejectionReason') or trading_desk_status.get('stateStaleReason'),
                 'updated_at': datetime.now(timezone.utc).isoformat(),
             },
             'bloc': {

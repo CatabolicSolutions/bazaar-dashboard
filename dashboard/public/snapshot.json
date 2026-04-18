@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-18T13:40:53.467774+00:00",
+  "updatedAt": "2026-04-18T13:48:55.333345+00:00",
   "systemHealth": {
     "tradierBoardPresent": true,
     "tradierBoardUpdatedAt": "2026-04-18T13:29:21.397827+00:00",
@@ -12,7 +12,7 @@
       "boardMtime": "2026-04-17T20:45:18.948377Z",
       "updatedAt": "2026-04-17T20:46:08.330712Z"
     },
-    "latestCommit": "dc79821 Redesign War Room as operator console"
+    "latestCommit": "74eb901 Fix dashboard snapshot to use runtime execution state"
   },
   "tradier": {
     "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\n\nNo Trade\n- No clean leaders passed the current filters\n- Best action: wait for cleaner structure or rerun on the next cycle\n\n",
@@ -3398,87 +3398,9 @@
     "haltReason": null
   },
   "tradingDeskStatus": {
-    "lastEvaluatedCandidate": {
-      "mode": "cash_day_trade",
-      "strategy_type": "long_put",
-      "symbol": "NVDA",
-      "contract": "NVDA 187.5 PUT 2026-04-22",
-      "side": "buy",
-      "qty": 1,
-      "limit_price": 0.625,
-      "time_in_force": "day",
-      "source": "leader",
-      "candidate_id": "NVDA-2026-04-22-PUT-187.5",
-      "notes": "internal blessed path proof",
-      "allocation_bucket": "cash_day_core",
-      "position_relationship": "open_new_position",
-      "position_id": null,
-      "strategy_family": "Scalping Buy",
-      "strategy_source": "tradier_leaders_board",
-      "strategy_run_id": "NVDA-2026-04-22-PUT-187.5",
-      "origin": "system_generated",
-      "decision_state": "proposed",
-      "decision_actor": "system",
-      "decision_note": "Created from leaders board candidate",
-      "readiness_state": "not_ready",
-      "readiness_reason": "Awaiting preview and authorization prerequisites",
-      "outcome_state": "no_outcome",
-      "outcome_reason": "",
-      "effected_qty": null,
-      "escalation_state": "no_escalation",
-      "escalation_reason": "",
-      "timing_state": "no_timing_pressure",
-      "timing_reason": "",
-      "external_reference_state": "no_external_reference",
-      "external_reference_id": null,
-      "external_reference_system": "",
-      "external_reference_note": "",
-      "attempt_state": "no_attempt",
-      "attempt_count": 0,
-      "latest_attempt_id": null,
-      "latest_attempt_note": "",
-      "reconciliation_state": "not_reconciled",
-      "reconciliation_note": "",
-      "intent_id": "intent_eb6afca4a8b5",
-      "created_at": "2026-04-17T04:42:14.065509+00:00",
-      "status": "previewed",
-      "transition_history": [
-        {
-          "from": "candidate",
-          "to": "queued",
-          "actor": "alfred",
-          "note": "Created cash_day_trade intent from NVDA-2026-04-22-PUT-187.5",
-          "timestamp": "2026-04-17T04:42:14.066191+00:00"
-        },
-        {
-          "from": "queued",
-          "to": "previewed",
-          "actor": "alfred",
-          "note": "Broker preview created",
-          "timestamp": "2026-04-17T04:42:14.989495+00:00"
-        }
-      ],
-      "updated_at": "2026-04-17T04:42:14.989500+00:00"
-    },
-    "decisionCard": {
-      "intent_id": "intent_eb6afca4a8b5",
-      "symbol": "NVDA",
-      "direction": "buy",
-      "contract": "NVDA 187.5 PUT 2026-04-22",
-      "setup_type": "long put",
-      "entry_logic": "leader-driven entry",
-      "trigger_condition": "candidate selected by automation",
-      "invalidation_logic": "premium stop / thesis break",
-      "target_exit_logic": "intraday target or timeout exit",
-      "market_regime": "unclassified",
-      "confidence": 0,
-      "risk_classification": "smallest_size_cash_account",
-      "why_now": "candidate passed pre-trade gates",
-      "why_not": [],
-      "rejection_reason": "",
-      "disposition": "accepted for execution"
-    },
-    "decisionResult": "accepted for execution",
+    "lastEvaluatedCandidate": null,
+    "decisionCard": null,
+    "decisionResult": null,
     "rejectionReason": null,
     "previewState": {
       "ts": "2026-04-16T22:42:14.987593-06:00",
@@ -3817,7 +3739,9 @@
           }
         }
       }
-    ]
+    ],
+    "stateFresh": false,
+    "stateStaleReason": "execution_state_older_than_12h"
   },
   "autonomyMonitor": {
     "lastCycleRun": "=== Bazaar refresh cycle complete: 2026-04-17T14:46:09-06:00 ===",
@@ -4367,13 +4291,13 @@
         "edge_proven": false,
         "status_label": "ready_for_first_live_deployment",
         "available_capital_usd": 127.88,
-        "last_lifecycle_stage": "previewed",
-        "last_attempt_status": "accepted for execution",
+        "last_lifecycle_stage": null,
+        "last_attempt_status": "stale",
         "last_rejection_reason": null,
         "last_preview_ok": true,
         "last_closed_trade_net_pnl_usd": null,
-        "top_blocker": null,
-        "updated_at": "2026-04-18T13:40:53.486173+00:00"
+        "top_blocker": "execution_state_older_than_12h",
+        "updated_at": "2026-04-18T13:48:55.352301+00:00"
       },
       "bloc": {
         "funded": false,
@@ -4389,16 +4313,17 @@
         "last_estimated_friction_pct": null,
         "last_closed_trade_net_pnl_usd": null,
         "top_blocker": null,
-        "updated_at": "2026-04-18T13:40:53.486187+00:00"
+        "updated_at": "2026-04-18T13:48:55.352314+00:00"
       }
     }
   },
   "decisionContext": {
-    "updatedAt": "2026-04-18T13:40:53.486751+00:00",
+    "updatedAt": "2026-04-18T13:48:55.352400+00:00",
     "totalLoggedThisRun": 9,
     "qualifiedTradeCount": 0,
     "nearMissCount": 8,
-    "noTradeEnvironmentLogged": true
+    "noTradeEnvironmentLogged": true,
+    "writeOk": true
   },
   "decisionOutcomeAttachments": {
     "updatedAt": "2026-04-17T20:45:36.495731+00:00",
