@@ -150,8 +150,16 @@ class ETHScalper:
             print("❌ Cannot buy - no price data")
             return
         
-        stats = price_feed.get_price_stats()
-        change_60s = float(stats.get('change_60s_pct') or 0.0)
+        change_60s = 0.0
+        history = list(getattr(price_feed, 'eth_price_history', []) or [])
+        if len(history) >= 2:
+            now_ts = time.time()
+            target_ts = now_ts - 60
+            current_px = history[-1][1]
+            nearest = min(history, key=lambda item: abs(item[0] - target_ts))
+            prior_px = nearest[1]
+            if prior_px:
+                change_60s = ((current_px - prior_px) / prior_px) * 100
         if abs(change_60s) < 0.10:
             print(f"   ❌ Manual fallback skipped: insufficient real move ({change_60s:+.4f}% / 60s)")
             return
