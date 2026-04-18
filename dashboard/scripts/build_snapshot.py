@@ -241,6 +241,13 @@ bloc_status = build_bloc_status(bloc_bot_state, bloc_wallet, bloc_positions, blo
 trading_desk_status = build_trading_desk_status(read_json(TRADIER_EXECUTION_STATE), read_json(TRADIER_AUDIT_LOG), tradier_execution_audit_rows, refresh_log_tail + tradier_auto_trade_tail)
 operator_journal = build_operator_journal(bloc_status, trading_desk_status, bloc_signal_rows, tradier_execution_audit_rows)
 
+tradier_latest_intent = (read_json(TRADIER_EXECUTION_STATE).get('intents', []) or [None])[-1] if isinstance(read_json(TRADIER_EXECUTION_STATE), dict) else None
+tradier_latest_audit = tradier_execution_audit_rows[-1] if tradier_execution_audit_rows else None
+bloc_latest_signal = bloc_signal_rows[-1] if bloc_signal_rows else None
+bloc_funded = bool((bloc_wallet or {}).get('usdc', 0) >= 25 or (bloc_wallet or {}).get('weth', 0) > 0 or (bloc_wallet or {}).get('eth', 0) > 0)
+bloc_last_attempt_status = 'blocked_by_missing_edge' if bloc_latest_signal and 'edge_too_low' in str(bloc_latest_signal.get('reason')) else ('qualified' if bloc_latest_signal and bloc_latest_signal.get('executed') else 'unknown')
+bloc_last_rejection_reason = bloc_latest_signal.get('reason') if bloc_latest_signal else None
+
 snapshot = {
     'updatedAt': datetime.now(timezone.utc).isoformat(),
     'systemHealth': {
@@ -283,6 +290,40 @@ snapshot = {
         },
     },
     'operatorJournal': operator_journal,
+    'hq': {
+        'engine_truth_board': {
+            'tradier': {
+                'funded': bool(tradier_key_available),
+                'path_ready': True,
+                'edge_proven': False,
+                'status_label': 'ready_for_first_live_deployment',
+                'available_capital_usd': (read_json(Path('/home/catabolic_solutions/.openclaw/workspace/out/tradier_account_state.json')) or {}).get('cash_available'),
+                'last_lifecycle_stage': tradier_latest_intent.get('status') if tradier_latest_intent else None,
+                'last_attempt_status': trading_desk_status.get('decisionResult'),
+                'last_rejection_reason': trading_desk_status.get('rejectionReason'),
+                'last_preview_ok': bool(trading_desk_status.get('previewState')),
+                'last_closed_trade_net_pnl_usd': None,
+                'top_blocker': trading_desk_status.get('rejectionReason'),
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+            },
+            'bloc': {
+                'funded': bloc_funded,
+                'path_ready': True,
+                'edge_proven': False,
+                'status_label': 'edge_not_proven',
+                'available_capital_usd': (bloc_wallet or {}).get('usdc'),
+                'last_lifecycle_stage': 'rejected' if bloc_last_rejection_reason else ('qualified' if bloc_last_attempt_status == 'qualified' else None),
+                'last_attempt_status': bloc_last_attempt_status,
+                'last_rejection_reason': bloc_last_rejection_reason,
+                'last_meaningful_attempt_size_usd': 40.0 if bloc_last_rejection_reason else None,
+                'last_gross_edge_pct': None,
+                'last_estimated_friction_pct': None,
+                'last_closed_trade_net_pnl_usd': None,
+                'top_blocker': 'missing_edge' if bloc_last_rejection_reason else None,
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+            }
+        }
+    }
 }
 
 snapshot['decisionContext'] = persist_decision_context(snapshot)

@@ -6,6 +6,7 @@ let snapshot = null;
 let ethData = { status: 'loading', mode: 'unknown', pnl: {today: 0, total: 0}, wallet: {eth: 0, usdc: 0} };
 let priceHistory = [];
 let currentZone = 'trade';
+let hq = { engine_truth_board: { tradier: {}, bloc: {} } };
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,7 +39,10 @@ async function loadData() {
 async function loadSnapshot() {
   try {
     const res = await fetch('./snapshot.json?' + Date.now());
-    if (res.ok) snapshot = await res.json();
+    if (res.ok) {
+      snapshot = await res.json();
+      if (snapshot?.hq) hq = snapshot.hq;
+    }
   } catch (e) { console.error('Snapshot error:', e); }
 }
 
@@ -86,9 +90,33 @@ function calculateEthPrice(data) {
 // Render everything
 function renderAll() {
   renderOperatorRail();
+  renderTruthBoard();
   renderLeaders();
   renderEthScalper();
   drawChart();
+}
+
+function renderTruthBoard() {
+  const tradier = (hq.engine_truth_board || {}).tradier || {};
+  const bloc = (hq.engine_truth_board || {}).bloc || {};
+  setText('truth-tradier-funded', String(tradier.funded ?? '--'));
+  setText('truth-tradier-path-ready', String(tradier.path_ready ?? '--'));
+  setText('truth-tradier-edge-proven', String(tradier.edge_proven ?? '--'));
+  setText('truth-tradier-status', tradier.status_label ?? '--');
+  setText('truth-tradier-capital', tradier.available_capital_usd ?? '--');
+  setText('truth-tradier-stage', tradier.last_lifecycle_stage ?? '--');
+  setText('truth-tradier-attempt', tradier.last_attempt_status ?? '--');
+  setText('truth-tradier-blocker', tradier.top_blocker ?? '--');
+  setText('truth-bloc-funded', String(bloc.funded ?? '--'));
+  setText('truth-bloc-path-ready', String(bloc.path_ready ?? '--'));
+  setText('truth-bloc-edge-proven', String(bloc.edge_proven ?? '--'));
+  setText('truth-bloc-status', bloc.status_label ?? '--');
+  setText('truth-bloc-capital', bloc.available_capital_usd ?? '--');
+  setText('truth-bloc-attempt', bloc.last_attempt_status ?? '--');
+  setText('truth-bloc-rejection', bloc.last_rejection_reason ?? '--');
+  setText('truth-bloc-size', bloc.last_meaningful_attempt_size_usd ?? '--');
+  setText('truth-bloc-edge', bloc.last_gross_edge_pct ?? '--');
+  setText('truth-bloc-friction', bloc.last_estimated_friction_pct ?? '--');
 }
 
 // Operator rail
