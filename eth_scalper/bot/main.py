@@ -150,17 +150,25 @@ class ETHScalper:
             print("❌ Cannot buy - no price data")
             return
         
+        stats = price_feed.get_price_stats()
+        change_60s = float(stats.get('change_60s_pct') or 0.0)
+        if abs(change_60s) < 0.10:
+            print(f"   ❌ Manual fallback skipped: insufficient real move ({change_60s:+.4f}% / 60s)")
+            return
+
         signal = {
             'timestamp': time.time(),
             'symbol': 'ETH',
-            'direction': 'down',
+            'direction': 'down' if change_60s < 0 else 'up',
             'price': current_price,
-            'change_60s_pct': 0,
+            'change_60s_pct': change_60s,
             'gas_gwei': price_feed.get_gas_price_gwei() or 30,
             'score': 10,
             'type': 'manual',
-            'setup': 'buy_pullback',
-            'pullback_bias': True,
+            'setup': 'buy_pullback' if change_60s < 0 else 'sell_strength',
+            'pullback_bias': change_60s < 0,
+            'sell_strength_bias': change_60s > 0,
+            'distance_from_mid_pct': abs(change_60s),
         }
         
         print(f"🛒 MANUAL BUY triggered at ${current_price:.2f}")
