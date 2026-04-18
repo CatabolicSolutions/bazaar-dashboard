@@ -3,9 +3,15 @@ import asyncio
 import time
 import sys
 import os
+from pathlib import Path
 
-# Add parent to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add package roots to path for both local runs and systemd `/usr/bin/python3 -m bot.main`
+BOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BOT_DIR.parent
+PACKAGE_PARENT = ROOT_DIR.parent
+for candidate in (str(ROOT_DIR), str(PACKAGE_PARENT)):
+    if candidate not in sys.path:
+        sys.path.insert(0, candidate)
 
 from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, WETH_ADDRESS, CBBTC_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS, BLOC_MIN_NET_PROFIT_PCT, BLOC_MIN_LIQUIDITY_USD
 from config.logger import logger, log_signal, log_trade
