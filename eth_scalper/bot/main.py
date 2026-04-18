@@ -282,13 +282,30 @@ class ETHScalper:
                     print(f"   🧭 Existing WETH exposure detected and resumed into active monitoring")
                     state_manager.log_signal(signal, executed=False, reason="existing_weth_exposure_resumed")
                     return
-                print(f"   🧭 Existing WETH exposure detected: ${weth_balance_usd:.2f} inventory, but no resumable bound lot exists")
-                state_manager.log_signal(signal, executed=False, reason="existing_weth_exposure_unbound")
+                print(f"   🧭 Existing WETH exposure detected: ${weth_balance_usd:.2f} inventory. Treating as managed compounding inventory and seeking exit/recycle conditions.")
+                synthetic_position = trade_manager.create_position({
+                    'timestamp': time.time(),
+                    'direction': 'up',
+                    'price': signal['price'],
+                    'type': 'inventory_reconciliation',
+                    'symbol': 'ETH',
+                }, weth_balance_usd, paper=False)
+                synthetic_position.entry_price = signal['price']
+                synthetic_position.target_price = signal['price'] * (1 + BLOC_MIN_NET_PROFIT_PCT / 100)
+                synthetic_position.stop_price = signal['price'] * (1 - 0.10 / 100)
+                synthetic_position.executed_to_amount_units = weth_balance
+                synthetic_position.source = 'inventory_reconciliation'
+                synthetic_position.resumable_after_restart = True
+                synthetic_position.max_hold_seconds = trade_manager.max_hold_time
+                trade_manager.positions[synthetic_position.id] = synthetic_position
+                state_manager.persist_live_position(synthetic_position)
+                asyncio.create_task(self._monitor_live_position(synthetic_position))
+                state_manager.log_signal(signal, executed=False, reason="existing_weth_inventory_promoted_to_managed_position")
                 return
 
             if usdc_balance >= BLOC_MIN_LIQUIDITY_USD:
                 funded_side = 'USDC'
-                size_usd = min(MAX_POSITION_USD, usdc_balance)
+                size_usd = usdc_balance
             elif native_eth_usd >= 25.0:
                 funded_side = 'ETH'
                 size_usd = min(MAX_POSITION_USD, 40.0, native_eth_usd)
@@ -314,15 +331,15 @@ class ETHScalper:
             signal['selected_inventory'] = funded_side
             signal['selected_size_usd'] = size_usd
 
-            # Sprint-grade economic gate for meaningful USDC-funded ETH/USDC attempts
+            # All-in compounding gate for meaningful USDC-funded ETH/USDC attempts
             has_open_position = len(trade_manager.get_open_positions()) > 0
             if has_open_position:
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='open_position_exists')
                 state_manager.log_signal(signal, executed=False, reason='open_position_exists')
                 return
             if funded_side != 'USDC':
-                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='usdc_inventory_required_for_meaningful_attempt')
-                state_manager.log_signal(signal, executed=False, reason='usdc_inventory_required_for_meaningful_attempt')
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='usdc_inventory_required_for_redeployment')
+                state_manager.log_signal(signal, executed=False, reason='usdc_inventory_required_for_redeployment')
                 return
             if size_usd < BLOC_MIN_LIQUIDITY_USD:
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='insufficient_exit_liquidity')

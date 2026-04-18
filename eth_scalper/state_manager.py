@@ -285,22 +285,27 @@ class StateManager:
             return reconciled
         if weth_balance > 0:
             return [{
+                'id': 'reconciled_live_inventory_weth',
                 'source': 'inventory_reconciliation',
                 'asset': 'WETH',
                 'lot_units': weth_balance,
                 'allocated_units': weth_balance,
+                'binding_asset': 'WETH',
+                'binding_units': weth_balance,
                 'entry_price': None,
                 'target_price': None,
                 'stop_price': None,
-                'max_hold_seconds': None,
+                'max_hold_seconds': HOLD_TIME_MAX_SECONDS,
                 'status': 'legacy_unallocated_inventory',
+                'allocation_state': 'allocated',
+                'resumable_after_restart': True,
                 'tx_hash': None,
                 'linked_to_wallet_inventory': True,
                 'entry_derivation': 'UNVERIFIED',
                 'target_derivation': 'UNVERIFIED',
                 'stop_derivation': 'UNVERIFIED',
-                'max_hold_derivation': 'UNVERIFIED',
-                'notes': 'Derived from nonzero on-chain WETH inventory with no active or persisted tracked lots.'
+                'max_hold_derivation': 'config',
+                'notes': 'Derived from nonzero on-chain WETH inventory with no active or persisted tracked lots. Treat as managed live inventory for compounding.'
             }]
         return []
 
