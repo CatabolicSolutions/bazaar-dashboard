@@ -14,7 +14,10 @@ from signals.momentum import momentum_detector
 from execution.oneinch import inch_client
 from execution.trade_manager import trade_manager
 from execution.live_executor import live_executor
-from eth_scalper.execution_lifecycle import emit_event
+try:
+    from eth_scalper.execution_lifecycle import emit_event
+except ModuleNotFoundError:
+    from execution_lifecycle import emit_event
 from risk.limits import risk_manager
 from risk.safety_checks import safety_checker, EmergencyStopError
 from state_manager import state_manager
