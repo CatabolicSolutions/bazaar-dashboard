@@ -266,6 +266,20 @@ function renderAll() {
     renderActivity();
 }
 
+function wireControls() {
+    if (el.btnPauseBloc) {
+        el.btnPauseBloc.addEventListener('click', () => sendCommand('pause_bloc', 'Bloc paused'));
+    }
+    if (el.btnPauseTradier) {
+        el.btnPauseTradier.addEventListener('click', () => sendCommand('pause_tradier', 'Tradier paused'));
+    }
+    if (el.btnCloseAll) {
+        el.btnCloseAll.addEventListener('click', () => {
+            if (confirm('Emergency close ALL positions?')) sendCommand('close_all', 'Emergency close initiated');
+        });
+    }
+}
+
 async function pollData() {
     try {
         const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes] = await Promise.all([
@@ -303,12 +317,7 @@ function sendCommand(command, successText) {
       });
 }
 
-el.btnPauseBloc.addEventListener('click', () => sendCommand('pause_bloc', 'Bloc paused'));
-el.btnPauseTradier.addEventListener('click', () => sendCommand('pause_tradier', 'Tradier paused'));
-el.btnCloseAll.addEventListener('click', () => {
-    if (confirm('Emergency close ALL positions?')) sendCommand('close_all', 'Emergency close initiated');
-});
-
+wireControls();
 renderAll();
 pollData();
 setInterval(pollData, POLL_INTERVAL);
