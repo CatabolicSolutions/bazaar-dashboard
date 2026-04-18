@@ -105,22 +105,34 @@ def read_text_tail(path, limit=40):
 def build_bloc_status(bot_state, wallet_state, positions_state, signal_rows, error_lines):
     last_signal = signal_rows[-1] if signal_rows else {}
     open_positions = positions_state.get('positions', []) if isinstance(positions_state, dict) else []
+    reconciled_positions = bot_state.get('reconciled_positions', []) if isinstance(bot_state, dict) else []
+    visible_positions = open_positions or reconciled_positions
     last_failure = next((line for line in reversed(error_lines) if line.strip()), None)
-    funded_side = 'USDC' if float(wallet_state.get('usdc', 0) or 0) > float((wallet_state.get('eth', 0) or 0)) * 1000 else 'ETH'
+    eth_price = 2200.0
+    try:
+        eth_price = float((wallet_state or {}).get('eth_price_usd') or 2200.0)
+    except Exception:
+        eth_price = 2200.0
+    usdc = float(wallet_state.get('usdc', 0) or 0)
+    weth = float(wallet_state.get('weth', 0) or 0)
+    eth = float(wallet_state.get('eth', 0) or 0)
+    funded_side = 'USDC' if usdc >= max(weth * eth_price, eth * eth_price) else 'inventory'
     return {
         'mode': bot_state.get('mode', 'unknown'),
         'status': bot_state.get('status', 'unknown'),
         'wallet': wallet_state,
         'capitalAllocation': {
-            'ethUsdApprox': round(float(wallet_state.get('eth', 0) or 0) * 2200, 2),
-            'usdc': round(float(wallet_state.get('usdc', 0) or 0), 2),
+            'ethUsdApprox': round(eth * eth_price, 2),
+            'wethUsdApprox': round(weth * eth_price, 2),
+            'usdc': round(usdc, 2),
+            'estimatedTotalUsd': round(float(wallet_state.get('estimated_total_usd', 0) or 0), 2),
         },
         'fundedSide': funded_side,
-        'openPositions': open_positions,
-        'activePosition': open_positions[0] if open_positions else None,
+        'openPositions': visible_positions,
+        'activePosition': visible_positions[0] if visible_positions else None,
         'lastAction': last_signal,
-        'lastTransaction': (open_positions[0].get('tx_hash') if open_positions else None),
-        'nextExpectedAction': 'monitor_open_position' if open_positions else 'await_signal_or_fallback_entry',
+        'lastTransaction': (visible_positions[0].get('tx_hash') if visible_positions else None),
+        'nextExpectedAction': 'monitor_open_position' if visible_positions else 'await_compounding_signal',
         'lastFailure': last_failure,
         'heartbeat': bot_state.get('status', 'unknown'),
         'automationEnabled': bot_state.get('status') == 'running',
@@ -282,7 +294,12 @@ tradier_latest_intent = trading_desk_status.get('lastEvaluatedCandidate')
 tradier_latest_audit = tradier_execution_audit_rows[-1] if tradier_execution_audit_rows else None
 bloc_latest_signal = bloc_signal_rows[-1] if bloc_signal_rows else None
 bloc_funded = bool((bloc_wallet or {}).get('usdc', 0) >= 25 or (bloc_wallet or {}).get('weth', 0) > 0 or (bloc_wallet or {}).get('eth', 0) > 0)
-bloc_last_attempt_status = 'blocked_by_missing_edge' if bloc_latest_signal and 'edge_too_low' in str(bloc_latest_signal.get('reason')) else ('qualified' if bloc_latest_signal and bloc_latest_signal.get('executed') else 'unknown')
+bloc_last_attempt_status = (
+    'blocked_by_friction' if bloc_latest_signal and 'friction' in str(bloc_latest_signal.get('reason')) else
+    'blocked_by_missing_edge' if bloc_latest_signal and 'edge' in str(bloc_latest_signal.get('reason')) else
+    'qualified' if bloc_latest_signal and bloc_latest_signal.get('executed') else
+    'unknown'
+)
 bloc_last_rejection_reason = bloc_latest_signal.get('reason') if bloc_latest_signal else None
 
 snapshot = {
@@ -347,16 +364,16 @@ snapshot = {
                 'funded': bloc_funded,
                 'path_ready': True,
                 'edge_proven': False,
-                'status_label': 'edge_not_proven',
-                'available_capital_usd': (bloc_wallet or {}).get('usdc'),
+                'status_label': 'compounding_volatility_capture',
+                'available_capital_usd': ((bloc_status.get('capitalAllocation') or {}).get('estimatedTotalUsd')),
                 'last_lifecycle_stage': 'rejected' if bloc_last_rejection_reason else ('qualified' if bloc_last_attempt_status == 'qualified' else None),
                 'last_attempt_status': bloc_last_attempt_status,
                 'last_rejection_reason': bloc_last_rejection_reason,
-                'last_meaningful_attempt_size_usd': 40.0 if bloc_last_rejection_reason else None,
-                'last_gross_edge_pct': None,
-                'last_estimated_friction_pct': None,
+                'last_meaningful_attempt_size_usd': (bloc_latest_signal or {}).get('selected_size_usd'),
+                'last_gross_edge_pct': (bloc_latest_signal or {}).get('gross_edge_pct'),
+                'last_estimated_friction_pct': (bloc_latest_signal or {}).get('estimated_friction_pct'),
                 'last_closed_trade_net_pnl_usd': None,
-                'top_blocker': 'missing_edge' if bloc_last_rejection_reason else None,
+                'top_blocker': bloc_last_rejection_reason,
                 'updated_at': datetime.now(timezone.utc).isoformat(),
             }
         }

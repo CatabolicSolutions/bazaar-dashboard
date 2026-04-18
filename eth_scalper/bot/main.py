@@ -7,13 +7,14 @@ import os
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, WETH_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS
+from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, WETH_ADDRESS, CBBTC_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS, BLOC_MIN_NET_PROFIT_PCT, BLOC_MIN_LIQUIDITY_USD
 from config.logger import logger, log_signal, log_trade
 from signals.price_feed import price_feed
 from signals.momentum import momentum_detector
 from execution.oneinch import inch_client
 from execution.trade_manager import trade_manager
 from execution.live_executor import live_executor
+from eth_scalper.execution_lifecycle import emit_event
 from risk.limits import risk_manager
 from risk.safety_checks import safety_checker, EmergencyStopError
 from state_manager import state_manager
@@ -144,12 +145,15 @@ class ETHScalper:
         
         signal = {
             'timestamp': time.time(),
-            'direction': 'up',
+            'symbol': 'ETH',
+            'direction': 'down',
             'price': current_price,
             'change_60s_pct': 0,
             'gas_gwei': price_feed.get_gas_price_gwei() or 30,
             'score': 10,
-            'type': 'manual'
+            'type': 'manual',
+            'setup': 'buy_pullback',
+            'pullback_bias': True,
         }
         
         print(f"🛒 MANUAL BUY triggered at ${current_price:.2f}")
@@ -215,12 +219,14 @@ class ETHScalper:
     async def _handle_signal(self, signal: dict):
         """Handle a detected signal"""
         print(f"\n🔔 SIGNAL DETECTED")
+        print(f"   Asset: {signal.get('symbol', 'ETH')}")
         print(f"   Direction: {signal['direction'].upper()}")
         print(f"   Price: ${signal['price']:.2f}")
         print(f"   Change: {signal['change_60s_pct']:+.2f}%")
         print(f"   Score: {signal['score']}/10")
         
-        # Log signal to dashboard
+        trade_id = f"bloc-{int(time.time()*1000)}"
+        emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='detected', outcome_type='info', status='success', setup_type=signal.get('type'), data={'signal': signal})
         state_manager.log_signal(signal, executed=False, reason="checking")
         
         # CRITICAL: Safety check first
@@ -236,6 +242,7 @@ class ETHScalper:
         
         if not can_trade:
             print(f"   ❌ SAFETY CHECK FAILED: {reason}")
+            emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes=reason)
             state_manager.log_signal(signal, executed=False, reason=f"SAFETY: {reason}")
             return
         
@@ -244,29 +251,11 @@ class ETHScalper:
         
         if not can_trade:
             print(f"   ❌ Risk check failed: {reason}")
+            emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes=reason)
             state_manager.log_signal(signal, executed=False, reason=reason)
             return
         
-        # Get 1inch quote for profit calculation
-        from_token = ETH_ADDRESS
-        to_token = USDC_ADDRESS
-        
-        # Check profit potential
-        profit = inch_client.calculate_profit_potential(
-            from_token=from_token,
-            to_token=to_token,
-            amount_usd=50,  # Test with $50
-            current_price=signal['price']
-        )
-        
-        if profit:
-            print(f"   💰 Profit potential: {profit['net_profit_pct']:+.2f}%")
-            
-            # Only trade if profitable after gas
-            if profit['net_profit_pct'] < MIN_PROFIT_AFTER_GAS_PERCENT:
-                print(f"   ❌ Not profitable enough after gas")
-                state_manager.log_signal(signal, executed=False, reason="profit_too_low")
-                return
+        # Sprint-grade economic gate is applied after inventory selection so it evaluates the real funded path.
         
         wallet = wallet_monitor.get_all_balances()
         estimated_total_usd = wallet.get('estimated_total_usd', 0.0)
@@ -279,7 +268,8 @@ class ETHScalper:
             weth_balance_usd = weth_balance * signal['price']
             usdc_balance = wallet.get('usdc', 0.0)
 
-            if weth_balance_usd >= 1.0:
+            target_asset = signal.get('symbol', 'ETH')
+            if target_asset == 'ETH' and weth_balance_usd >= 1.0:
                 resumed = await self._resume_persisted_live_positions()
                 if resumed:
                     print(f"   🧭 Existing WETH exposure detected and resumed into active monitoring")
@@ -289,36 +279,98 @@ class ETHScalper:
                 state_manager.log_signal(signal, executed=False, reason="existing_weth_exposure_unbound")
                 return
 
-            funded_side = 'ETH' if native_eth_usd >= 1.0 else ('USDC' if usdc_balance >= 1.0 else None)
+            if usdc_balance >= BLOC_MIN_LIQUIDITY_USD:
+                funded_side = 'USDC'
+                size_usd = min(MAX_POSITION_USD, usdc_balance)
+            elif native_eth_usd >= 25.0:
+                funded_side = 'ETH'
+                size_usd = min(MAX_POSITION_USD, 40.0, native_eth_usd)
+            elif usdc_balance >= 1.0:
+                funded_side = 'USDC'
+                size_usd = min(MAX_POSITION_USD, usdc_balance)
+            elif native_eth_usd >= 1.0:
+                funded_side = 'ETH'
+                size_usd = min(MAX_POSITION_USD, native_eth_usd)
+            else:
+                funded_side = None
+
             if funded_side is None:
-                print(f"   ❌ Live wallet underfunded for entry: need at least $1 deployable, have ~${native_eth_usd:.2f} native ETH, ${usdc_balance:.2f} USDC, ${weth_balance_usd:.2f} WETH inventory")
+                print(f"   ❌ Live wallet underfunded for entry: need deployable inventory, have ~${native_eth_usd:.2f} native ETH, ${usdc_balance:.2f} USDC, ${weth_balance_usd:.2f} WETH inventory")
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='wallet_underfunded')
                 state_manager.log_signal(signal, executed=False, reason="wallet_underfunded")
                 return
-            size_usd = min(size_usd, native_eth_usd if funded_side == 'ETH' else usdc_balance)
             signal['funded_side'] = funded_side
             signal['native_eth_balance'] = native_eth_balance
             signal['native_eth_usd'] = native_eth_usd
             signal['weth_inventory_usd'] = weth_balance_usd
             signal['tradable_usdc_side_usd'] = usdc_balance
+            signal['selected_inventory'] = funded_side
+            signal['selected_size_usd'] = size_usd
 
-        # Log the signal as executed
+            # Sprint-grade economic gate for meaningful USDC-funded ETH/USDC attempts
+            has_open_position = len(trade_manager.get_open_positions()) > 0
+            if has_open_position:
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='open_position_exists')
+                state_manager.log_signal(signal, executed=False, reason='open_position_exists')
+                return
+            if funded_side != 'USDC':
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='usdc_inventory_required_for_meaningful_attempt')
+                state_manager.log_signal(signal, executed=False, reason='usdc_inventory_required_for_meaningful_attempt')
+                return
+            if size_usd < BLOC_MIN_LIQUIDITY_USD:
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='insufficient_exit_liquidity')
+                state_manager.log_signal(signal, executed=False, reason='insufficient_exit_liquidity')
+                return
+
+            base_token = WETH_ADDRESS if signal.get('symbol', 'ETH') == 'ETH' else CBBTC_ADDRESS
+            quote = inch_client.get_quote(USDC_ADDRESS, base_token, int(size_usd * 1e6), use_cache=False)
+            if not quote:
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='missing_quote')
+                state_manager.log_signal(signal, executed=False, reason='missing_quote')
+                return
+            quote_age_seconds = max(0.0, time.time() - inch_client.last_quote_time)
+            if quote_age_seconds > 5.0:
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='quote_stale')
+                state_manager.log_signal(signal, executed=False, reason='quote_stale')
+                return
+
+            decimals = 18 if signal.get('symbol', 'ETH') == 'ETH' else 8
+            quoted_units = int(quote.get('toAmount', 0)) / (10 ** decimals)
+            quoted_out_usd = quoted_units * signal['price']
+            gross_edge_pct = abs(signal.get('distance_from_mid_pct') or signal.get('change_60s_pct') or 0.0)
+            estimated_gas_units = int(quote.get('estimatedGas', 150000) or 150000)
+            gas_cost_usd = ((estimated_gas_units * max(wallet.get('gas') or 0.006, 0.006) * 1e9) / 1e18) * max(price_feed.get_eth_price() or 2200.0, 1.0)
+            friction_pct = (gas_cost_usd / size_usd) * 100 if size_usd > 0 else 999.0
+            expected_edge_pct = gross_edge_pct - friction_pct
+            signal['quote_age_seconds'] = quote_age_seconds
+            signal['gross_edge_pct'] = gross_edge_pct
+            signal['expected_edge_pct'] = expected_edge_pct
+            signal['estimated_gas_units'] = estimated_gas_units
+            signal['estimated_gas_usd'] = gas_cost_usd
+            signal['estimated_friction_pct'] = friction_pct
+            signal['quoted_out_usd'] = quoted_out_usd
+
+            if friction_pct >= gross_edge_pct:
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='friction_exceeds_edge', data={'friction_pct': friction_pct, 'gross_edge_pct': gross_edge_pct})
+                state_manager.log_signal(signal, executed=False, reason='friction_exceeds_edge')
+                return
+            if expected_edge_pct < BLOC_MIN_NET_PROFIT_PCT:
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct})
+                state_manager.log_signal(signal, executed=False, reason='edge_below_net_target')
+                return
+
+        emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='qualified', outcome_type='info', status='success', setup_type=signal.get('type'), data={'size_usd': size_usd})
         state_manager.log_signal(signal, executed=True, reason="passed_all_checks")
 
         # Create position
-        position = trade_manager.create_position(signal, size_usd, paper=PAPER_TRADING_MODE)
+        position = trade_manager.create_position(signal, size_usd, paper=False)
+        position.trade_id = trade_id
 
         print(f"   📊 Position created: {position.id}")
 
-        # Paper opens immediately. Live opens only after a real entry tx exists.
         if PAPER_TRADING_MODE:
-            success = await trade_manager.open_position(position)
-            if success:
-                risk_manager.record_trade(signal, size_usd, paper=PAPER_TRADING_MODE)
-                trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
-                print(f"   ✅ Position opened: {position.id}")
-                asyncio.create_task(self._monitor_paper_position(position.id))
-            else:
-                print(f"   ❌ Failed to open position")
+            print("   ❌ Production live path blocked: PAPER_TRADING_MODE is enabled")
+            emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=signal.get('type'), notes='paper_mode_enabled')
             return
 
         asyncio.create_task(self._execute_live_trade(position))
@@ -375,12 +427,14 @@ class ETHScalper:
         from web3 import Web3
         w3 = Web3()
         print(f"   🧪 EXECUTOR STATE: enabled={live_executor.enabled} id={id(live_executor)} position={position.id}")
-        funded_side = position.signal.get('funded_side', 'ETH')
+        funded_side = position.signal.get('funded_side', 'USDC')
+        target_symbol = position.signal.get('symbol', 'ETH')
+        target_token = WETH_ADDRESS if target_symbol == 'ETH' else CBBTC_ADDRESS
         if funded_side == 'USDC':
             from_token = USDC_ADDRESS
-            to_token = WETH_ADDRESS
+            to_token = target_token
             amount_wei = int(position.size_usd * 1e6)
-            print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC -> WETH...")
+            print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC -> {target_symbol} using runtime-visible USDC inventory...")
         else:
             from_token = ETH_ADDRESS
             to_token = WETH_ADDRESS
@@ -421,6 +475,17 @@ class ETHScalper:
             amount_eth = amount_wei / 1e18
             print(f"   🔄 Getting final swap quote for {amount_eth:.6f} ETH -> WETH after gas reserve...")
 
+        invariant_check = live_executor.pretrade_invariant_check(
+            from_token=from_token,
+            to_token=to_token,
+            amount=amount_wei,
+        )
+        if not invariant_check.get('ok'):
+            print(f"   ❌ Invariant gate failed: {invariant_check.get('reason')}")
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes=invariant_check.get('reason'), data=invariant_check)
+            return
+
+        emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='previewed', outcome_type='info', status='success', setup_type=position.signal.get('type'), data=invariant_check)
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
             to_token=to_token,
@@ -429,9 +494,11 @@ class ETHScalper:
         
         if not swap_data:
             print(f"   ❌ Failed to get swap quote")
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='swap_quote_failed')
             return
         
         print(f"   💰 Swap quote received, executing...")
+        emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='submitted', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'swap_data_present': True})
         
         tx_hash = live_executor.execute_swap(swap_data)
         
@@ -448,8 +515,10 @@ class ETHScalper:
             success = await trade_manager.open_position(position)
             if not success:
                 print(f"   ❌ Failed to open position after live tx")
+                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='reconciliation_failure', status='failure', setup_type=position.signal.get('type'), notes='open_position_failed_after_tx')
                 return
 
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='filled', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash})
             risk_manager.record_trade(position.signal, position.size_usd, paper=False)
             trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
             position.source = 'autonomous_entry'
@@ -464,6 +533,7 @@ class ETHScalper:
             asyncio.create_task(self._monitor_live_position(position))
         else:
             print(f"   ❌ Swap execution failed")
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='swap_execution_failed')
     
     async def _monitor_live_position(self, position):
         """Monitor live position and close when target/stop hit"""
@@ -532,11 +602,13 @@ class ETHScalper:
         
         if not swap_data:
             print(f"   ❌ Exit blocked - no swap data returned")
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='reconciliation_failure', status='failure', setup_type=position.signal.get('type'), notes='exit_no_swap_data')
             return {'closed': False, 'reason': 'no_swap_data'}
 
         tx_hash = live_executor.execute_swap(swap_data)
         if not tx_hash:
             print(f"   ❌ Exit blocked - sell swap failed")
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='exit_swap_failed')
             return {'closed': False, 'reason': 'swap_failed'}
 
         position.exit_tx_hash = tx_hash
@@ -563,6 +635,7 @@ class ETHScalper:
                 reason=reason,
             )
             
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='closed', outcome_type='closed_trade_outcome', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash, 'pnl_usd': pnl_usd, 'pnl_pct': pnl_pct, 'result': 'losing_trade' if pnl_usd < 0 else 'winning_trade'})
             print(f"   💰 Trade complete: ${pnl_usd:+.2f} ({pnl_pct:+.2f}%)")
             return {'closed': True, 'tx_hash': tx_hash, 'pnl_usd': pnl_usd, 'pnl_pct': pnl_pct}
         return {'closed': False, 'reason': 'close_position_failed'}

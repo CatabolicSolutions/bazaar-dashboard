@@ -1,10 +1,11 @@
-"""Momentum detection for ETH scalping"""
+"""Compounding volatility signal detection for ETH/BTC"""
 import time
 from typing import Optional, Dict
 from config.settings import (
-    MIN_PRICE_MOVEMENT_PCT, MAX_GAS_GWEI, MIN_SIGNAL_SCORE
+    MIN_PRICE_MOVEMENT_PCT, MAX_GAS_GWEI, MIN_SIGNAL_SCORE, BASE_ASSET_UNIVERSE, BLOC_SIGNAL_LOOKBACK_SECONDS
 )
 from signals.price_feed import price_feed
+from signals.multi_asset_feed import multi_asset_feed
 
 class MomentumDetector:
     def __init__(self):
@@ -12,86 +13,101 @@ class MomentumDetector:
         self.max_signal_history = 50
     
     def detect_momentum(self) -> Optional[Dict]:
-        """
-        Detect if there's a momentum signal worth trading
-        Returns signal dict or None
-        """
-        stats = price_feed.get_price_stats()
-        
-        # Check basic conditions
-        if stats['current_price'] is None:
+        """Detect best current pullback/reversion signal across enabled ETH/BTC universe."""
+        gas = price_feed.get_gas_price_gwei()
+        if gas is None or gas > MAX_GAS_GWEI:
             return None
-        
-        if stats['change_60s_pct'] is None:
-            return None
-        
-        if stats['gas_gwei'] is None:
-            return None
-        
-        # Check thresholds
-        price_movement = abs(stats['change_60s_pct'])
-        gas_ok = stats['gas_gwei'] <= MAX_GAS_GWEI
-        
-        if price_movement < MIN_PRICE_MOVEMENT_PCT:
-            return None
-        
-        if not gas_ok:
-            return None
-        
-        # Determine direction
-        direction = 'up' if stats['change_60s_pct'] > 0 else 'down'
-        
-        # Calculate signal score
-        score = self._calculate_score(stats)
-        
-        if score < MIN_SIGNAL_SCORE:
-            return None
-        
-        signal = {
-            'timestamp': time.time(),
-            'direction': direction,
-            'price': stats['current_price'],
-            'change_60s_pct': stats['change_60s_pct'],
-            'gas_gwei': stats['gas_gwei'],
-            'score': score,
-            'type': 'momentum'
-        }
-        
-        self._record_signal(signal)
-        return signal
+
+        prices = multi_asset_feed.get_prices()
+        best_signal = None
+        for asset in sorted([a for a in BASE_ASSET_UNIVERSE if a.get('enabled')], key=lambda a: a.get('priority', 99)):
+            symbol = asset['symbol']
+            current_price = prices.get(symbol)
+            change_pct = multi_asset_feed.get_price_change_60s(symbol)
+            if current_price is None or change_pct is None:
+                continue
+
+            price_movement = abs(change_pct)
+            if price_movement < MIN_PRICE_MOVEMENT_PCT:
+                continue
+
+            history = multi_asset_feed.price_history.get(symbol, [])
+            midpoint = sum(p for _, p in history[-12:]) / max(1, len(history[-12:])) if history else current_price
+            distance_from_mid = ((current_price - midpoint) / midpoint) * 100 if midpoint else 0.0
+            direction = 'up' if change_pct > 0 else 'down'
+            setup = 'sell_strength' if direction == 'up' else 'buy_pullback'
+
+            stats = {
+                'symbol': symbol,
+                'current_price': current_price,
+                'change_60s_pct': change_pct,
+                'gas_gwei': gas,
+                'midpoint_price': midpoint,
+                'distance_from_mid_pct': distance_from_mid,
+                'setup': setup,
+                'lookback_seconds': BLOC_SIGNAL_LOOKBACK_SECONDS,
+                'recent_prices': [p for _, p in history[-12:]],
+            }
+            score = self._calculate_score(stats)
+            if score < MIN_SIGNAL_SCORE:
+                continue
+
+            signal = {
+                'timestamp': time.time(),
+                'symbol': symbol,
+                'direction': direction,
+                'price': current_price,
+                'change_60s_pct': change_pct,
+                'gas_gwei': gas,
+                'score': score,
+                'type': 'volatility_capture',
+                'setup': setup,
+                'midpoint_price': midpoint,
+                'distance_from_mid_pct': distance_from_mid,
+                'pullback_bias': direction == 'down' and current_price <= midpoint,
+                'sell_strength_bias': direction == 'up' and current_price >= midpoint,
+            }
+            if best_signal is None or signal['score'] > best_signal['score']:
+                best_signal = signal
+
+        if best_signal:
+            self._record_signal(best_signal)
+        return best_signal
     
     def _calculate_score(self, stats: Dict) -> int:
-        """Calculate signal score 1-10"""
+        """Calculate signal score 1-10 for chop/reversion setups."""
         score = 0
-        
-        # Price momentum strength (weight: 3)
         price_movement = abs(stats['change_60s_pct'])
-        if price_movement >= 1.0:
+        if price_movement >= 0.30:
             score += 3
-        elif price_movement >= 0.7:
+        elif price_movement >= 0.20:
             score += 2
-        elif price_movement >= 0.4:
+        elif price_movement >= MIN_PRICE_MOVEMENT_PCT:
             score += 1
-        
-        # Gas efficiency (weight: 2)
+
         gas = stats['gas_gwei']
-        if gas <= 15:
+        if gas <= 5:
             score += 2
-        elif gas <= 25:
+        elif gas <= 15:
             score += 1
-        
-        # Market volatility (weight: 1) - based on recent activity
-        if len(price_feed.eth_price_history) > 10:
-            recent_prices = [p for _, p in price_feed.eth_price_history[-10:]]
-            volatility = self._calculate_volatility(recent_prices)
-            if volatility > 0.5:
-                score += 1
-        
-        # Recent win rate (weight: 1)
+
+        recent_prices = stats.get('recent_prices') or []
+        volatility = self._calculate_volatility(recent_prices) if recent_prices else 0
+        if volatility >= 0.10:
+            score += 2
+        elif volatility >= 0.05:
+            score += 1
+
+        distance = abs(stats.get('distance_from_mid_pct') or 0)
+        if distance >= 0.10:
+            score += 2
+        elif distance >= 0.05:
+            score += 1
+
         recent_wins = self._get_recent_win_rate()
-        if recent_wins > 0.6:
+        if recent_wins >= 0.5:
             score += 1
-        
+
         return min(score, 10)
     
     def _calculate_volatility(self, prices: list) -> float:

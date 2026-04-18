@@ -27,28 +27,42 @@ MAX_POSITION_USD = float(os.getenv('MAX_POSITION_USD', '75'))
 MAX_DAILY_LOSS_USD = float(os.getenv('MAX_DAILY_LOSS_USD', '15'))
 PAPER_TRADING_MODE = os.getenv('PAPER_TRADING_MODE', 'true').lower() == 'true'
 
+# Bloc compounding directive
+BLOC_PRIMARY_SYMBOLS = [s.strip().upper() for s in os.getenv('BLOC_PRIMARY_SYMBOLS', 'ETH,BTC').split(',') if s.strip()]
+BLOC_COMP_MODE = os.getenv('BLOC_COMP_MODE', 'volatility_capture')
+BLOC_MIN_PRICE_MOVEMENT_PCT = float(os.getenv('BLOC_MIN_PRICE_MOVEMENT_PCT', '0.10'))
+BLOC_MIN_NET_PROFIT_PCT = float(os.getenv('BLOC_MIN_NET_PROFIT_PCT', '0.20'))
+BLOC_MIN_SIGNAL_SCORE = int(os.getenv('BLOC_MIN_SIGNAL_SCORE', '4'))
+BLOC_HARD_STOP_LOSS_PCT = float(os.getenv('BLOC_HARD_STOP_LOSS_PCT', '0.10'))
+BLOC_MAX_HOLD_SECONDS = int(os.getenv('BLOC_MAX_HOLD_SECONDS', '180'))
+BLOC_MAX_DAILY_TRADES = int(os.getenv('BLOC_MAX_DAILY_TRADES', '30'))
+BLOC_MAX_CONCURRENT_POSITIONS = int(os.getenv('BLOC_MAX_CONCURRENT_POSITIONS', '1'))
+BLOC_MAX_SLIPPAGE_PERCENT = float(os.getenv('BLOC_MAX_SLIPPAGE_PERCENT', '0.35'))
+BLOC_MIN_LIQUIDITY_USD = float(os.getenv('BLOC_MIN_LIQUIDITY_USD', '25'))
+BLOC_SIGNAL_LOOKBACK_SECONDS = int(os.getenv('BLOC_SIGNAL_LOOKBACK_SECONDS', '60'))
+
 # Rate Limits
 MAX_INCH_REQUESTS_PER_DAY = 900  # Buffer below 1000 limit
 
-# Signal Thresholds - ADJUSTED FOR MORE FREQUENT TRADES
-MIN_PRICE_MOVEMENT_PCT = 0.15  # 0.15% in 60 seconds (was 0.4%)
-MAX_GAS_GWEI = 50  # Increased from 30
-MIN_PROFIT_PCT = 0.3  # After gas costs (was 0.5%)
-MIN_PROFIT_AFTER_GAS_PERCENT = -0.50  # Forced live automation threshold for Base scalper
-MIN_SIGNAL_SCORE = 5  # Out of 10 (was 7)
+# Signal Thresholds - aligned to compounding directive
+MIN_PRICE_MOVEMENT_PCT = BLOC_MIN_PRICE_MOVEMENT_PCT
+MAX_GAS_GWEI = 50
+MIN_PROFIT_PCT = BLOC_MIN_NET_PROFIT_PCT
+MIN_PROFIT_AFTER_GAS_PERCENT = BLOC_MIN_NET_PROFIT_PCT
+MIN_SIGNAL_SCORE = BLOC_MIN_SIGNAL_SCORE
 
 # Status Reporting
 STATUS_HEARTBEAT_MINUTES = 5  # Send status update every N minutes
 PRICE_ALERT_THRESHOLD = 0.5  # Alert on 0.5% moves even if not trading
 
 # Execution Parameters
-MAX_SLIPPAGE_PERCENT = 0.5
-COOLDOWN_AFTER_LOSS_SECONDS = 300  # 5 min pause after losses
-MAX_DAILY_TRADES = 20
-MAX_OPEN_POSITIONS = 2
+MAX_SLIPPAGE_PERCENT = BLOC_MAX_SLIPPAGE_PERCENT
+COOLDOWN_AFTER_LOSS_SECONDS = 60
+MAX_DAILY_TRADES = BLOC_MAX_DAILY_TRADES
+MAX_OPEN_POSITIONS = BLOC_MAX_CONCURRENT_POSITIONS
 AUTO_MANUAL_BUY_FALLBACK_SECONDS = int(os.getenv('AUTO_MANUAL_BUY_FALLBACK_SECONDS', '120'))
-HOLD_TIME_MIN_SECONDS = 30
-HOLD_TIME_MAX_SECONDS = 300  # 5 minutes
+HOLD_TIME_MIN_SECONDS = 15
+HOLD_TIME_MAX_SECONDS = BLOC_MAX_HOLD_SECONDS
 
 # Tokens and Base trading universe
 ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -61,26 +75,26 @@ BASE_ASSET_UNIVERSE = [
     {
         'symbol': 'ETH',
         'coingecko_id': 'ethereum',
-        'base_token': ETH_ADDRESS,
+        'base_token': WETH_ADDRESS,
         'quote_token': USDC_ADDRESS,
         'priority': 1,
-        'enabled': True,
+        'enabled': 'ETH' in BLOC_PRIMARY_SYMBOLS,
+    },
+    {
+        'symbol': 'BTC',
+        'coingecko_id': 'bitcoin',
+        'base_token': CBBTC_ADDRESS,
+        'quote_token': USDC_ADDRESS,
+        'priority': 2,
+        'enabled': 'BTC' in BLOC_PRIMARY_SYMBOLS,
     },
     {
         'symbol': 'cbETH',
         'coingecko_id': 'coinbase-wrapped-staked-eth',
         'base_token': CBETH_ADDRESS,
         'quote_token': USDC_ADDRESS,
-        'priority': 2,
-        'enabled': True,
-    },
-    {
-        'symbol': 'cbBTC',
-        'coingecko_id': 'coinbase-wrapped-btc',
-        'base_token': CBBTC_ADDRESS,
-        'quote_token': USDC_ADDRESS,
-        'priority': 3,
-        'enabled': True,
+        'priority': 99,
+        'enabled': False,
     },
 ]
 

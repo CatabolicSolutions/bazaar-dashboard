@@ -2,7 +2,7 @@
 import time
 from typing import Dict, Optional
 from config.settings import (
-    MAX_POSITION_USD, MAX_DAILY_LOSS_USD, INITIAL_CAPITAL_USD
+    MAX_POSITION_USD, MAX_DAILY_LOSS_USD, INITIAL_CAPITAL_USD, MAX_DAILY_TRADES
 )
 
 class RiskManager:
@@ -30,6 +30,9 @@ class RiskManager:
         time_since_last = now - self.last_trade_time
         if time_since_last < self.cooldown_seconds:
             return False, f"Cooldown active: {self.cooldown_seconds - time_since_last:.0f}s remaining"
+
+        if self.daily_trades >= MAX_DAILY_TRADES:
+            return False, f"Max daily trades ({MAX_DAILY_TRADES}) reached"
         
         # Check if we have open position in this pair
         pair = self._get_pair_key(signal)
@@ -117,7 +120,8 @@ class RiskManager:
     def _get_pair_key(self, signal: Dict) -> str:
         """Get unique key for a trading pair"""
         direction = signal['direction']
-        return f"ETH-USDC-{direction}"
+        symbol = signal.get('symbol', 'ETH')
+        return f"{symbol}-USDC-{direction}"
     
     def reset_daily_stats(self):
         """Reset daily statistics (call at day start)"""

@@ -31,7 +31,7 @@ class Position:
     exit_tx_hash: Optional[str] = None
     target_price: float = 0.0
     stop_price: float = 0.0
-    paper: bool = True
+    paper: bool = False
 
 class TradeManager:
     def __init__(self):
@@ -42,18 +42,18 @@ class TradeManager:
         self.active_monitors: Dict[str, asyncio.Task] = {}
         
         # Exit parameters
-        self.default_target_pct = 0.5  # 0.5% profit target
-        self.default_stop_pct = 0.3    # 0.3% stop loss
-        self.max_hold_time = 300       # 5 minutes max hold
+        self.default_target_pct = 0.2  # 0.2% net compounding target
+        self.default_stop_pct = 0.1    # 0.1% hard stop
+        self.max_hold_time = 180       # 3 minutes max hold
     
-    def create_position(self, signal: Dict, size_usd: float, paper: bool = True) -> Position:
+    def create_position(self, signal: Dict, size_usd: float, paper: bool = False) -> Position:
         """Create a new position from signal"""
         self.position_counter += 1
         position_id = f"pos_{self.position_counter}_{int(time.time())}"
         
         # Calculate target and stop prices
         entry = signal['price']
-        direction = 'long' if signal['direction'] == 'up' else 'short'
+        direction = 'long' if signal['direction'] in ('up', 'down') else 'long'
         
         if direction == 'long':
             target = entry * (1 + self.default_target_pct / 100)
