@@ -6,11 +6,16 @@ import json
 import argparse
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
+import sys
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 import requests
 from operator_feedback import append_feedback
 from session_capture import append_event
 from hq_repository import hq_repository
-import sys
 import position_manager
 import trade_journal
 from datetime import datetime
