@@ -31,7 +31,7 @@ PAPER_TRADING_MODE = os.getenv('PAPER_TRADING_MODE', 'true').lower() == 'true'
 BLOC_PRIMARY_SYMBOLS = [s.strip().upper() for s in os.getenv('BLOC_PRIMARY_SYMBOLS', 'ETH,BTC').split(',') if s.strip()]
 BLOC_COMP_MODE = os.getenv('BLOC_COMP_MODE', 'volatility_capture')
 BLOC_MIN_PRICE_MOVEMENT_PCT = float(os.getenv('BLOC_MIN_PRICE_MOVEMENT_PCT', '0.10'))
-BLOC_MIN_NET_PROFIT_PCT = float(os.getenv('BLOC_MIN_NET_PROFIT_PCT', '0.20'))
+BLOC_MIN_NET_PROFIT_PCT = float(os.getenv('BLOC_MIN_NET_PROFIT_PCT', '0.002'))
 BLOC_MIN_SIGNAL_SCORE = int(os.getenv('BLOC_MIN_SIGNAL_SCORE', '4'))
 BLOC_HARD_STOP_LOSS_PCT = float(os.getenv('BLOC_HARD_STOP_LOSS_PCT', '0.10'))
 BLOC_MAX_HOLD_SECONDS = int(os.getenv('BLOC_MAX_HOLD_SECONDS', '180'))
