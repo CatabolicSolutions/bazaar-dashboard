@@ -57,7 +57,12 @@ function titleCase(v) {
 }
 
 function truth() {
-    return state.hq?.engine_truth_board || { tradier: {}, bloc: {} };
+    const board = state.hq?.engine_truth_board || { tradier: {}, bloc: {} };
+    return {
+        ...board,
+        tradier: { ...(board.tradier || {}), ...(state.tradier || {}) },
+        bloc: { ...(board.bloc || {}), ...(state.bloc || {}) }
+    };
 }
 
 function readinessScore(path) {
@@ -73,13 +78,23 @@ function computeDirective() {
     const t = truth().tradier || {};
     const b = truth().bloc || {};
     const activePositions = Array.isArray(state.positions) ? state.positions.length : 0;
+    const effectivePositions = b.compounding_state === 'holding_active_inventory' && activePositions === 0 ? 1 : activePositions;
 
-    if (activePositions > 0) {
+    if (b.compounding_state === 'holding_active_inventory') {
+        return {
+            title: 'Monitor compounding hold',
+            badge: 'Active Hold',
+            badgeClass: 'badge-amber',
+            copy: `Bloc is holding ${b.holding_asset || 'inventory'}${b.holding_units ? ` (${b.holding_units})` : ''} with ${fmtMoney(b.invested_capital_usd, 2)} invested. Next best action is exit supervision and recycle discipline, not new entry.`
+        };
+    }
+
+    if (effectivePositions > 0) {
         return {
             title: 'Manage live risk',
             badge: 'Live Risk',
             badgeClass: 'badge-red',
-            copy: `There ${activePositions === 1 ? 'is' : 'are'} ${activePositions} active ${activePositions === 1 ? 'position' : 'positions'} on the board. Monitor exits, unrealized P&L, and forced-close readiness before looking for fresh entries.`
+            copy: `There ${effectivePositions === 1 ? 'is' : 'are'} ${effectivePositions} active ${effectivePositions === 1 ? 'position' : 'positions'} on the board. Monitor exits, unrealized P&L, and forced-close readiness before looking for fresh entries.`
         };
     }
 
@@ -94,12 +109,12 @@ function computeDirective() {
         };
     }
 
-    if (b.path_ready && b.funded && !b.edge_proven) {
+    if (b.path_ready) {
         return {
-            title: 'Bloc funded, but no proven edge',
-            badge: 'No Trade',
+            title: 'Assess live Bloc state',
+            badge: 'Monitoring',
             badgeClass: 'badge-amber',
-            copy: 'Bloc has capital and plumbing, but the edge filter is not yet earning trust. Prioritize contract selection quality, fair-value anchoring, and friction-aware execution checks.'
+            copy: 'Bloc runtime is online. Wait for either deployable capital or an active compounding inventory state worth supervising.'
         };
     }
 
@@ -116,6 +131,17 @@ function buildNextActions() {
     const b = truth().bloc || {};
     const actions = [];
 
+    if (b.compounding_state === 'holding_active_inventory') {
+        actions.push({
+            title: 'Supervise the active compounding hold',
+            copy: `Track ${b.holding_asset || 'inventory'} exposure, exit conditions, and recycle path. Do not allow fresh ETH entry logic to masquerade as available capital.`
+        });
+        actions.push({
+            title: 'Verify mark and exit readiness',
+            copy: `Confirm units, marked value, and executable unwind path for ${b.holding_asset || 'the held asset'} so HQ reflects real operator choices.`
+        });
+    }
+
     if (t.top_blocker) {
         actions.push({
             title: 'Fix Tradier sizing mismatch',
@@ -123,14 +149,14 @@ function buildNextActions() {
         });
     }
 
-    if (b.funded && !b.edge_proven) {
+    if (b.funded && !b.edge_proven && b.compounding_state !== 'holding_active_inventory') {
         actions.push({
             title: 'Do not force a Bloc trade',
             copy: 'Keep Bloc in no-trade mode until a contract survives probability, friction, and clarity checks.'
         });
     }
 
-    if ((state.positions || []).length === 0) {
+    if ((state.positions || []).length === 0 && b.compounding_state !== 'holding_active_inventory') {
         actions.push({
             title: 'Use dashboard for go or no-go, not decoration',
             copy: 'Focus on capital, blockers, readiness, and next action. Ignore vanity metrics unless they change a decision.'
@@ -176,7 +202,9 @@ function renderHeadline() {
     el.directiveCopy.textContent = directive.copy;
 
     el.miniTradierCapital.textContent = fmtMoney(t.available_capital_usd);
-    el.miniBlocCapital.textContent = fmtMoney(b.available_capital_usd, 2);
+    el.miniBlocCapital.textContent = b.compounding_state === 'holding_active_inventory'
+        ? `${fmtMoney(b.invested_capital_usd, 2)} in ${b.holding_asset || 'inventory'}`
+        : fmtMoney(b.available_capital_usd, 2);
     const eth = typeof state.sie.eth_price === 'number' ? `$${state.sie.eth_price.toFixed(2)}` : '--';
     const mom = typeof state.sie.momentum === 'number' ? `${(state.sie.momentum * 100).toFixed(2)}%` : '--';
     el.miniReality.textContent = `ETH ${eth} | Mom ${mom}`;
@@ -194,7 +222,7 @@ function renderReadiness() {
                 <div class="ops-name">${key}</div>
                 <div class="decision-badge ${data.edge_proven ? 'badge-green' : (data.path_ready ? 'badge-amber' : 'badge-red')}">${readinessScore(data)}/3 ready</div>
             </div>
-            <div class="ops-summary">${titleCase(data.status_label)}. ${data.edge_proven ? 'System has proven edge.' : 'Not yet cleared for confident scaling.'}</div>
+            <div class="ops-summary">${data.compounding_state === 'holding_active_inventory' ? `Holding ${data.holding_asset || 'inventory'} for managed recycle.` : `${titleCase(data.status_label)}. ${data.edge_proven ? 'System has proven edge.' : 'Not yet cleared for confident scaling.'}`}</div>
             <div class="kv">
                 <div><span>Funded</span>${fmtBool(data.funded)}</div>
                 <div><span>Path ready</span>${fmtBool(data.path_ready)}</div>
