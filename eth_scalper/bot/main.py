@@ -627,9 +627,19 @@ class ETHScalper:
                 position.tx_hash = tx_hash
                 try:
                     to_amount = swap_data.get('to_amount')
-                    dst_token = swap_data.get('dst_token')
-                    if to_amount is not None and dst_token == WETH_ADDRESS:
-                        position.executed_to_amount_units = int(to_amount) / 1e18
+                    dst_token = (swap_data.get('dst_token') or '').lower()
+                    target_symbol = position.signal.get('symbol', 'ETH')
+                    if to_amount is not None:
+                        if dst_token == WETH_ADDRESS.lower() or target_symbol == 'ETH':
+                            position.executed_to_amount_units = int(to_amount) / 1e18
+                            position.bound_token = WETH_ADDRESS
+                            position.bound_symbol = 'ETH'
+                        elif dst_token == CBBTC_ADDRESS.lower() or target_symbol == 'BTC':
+                            position.executed_to_amount_units = int(to_amount) / 1e8
+                            position.bound_token = CBBTC_ADDRESS
+                            position.bound_symbol = 'BTC'
+                        else:
+                            position.executed_to_amount_units = None
                 except Exception:
                     position.executed_to_amount_units = None
 
@@ -641,7 +651,6 @@ class ETHScalper:
 
                 emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='filled', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash})
                 risk_manager.record_trade(position.signal, position.size_usd, paper=False)
-                trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
                 position.source = 'autonomous_entry'
                 position.resumable_after_restart = True
                 position.max_hold_seconds = trade_manager.max_hold_time
@@ -664,7 +673,8 @@ class ETHScalper:
         print(f"   👁️  Monitoring position {position.id}...")
         
         while True:
-            current_price = price_feed.get_eth_price()
+            asset_symbol = getattr(position, 'bound_symbol', None) or position.signal.get('symbol', 'ETH')
+            current_price = price_feed.get_eth_price() if asset_symbol == 'ETH' else price_feed.get_btc_price()
             if not current_price:
                 await asyncio.sleep(5)
                 continue
@@ -706,14 +716,15 @@ class ETHScalper:
         pnl_pct = price_change * 100
         pnl_usd = position.size_usd * price_change
         
-        # Execute reverse swap (WETH back to USDC)
+        # Execute reverse swap back to USDC
         from execution.live_executor import live_executor
-        from_token = WETH_ADDRESS
+        bound_symbol = getattr(position, 'bound_symbol', None) or position.signal.get('symbol', 'ETH')
+        from_token = CBBTC_ADDRESS if bound_symbol == 'BTC' else WETH_ADDRESS
         to_token = USDC_ADDRESS
 
         executed_units = getattr(position, 'executed_to_amount_units', None)
         if executed_units is None or executed_units <= 0:
-            print(f"   ❌ Exit blocked - no executed WETH units recorded for {position.id}")
+            print(f"   ❌ Exit blocked - no executed {bound_symbol} units recorded for {position.id}")
             return
 
         if executed_units < 1e-6:
@@ -732,18 +743,23 @@ class ETHScalper:
                 return {'closed': True, 'reason': 'dust_inventory_cleared'}
             return {'closed': False, 'reason': 'dust_close_failed'}
 
-        sell_amount = int(executed_units * 1e18)
+        sell_amount = int(executed_units * (1e8 if bound_symbol == 'BTC' else 1e18))
         try:
             wallet = wallet_monitor.get_all_balances()
-            wallet_weth_wei = int(float(wallet.get('weth') or 0.0) * 1e18)
-            if wallet_weth_wei > 0:
-                safe_wallet_weth_wei = max(0, wallet_weth_wei - 16)
-                if safe_wallet_weth_wei <= 0:
-                    print(f"   ❌ Exit blocked - wallet WETH too small after safety buffer for {position.id}")
-                    return {'closed': False, 'reason': 'wallet_weth_too_small'}
-                if sell_amount > safe_wallet_weth_wei:
-                    print(f"   ⚠️ Clamping exit sell amount from {sell_amount} to wallet-safe {safe_wallet_weth_wei} wei")
-                    sell_amount = safe_wallet_weth_wei
+            if bound_symbol == 'BTC':
+                wallet_units_raw = int(float(wallet.get('cbbtc') or 0.0) * 1e8)
+                clamp_buffer = 1
+            else:
+                wallet_units_raw = int(float(wallet.get('weth') or 0.0) * 1e18)
+                clamp_buffer = 16
+            if wallet_units_raw > 0:
+                safe_wallet_units_raw = max(0, wallet_units_raw - clamp_buffer)
+                if safe_wallet_units_raw <= 0:
+                    print(f"   ❌ Exit blocked - wallet {bound_symbol} too small after safety buffer for {position.id}")
+                    return {'closed': False, 'reason': 'wallet_units_too_small'}
+                if sell_amount > safe_wallet_units_raw:
+                    print(f"   ⚠️ Clamping exit sell amount from {sell_amount} to wallet-safe {safe_wallet_units_raw} raw units")
+                    sell_amount = safe_wallet_units_raw
         except Exception as e:
             print(f"   ⚠️ Failed wallet-based exit clamp, using recorded lot amount: {e}")
 
