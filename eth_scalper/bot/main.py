@@ -554,8 +554,13 @@ class ETHScalper:
             amount_eth = amount_wei / 1e18
             print(f"   🔄 Getting final swap quote for {amount_eth:.6f} ETH -> WETH after gas reserve...")
 
-        if hasattr(live_executor, 'pretrade_invariant_check'):
-            invariant_check = live_executor.pretrade_invariant_check(
+        try:
+            invariant_fn = getattr(live_executor, 'pretrade_invariant_check')
+        except Exception:
+            invariant_fn = None
+
+        if callable(invariant_fn):
+            invariant_check = invariant_fn(
                 from_token=from_token,
                 to_token=to_token,
                 amount=amount_wei,
