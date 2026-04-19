@@ -13,10 +13,13 @@ for candidate in (str(ROOT_DIR), str(PACKAGE_PARENT)):
     if candidate not in sys.path:
         sys.path.insert(0, candidate)
 
-try:
-    import db.client as db_client
-except ModuleNotFoundError:
-    from eth_scalper.db import client as db_client
+import importlib.util
+_db_client_path = ROOT_DIR / 'db' / 'client.py'
+_db_client_spec = importlib.util.spec_from_file_location('eth_scalper_db_client', _db_client_path)
+if _db_client_spec is None or _db_client_spec.loader is None:
+    raise ModuleNotFoundError(f'Unable to load db client from {_db_client_path}')
+db_client = importlib.util.module_from_spec(_db_client_spec)
+_db_client_spec.loader.exec_module(db_client)
 
 from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, WETH_ADDRESS, CBBTC_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS, BLOC_MIN_NET_PROFIT_PCT, BLOC_MIN_LIQUIDITY_USD
 from config.logger import logger, log_signal, log_trade
