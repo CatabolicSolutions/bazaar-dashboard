@@ -104,6 +104,12 @@ class ETHScalper:
             print("   Safety checks: ENABLED")
             print("   Emergency stop: ARMED")
             live_executor.enable()
+            try:
+                boot_wallet = wallet_monitor.get_all_balances()
+                print(f"👛 Boot wallet address: {boot_wallet.get('address', 'unknown')}")
+                print(f"👛 Boot wallet balances: {boot_wallet.get('eth', 0.0):.4f} ETH, {boot_wallet.get('weth', 0.0):.6f} WETH, {boot_wallet.get('cbbtc', 0.0):.8f} CBBTC, ${boot_wallet.get('usdc', 0.0):.2f} USDC")
+            except Exception as e:
+                print(f"❌ Failed to read boot wallet snapshot: {e}")
             await self._resume_persisted_live_positions()
         
         print("-" * 60)
