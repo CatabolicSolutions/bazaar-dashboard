@@ -43,10 +43,17 @@ class RiskManager:
             from wallet_monitor import wallet_monitor
             wallet = wallet_monitor.get_all_balances()
             wallet_weth = float(wallet.get('weth') or 0.0)
+            wallet_cbbtc = float(wallet.get('cbbtc') or 0.0)
+            eth_price = float(wallet.get('eth_price_usd') or 0.0)
+            btc_price = float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0)
         except Exception:
             wallet = {}
             wallet_weth = 0.0
-        if pair in self.open_positions and wallet_weth <= DUST_WETH_EPSILON:
+            wallet_cbbtc = 0.0
+            eth_price = 0.0
+            btc_price = 0.0
+        has_live_inventory = wallet_weth > DUST_WETH_EPSILON or wallet_cbbtc > 1e-8
+        if pair in self.open_positions and not has_live_inventory:
             self.open_positions.pop(pair, None)
         if pair in self.open_positions:
             return False, f"Open position exists: {pair}"
@@ -55,9 +62,13 @@ class RiskManager:
         used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
         try:
             available = max(0.0, float(wallet.get('usdc') or 0.0) - used_capital)
+            invested = max(0.0, (wallet_weth * eth_price) + (wallet_cbbtc * btc_price))
         except Exception:
             available = INITIAL_CAPITAL_USD - used_capital
+            invested = 0.0
         
+        if available <= 0 and invested > 0:
+            return False, f"Capital deployed in active inventory: ${invested:.2f} invested"
         if available <= 0:
             return False, f"Insufficient capital: ${available:.2f} available"
         
@@ -148,10 +159,16 @@ class RiskManager:
         """Get current risk status"""
         used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
         
+        invested_capital = 0.0
         try:
             from wallet_monitor import wallet_monitor
             wallet = wallet_monitor.get_all_balances()
             available_capital = max(0.0, float(wallet.get('usdc') or 0.0) - used_capital)
+            invested_capital = max(
+                0.0,
+                (float(wallet.get('weth') or 0.0) * float(wallet.get('eth_price_usd') or 0.0)) +
+                (float(wallet.get('cbbtc') or 0.0) * float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0))
+            )
         except Exception:
             available_capital = INITIAL_CAPITAL_USD - used_capital
 
@@ -161,6 +178,7 @@ class RiskManager:
             'open_positions': len(self.open_positions),
             'used_capital': used_capital,
             'available_capital': available_capital,
+            'invested_capital': invested_capital,
             'daily_loss_limit': MAX_DAILY_LOSS_USD,
             'remaining_loss_allowance': MAX_DAILY_LOSS_USD + self.daily_pnl if self.daily_pnl < 0 else MAX_DAILY_LOSS_USD,
             'cooldown_active': time.time() - self.last_trade_time < self.cooldown_seconds

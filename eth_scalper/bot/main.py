@@ -450,8 +450,10 @@ class ETHScalper:
                 db_client.add_signal_entry(signal, executed=False, reason='open_position_exists') # Log to DB
                 return
             if funded_side != 'USDC':
-                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='usdc_inventory_required_for_redeployment')
-                db_client.add_signal_entry(signal, executed=False, reason='usdc_inventory_required_for_redeployment') # Log to DB
+                hold_reason = 'active_inventory_position_holding_for_compounding'
+                print(f"   ⏸️ Holding active inventory for compounding: funded_side={funded_side}, native_eth=${native_eth_usd:.2f}, usdc=${usdc_balance:.2f}, weth_inventory=${weth_balance_usd:.2f}")
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='success', setup_type=signal.get('type'), notes=hold_reason)
+                db_client.add_signal_entry(signal, executed=False, reason=hold_reason) # Log to DB
                 return
             if size_usd < BLOC_MIN_LIQUIDITY_USD:
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='insufficient_exit_liquidity')
