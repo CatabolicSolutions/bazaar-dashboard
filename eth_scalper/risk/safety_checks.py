@@ -57,10 +57,15 @@ class SafetyChecker:
         if not self._validate_signal(signal):
             return False, "Invalid signal data"
         
-        # 7. Price sanity check
+        # 7. Price sanity check by asset
         price = signal.get('price', 0)
-        if price < 1000 or price > 10000:
-            return False, f"Price out of range: ${price}"
+        symbol = str(signal.get('symbol', 'ETH')).upper()
+        if symbol == 'BTC':
+            if price < 10000 or price > 200000:
+                return False, f"Price out of range: ${price}"
+        else:
+            if price < 1000 or price > 10000:
+                return False, f"Price out of range: ${price}"
         
         # 8. Gas sanity check
         gas = signal.get('gas_gwei', 0)

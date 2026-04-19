@@ -430,9 +430,10 @@ class ETHScalper:
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='friction_exceeds_edge', data={'friction_pct': friction_pct, 'gross_edge_pct': gross_edge_pct})
                 state_manager.log_signal(signal, executed=False, reason='friction_exceeds_edge')
                 return
-            if expected_edge_pct < BLOC_MIN_NET_PROFIT_PCT:
-                print(f"   ❌ Rejected: edge_below_net_target (expected_edge={expected_edge_pct:.4f}%, target={BLOC_MIN_NET_PROFIT_PCT:.4f}%)")
-                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct})
+            live_min_edge_pct = min(BLOC_MIN_NET_PROFIT_PCT, 0.002)
+            if expected_edge_pct < live_min_edge_pct:
+                print(f"   ❌ Rejected: edge_below_net_target (expected_edge={expected_edge_pct:.4f}%, target={live_min_edge_pct:.4f}%)")
+                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct, 'target_pct': live_min_edge_pct})
                 state_manager.log_signal(signal, executed=False, reason='edge_below_net_target')
                 return
 
