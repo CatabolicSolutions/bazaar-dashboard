@@ -248,6 +248,13 @@ class StateManager:
                 lot_units = float(lot_units)
                 enriched = dict(pos)
                 enriched['lot_units'] = lot_units
+                if enriched.get('status') == 'closed':
+                    enriched['allocated_units'] = 0.0
+                    enriched['linked_to_wallet_inventory'] = False
+                    enriched['allocation_state'] = 'closed'
+                    enriched['resumable_after_restart'] = False
+                    reconciled.append(enriched)
+                    continue
                 if lot_units <= 0:
                     enriched['allocated_units'] = 0.0
                     enriched['linked_to_wallet_inventory'] = False

@@ -695,7 +695,21 @@ class ETHScalper:
         if executed_units is None or executed_units <= 0:
             print(f"   ❌ Exit blocked - no executed WETH units recorded for {position.id}")
             return
+
         sell_amount = int(executed_units * 1e18)
+        try:
+            wallet = wallet_monitor.get_all_balances()
+            wallet_weth_wei = int(float(wallet.get('weth') or 0.0) * 1e18)
+            if wallet_weth_wei > 0:
+                safe_wallet_weth_wei = max(0, wallet_weth_wei - 16)
+                if safe_wallet_weth_wei <= 0:
+                    print(f"   ❌ Exit blocked - wallet WETH too small after safety buffer for {position.id}")
+                    return {'closed': False, 'reason': 'wallet_weth_too_small'}
+                if sell_amount > safe_wallet_weth_wei:
+                    print(f"   ⚠️ Clamping exit sell amount from {sell_amount} to wallet-safe {safe_wallet_weth_wei} wei")
+                    sell_amount = safe_wallet_weth_wei
+        except Exception as e:
+            print(f"   ⚠️ Failed wallet-based exit clamp, using recorded lot amount: {e}")
 
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
