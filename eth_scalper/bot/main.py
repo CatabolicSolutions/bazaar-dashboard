@@ -17,6 +17,7 @@ from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTE
 from config.logger import logger, log_signal, log_trade
 from signals.price_feed import price_feed
 from signals.momentum import momentum_detector
+from signals.multi_asset_feed import multi_asset_feed
 from execution.oneinch import inch_client
 from execution.trade_manager import trade_manager
 from execution.live_executor import live_executor
@@ -116,8 +117,33 @@ class ETHScalper:
         # Check for momentum signals
         signal = momentum_detector.detect_momentum()
 
+        eth_prices = multi_asset_feed.get_prices()
+        eth_history = multi_asset_feed.price_history.get('ETH', [])
+        eth_mid = sum(p for _, p in eth_history[-12:]) / max(1, len(eth_history[-12:])) if eth_history else eth_prices.get('ETH')
+        eth_cur = eth_prices.get('ETH')
+        if eth_cur is not None and eth_mid is not None:
+            print(f"   📏 ETH midpoint check: current=${eth_cur:.2f}, midpoint=${eth_mid:.2f}, at_or_below_mid={eth_cur <= eth_mid}")
+
         if signal:
             await self._handle_signal(signal)
+        elif (eth_cur is not None and eth_mid is not None and eth_cur <= eth_mid and len(trade_manager.get_open_positions()) == 0):
+            print("🎯 Natural midline buy condition met, forcing immediate buy_pullback handling")
+            mid_signal = {
+                'timestamp': time.time(),
+                'symbol': 'ETH',
+                'direction': 'down',
+                'price': eth_cur,
+                'change_60s_pct': 0.0,
+                'gas_gwei': price_feed.get_gas_price_gwei() or 0.0,
+                'score': 10,
+                'type': 'midline_buy',
+                'setup': 'buy_pullback',
+                'midpoint_price': eth_mid,
+                'distance_from_mid_pct': abs(((eth_cur - eth_mid) / eth_mid) * 100) if eth_mid else 0.0,
+                'pullback_bias': True,
+                'sell_strength_bias': False,
+            }
+            await self._handle_signal(mid_signal)
         elif (not PAPER_TRADING_MODE and now - self.last_forced_entry > AUTO_MANUAL_BUY_FALLBACK_SECONDS and len(trade_manager.get_open_positions()) == 0):
             print("⏰ No natural signal recently, forcing fallback live entry")
             self.last_forced_entry = now
