@@ -199,7 +199,7 @@ function renderHeadline() {
     const directive = computeDirective();
     const activePositions = Array.isArray(state.positions) ? state.positions.length : 0;
 
-    el.asof.textContent = `Updated ${new Date().toLocaleString()}`;
+    el.asof.textContent = `Updated ${new Date().toLocaleString()} • HQv5`;
     el.headlineDecision.textContent = directive.title;
     el.headlineReason.textContent = directive.copy;
 
