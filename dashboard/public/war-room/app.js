@@ -76,7 +76,7 @@ function readinessScore(path) {
 
 function computeDirective() {
     const t = truth().tradier || {};
-    const b = truth().bloc || {};
+    const b = { ...(truth().bloc || {}), ...(state.bloc || {}) };
     const activePositions = Array.isArray(state.positions) ? state.positions.length : 0;
     const effectivePositions = b.compounding_state === 'holding_active_inventory' && activePositions === 0 ? 1 : activePositions;
 
@@ -174,6 +174,9 @@ function buildNextActions() {
 function renderHeadline() {
     const t = truth().tradier || {};
     const b = truth().bloc || {};
+    const liveB = state.bloc || {};
+    const liveHolding = liveB.holding_asset || b.holding_asset;
+    const liveInvested = typeof liveB.invested_capital_usd === 'number' ? liveB.invested_capital_usd : b.invested_capital_usd;
     const directive = computeDirective();
     const activePositions = Array.isArray(state.positions) ? state.positions.length : 0;
 
@@ -184,13 +187,14 @@ function renderHeadline() {
     el.headlineTradier.textContent = `${readinessScore(t)}/3 ready`;
     el.headlineTradierSub.textContent = `${titleCase(t.status_label)} • ${fmtMoney(t.available_capital_usd)}`;
 
-    el.headlineBloc.textContent = `${readinessScore(b)}/3 ready`;
-    const blocCapitalLine = b.compounding_state === 'holding_active_inventory'
-        ? `${titleCase(b.status_label)} • ${fmtMoney(b.invested_capital_usd, 2)} invested`
+    const blocHolding = liveB.compounding_state === 'holding_active_inventory' || b.compounding_state === 'holding_active_inventory' || !!liveHolding;
+    el.headlineBloc.textContent = blocHolding ? 'Holding active inventory' : `${readinessScore(b)}/3 ready`;
+    const blocCapitalLine = blocHolding
+        ? `${liveHolding || 'Inventory'} • ${fmtMoney(liveInvested, 2)} invested`
         : `${titleCase(b.status_label)} • ${fmtMoney(b.available_capital_usd, 2)}`;
     el.headlineBlocSub.textContent = blocCapitalLine;
 
-    const effectivePositions = b.compounding_state === 'holding_active_inventory' && activePositions === 0 ? 1 : activePositions;
+    const effectivePositions = blocHolding && activePositions === 0 ? 1 : activePositions;
     el.headlineExposure.textContent = `${effectivePositions} ${effectivePositions === 1 ? 'position' : 'positions'}`;
     el.headlineExposureSub.textContent = effectivePositions > 0
         ? (b.compounding_state === 'holding_active_inventory' ? 'Active compounding inventory requires supervision' : 'Live risk requires supervision')
@@ -202,8 +206,8 @@ function renderHeadline() {
     el.directiveCopy.textContent = directive.copy;
 
     el.miniTradierCapital.textContent = fmtMoney(t.available_capital_usd);
-    el.miniBlocCapital.textContent = b.compounding_state === 'holding_active_inventory'
-        ? `${fmtMoney(b.invested_capital_usd, 2)} in ${b.holding_asset || 'inventory'}`
+    el.miniBlocCapital.textContent = blocHolding
+        ? `${fmtMoney(liveInvested, 2)} in ${liveHolding || 'inventory'}`
         : fmtMoney(b.available_capital_usd, 2);
     const eth = typeof state.sie.eth_price === 'number' ? `$${state.sie.eth_price.toFixed(2)}` : '--';
     const mom = typeof state.sie.momentum === 'number' ? `${(state.sie.momentum * 100).toFixed(2)}%` : '--';
@@ -211,9 +215,10 @@ function renderHeadline() {
 }
 
 function renderReadiness() {
+    const blocData = { ...(truth().bloc || {}), ...(state.bloc || {}) };
     const systems = [
         { key: 'Tradier', data: truth().tradier || {}, capital: state.tradier.bp },
-        { key: 'Bloc', data: truth().bloc || {}, capital: state.bloc.usdc }
+        { key: 'Bloc', data: blocData, capital: state.bloc.usdc }
     ];
 
     el.readinessList.innerHTML = systems.map(({ key, data, capital }) => `
@@ -250,8 +255,8 @@ function renderNextActions() {
 function renderPositions() {
     const positions = Array.isArray(state.positions) ? state.positions : [];
     if (!positions.length) {
-        const bloc = truth().bloc || {};
-        if (bloc.compounding_state === 'holding_active_inventory' && bloc.holding_asset) {
+        const bloc = { ...(truth().bloc || {}), ...(state.bloc || {}) };
+        if ((bloc.compounding_state === 'holding_active_inventory' || bloc.holding_asset) && bloc.holding_asset) {
             el.positionsList.innerHTML = `<div class="position-row"><div class="position-top"><div>${bloc.holding_asset} HOLD</div><div>${fmtMoney(bloc.invested_capital_usd, 2)}</div></div><div class="meta-row"><span>Units: ${bloc.holding_units ?? '--'}</span><span>Status: Holding active inventory</span><span>Action: Monitor for recycle</span></div></div>`;
             return;
         }
