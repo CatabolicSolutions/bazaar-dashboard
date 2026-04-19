@@ -141,10 +141,15 @@ class StateManager:
                     lot_units = float(position.size_usd) / signal_price
         except Exception:
             lot_units = None
+        bound_symbol = getattr(position, 'bound_symbol', None) or getattr(position, 'asset_symbol', None) or position.signal.get('symbol', 'ETH') if getattr(position, 'signal', None) else 'ETH'
+        binding_asset = getattr(position, 'binding_asset', None) or ('CBBTC' if bound_symbol == 'BTC' else 'WETH')
+        binding_units = getattr(position, 'binding_units', None)
+        if binding_units is None:
+            binding_units = lot_units
         current.append({
             'id': position.id,
             'source': getattr(position, 'source', None) or 'autonomous_entry',
-            'asset': 'WETH' if position.direction == 'long' else 'UNKNOWN',
+            'asset': binding_asset,
             'entry_price': position.entry_price,
             'target_price': position.target_price,
             'stop_price': position.stop_price,
@@ -156,8 +161,8 @@ class StateManager:
             'tx_hash': position.tx_hash,
             'paper': position.paper,
             'resumable_after_restart': bool(getattr(position, 'resumable_after_restart', False)),
-            'binding_asset': 'WETH',
-            'binding_units': lot_units,
+            'binding_asset': binding_asset,
+            'binding_units': binding_units,
             'binding_method': 'tx_confirmed_lot_units',
             'entry_derivation': 'tracked_live_execution',
             'target_derivation': 'tracked_live_execution',
@@ -244,10 +249,16 @@ class StateManager:
             return reconciled
 
         weth_balance = float((wallet or {}).get('weth') or 0.0)
+        cbbtc_balance = float((wallet or {}).get('cbbtc') or 0.0)
         if weth_balance <= DUST_WETH_EPSILON:
             weth_balance = 0.0
-        if weth_balance > 0 and persisted_positions:
-            remaining = weth_balance
+        if cbbtc_balance <= DUST_WETH_EPSILON:
+            cbbtc_balance = 0.0
+        if (weth_balance > 0 or cbbtc_balance > 0) and persisted_positions:
+            remaining_by_asset = {
+                'WETH': weth_balance,
+                'CBBTC': cbbtc_balance,
+            }
             reconciled = []
             for pos in persisted_positions:
                 lot_units = pos.get('lot_units')
@@ -263,7 +274,10 @@ class StateManager:
                     enriched['resumable_after_restart'] = False
                     reconciled.append(enriched)
                     continue
-                if enriched.get('source') == 'inventory_reconciliation' and weth_balance < MIN_TRADABLE_WETH_UNITS:
+                binding_asset = enriched.get('binding_asset') or enriched.get('asset') or 'WETH'
+                remaining = remaining_by_asset.get(binding_asset, 0.0)
+                asset_min_units = MIN_TRADABLE_WETH_UNITS if binding_asset == 'WETH' else 1e-8
+                if enriched.get('source') == 'inventory_reconciliation' and remaining < asset_min_units:
                     enriched['allocated_units'] = 0.0
                     enriched['linked_to_wallet_inventory'] = False
                     enriched['allocation_state'] = 'closed'
@@ -281,40 +295,47 @@ class StateManager:
                     continue
                 allocated_units = min(remaining, lot_units) if remaining > 0 else 0.0
                 remaining = max(0.0, remaining - allocated_units)
+                remaining_by_asset[binding_asset] = remaining
                 enriched['allocated_units'] = allocated_units
                 enriched['linked_to_wallet_inventory'] = allocated_units > 0
                 enriched['allocation_state'] = 'allocated' if allocated_units > 0 else 'unallocated'
                 enriched['resumable_after_restart'] = bool(enriched.get('resumable_after_restart')) and allocated_units > 0
                 reconciled.append(enriched)
-            if remaining > 0:
-                reconciled.append({
-                    'source': 'inventory_reconciliation',
-                    'asset': 'WETH',
-                    'lot_units': remaining,
-                    'allocated_units': remaining,
-                    'entry_price': None,
-                    'target_price': None,
-                    'stop_price': None,
-                    'max_hold_seconds': None,
-                    'status': 'legacy_unallocated_inventory',
-                    'tx_hash': None,
-                    'linked_to_wallet_inventory': True,
-                    'entry_derivation': 'UNVERIFIED',
-                    'target_derivation': 'UNVERIFIED',
-                    'stop_derivation': 'UNVERIFIED',
-                    'max_hold_derivation': 'UNVERIFIED',
-                    'notes': 'Unallocated legacy WETH inventory not linked to a tracked execution lot.'
-                })
+            for asset, remaining in remaining_by_asset.items():
+                asset_min_units = MIN_TRADABLE_WETH_UNITS if asset == 'WETH' else 1e-8
+                if remaining >= asset_min_units:
+                    reconciled.append({
+                        'source': 'inventory_reconciliation',
+                        'asset': asset,
+                        'lot_units': remaining,
+                        'allocated_units': remaining,
+                        'binding_asset': asset,
+                        'binding_units': remaining,
+                        'entry_price': None,
+                        'target_price': None,
+                        'stop_price': None,
+                        'max_hold_seconds': None,
+                        'status': 'legacy_unallocated_inventory',
+                        'tx_hash': None,
+                        'linked_to_wallet_inventory': True,
+                        'entry_derivation': 'UNVERIFIED',
+                        'target_derivation': 'UNVERIFIED',
+                        'stop_derivation': 'UNVERIFIED',
+                        'max_hold_derivation': 'UNVERIFIED',
+                        'notes': f'Unallocated legacy {asset} inventory not linked to a tracked execution lot.'
+                    })
             return reconciled
-        if weth_balance >= MIN_TRADABLE_WETH_UNITS:
+        if weth_balance >= MIN_TRADABLE_WETH_UNITS or cbbtc_balance >= 1e-8:
+            single_asset = 'WETH' if weth_balance >= MIN_TRADABLE_WETH_UNITS else 'CBBTC'
+            single_units = weth_balance if single_asset == 'WETH' else cbbtc_balance
             return [{
-                'id': 'reconciled_live_inventory_weth',
+                'id': f'reconciled_live_inventory_{single_asset.lower()}',
                 'source': 'inventory_reconciliation',
-                'asset': 'WETH',
-                'lot_units': weth_balance,
-                'allocated_units': weth_balance,
-                'binding_asset': 'WETH',
-                'binding_units': weth_balance,
+                'asset': single_asset,
+                'lot_units': single_units,
+                'allocated_units': single_units,
+                'binding_asset': single_asset,
+                'binding_units': single_units,
                 'entry_price': None,
                 'target_price': None,
                 'stop_price': None,
@@ -328,7 +349,7 @@ class StateManager:
                 'target_derivation': 'UNVERIFIED',
                 'stop_derivation': 'UNVERIFIED',
                 'max_hold_derivation': 'config',
-                'notes': 'Derived from nonzero on-chain WETH inventory with no active or persisted tracked lots. Treat as managed live inventory for compounding.'
+                'notes': f'Derived from nonzero on-chain {single_asset} inventory with no active or persisted tracked lots. Treat as managed live inventory for compounding.'
             }]
         return []
 

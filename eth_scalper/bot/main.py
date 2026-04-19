@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 # Add package roots to path for both local runs and systemd `/usr/bin/python3 -m bot.main`
+import db.client as db_client
 BOT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = BOT_DIR.parent
 PACKAGE_PARENT = ROOT_DIR.parent
@@ -57,6 +58,10 @@ class ETHScalper:
         except ValueError as e:
             print(f"❌ Config error: {e}")
             return
+        
+        # Create DB tables if they don't exist
+        db_client.create_tables()
+        print("✅ Database tables ensured")
         
         mode = "PAPER TRADING" if PAPER_TRADING_MODE else "LIVE TRADING"
         print(f"📝 Mode: {mode}")
@@ -221,6 +226,9 @@ class ETHScalper:
             
             # Update wallet state from live on-chain reads
             wallet = wallet_monitor.get_all_balances()
+            # Log wallet balances to DB
+            db_client.add_wallet_balance_entry(wallet) # Pass the full wallet for more detailed logging
+            
             weth_balance = wallet.get('weth', 0.0) if isinstance(wallet, dict) else 0.0
             if weth_balance <= 1e-12:
                 weth_balance = 0.0
@@ -280,7 +288,7 @@ class ETHScalper:
         
         trade_id = f"bloc-{int(time.time()*1000)}"
         emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='detected', outcome_type='info', status='success', setup_type=signal.get('type'), data={'signal': signal})
-        state_manager.log_signal(signal, executed=False, reason="checking")
+        db_client.add_signal_entry(signal, executed=False, reason="checking") # Log to DB
         
         # CRITICAL: Safety check first
         open_positions = len(trade_manager.get_open_positions())
@@ -296,7 +304,7 @@ class ETHScalper:
         if not can_trade:
             print(f"   ❌ SAFETY CHECK FAILED: {reason}")
             emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes=reason)
-            state_manager.log_signal(signal, executed=False, reason=f"SAFETY: {reason}")
+            db_client.add_signal_entry(signal, executed=False, reason=f"SAFETY: {reason}") # Log to DB
             return
         
         # Check risk limits
@@ -305,7 +313,7 @@ class ETHScalper:
         if not can_trade:
             print(f"   ❌ Risk check failed: {reason}")
             emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes=reason)
-            state_manager.log_signal(signal, executed=False, reason=reason)
+            db_client.add_signal_entry(signal, executed=False, reason=reason) # Log to DB
             return
         
         # Sprint-grade economic gate is applied after inventory selection so it evaluates the real funded path.
@@ -328,7 +336,7 @@ class ETHScalper:
                 resumed = await self._resume_persisted_live_positions()
                 if resumed:
                     print(f"   🧭 Existing WETH exposure detected and resumed into active monitoring")
-                    state_manager.log_signal(signal, executed=False, reason="existing_weth_exposure_resumed")
+                    db_client.add_signal_entry(signal, executed=False, reason="existing_weth_exposure_resumed") # Log to DB
                     return
                 print(f"   🧭 Existing WETH exposure detected: ${weth_balance_usd:.2f} inventory. Treating as managed compounding inventory and seeking exit/recycle conditions.")
                 synthetic_position = trade_manager.create_position({
@@ -349,9 +357,10 @@ class ETHScalper:
                 trade_manager.positions[synthetic_position.id] = synthetic_position
                 state_manager.persist_live_position(synthetic_position)
                 state_manager.update_positions(trade_manager.get_open_positions())
+                db_client.add_position_entry(synthetic_position) # Add synthetic position to DB
                 print(f"   ✅ Promoted orphan WETH inventory into managed live position: {synthetic_position.id}")
                 asyncio.create_task(self._monitor_live_position(synthetic_position))
-                state_manager.log_signal(signal, executed=False, reason="existing_weth_inventory_promoted_to_managed_position")
+                db_client.add_signal_entry(signal, executed=False, reason="existing_weth_inventory_promoted_to_managed_position", position_id=synthetic_position.id) # Log to DB
                 return
 
             if usdc_balance >= BLOC_MIN_LIQUIDITY_USD:
@@ -654,6 +663,12 @@ class ETHScalper:
                 position.source = 'autonomous_entry'
                 position.resumable_after_restart = True
                 position.max_hold_seconds = trade_manager.max_hold_time
+                if getattr(position, 'bound_symbol', None) == 'BTC':
+                    position.binding_asset = 'CBBTC'
+                    position.binding_units = getattr(position, 'executed_to_amount_units', None)
+                else:
+                    position.binding_asset = 'WETH'
+                    position.binding_units = getattr(position, 'executed_to_amount_units', None)
                 state_manager.persist_live_position(position)
                 state_manager.update_positions(trade_manager.get_open_positions())
                 print(f"   ✅ POSITION OPENED WITH LIVE TX: {position.id}")
