@@ -1057,7 +1057,39 @@ class Handler(SimpleHTTPRequestHandler):
             ) + (
                 float(wallet.get('weth') or 0.0) * float(wallet.get('eth_price_usd') or 0.0)
             )
-        compounding_state = 'holding_active_inventory' if (holding_asset or reconciled_positions) else ('flat_deployable' if float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0) > 0 else 'idle_unfunded')
+        if invested_capital <= 0:
+            invested_capital = float(wallet.get('estimated_total_usd') or 0.0)
+
+        cleaned_positions = []
+        for pos in reconciled_positions:
+            status = str(pos.get('status') or '').lower()
+            allocation_state = str(pos.get('allocation_state') or '').lower()
+            if status == 'closed' or allocation_state == 'closed':
+                continue
+            asset = str(pos.get('binding_asset') or pos.get('asset') or '').upper()
+            allocated_units = float(pos.get('allocated_units') or pos.get('binding_units') or pos.get('lot_units') or 0.0)
+            if asset == 'CBBTC' and allocated_units > 0:
+                cleaned_positions.append({
+                    'asset': 'CBBTC',
+                    'units': allocated_units,
+                    'entry_price': pos.get('entry_price'),
+                    'target_price': pos.get('target_price'),
+                    'stop_price': pos.get('stop_price'),
+                    'status': pos.get('status') or 'holding_active_inventory',
+                    'source': pos.get('source'),
+                })
+        if not cleaned_positions and holding_asset and holding_units:
+            cleaned_positions.append({
+                'asset': holding_asset,
+                'units': holding_units,
+                'entry_price': None,
+                'target_price': None,
+                'stop_price': None,
+                'status': 'holding_active_inventory',
+                'source': 'wallet_truth',
+            })
+
+        compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0) > 0 else 'idle_unfunded')
         return {
             'source': 'serve_dashboard',
             'updated_at': now_iso(),
@@ -1070,8 +1102,9 @@ class Handler(SimpleHTTPRequestHandler):
                 'deployable_capital_usd': float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0),
                 'invested_capital_usd': round(invested_capital, 2),
                 'wallet': wallet,
-                'active_positions': len((positions or {}).get('positions', [])) or (1 if compounding_state == 'holding_active_inventory' else 0),
-                'reconciled_positions': reconciled_positions,
+                'active_positions': len(cleaned_positions) or (1 if compounding_state == 'holding_active_inventory' else 0),
+                'positions': cleaned_positions,
+                'reconciled_positions': cleaned_positions,
             }
         }
 

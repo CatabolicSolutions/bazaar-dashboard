@@ -188,7 +188,12 @@ function buildNextActions() {
 function renderHeadline() {
     const t = truth().tradier || {};
     const b = truth().bloc || {};
-    const liveB = state.bloc || {};
+    const liveB = { ...(state.bloc || {}), ...((state.hqLive && state.hqLive.live) ? {
+        holding_asset: state.hqLive.live.holding_asset,
+        holding_units: state.hqLive.live.holding_units,
+        invested_capital_usd: state.hqLive.live.invested_capital_usd,
+        compounding_state: state.hqLive.live.compounding_state,
+    } : {}) };
     const liveHolding = liveB.holding_asset || b.holding_asset;
     const liveInvested = typeof liveB.invested_capital_usd === 'number' ? liveB.invested_capital_usd : b.invested_capital_usd;
     const directive = computeDirective();
@@ -267,7 +272,8 @@ function renderNextActions() {
 }
 
 function renderPositions() {
-    const positions = Array.isArray(state.positions) ? state.positions : [];
+    const hqLivePositions = Array.isArray(state.hqLive?.live?.positions) ? state.hqLive.live.positions : [];
+    const positions = hqLivePositions.length ? hqLivePositions : (Array.isArray(state.positions) ? state.positions : []);
     if (!positions.length) {
         const bloc = { ...(truth().bloc || {}), ...(state.bloc || {}) };
         if ((bloc.compounding_state === 'holding_active_inventory' || bloc.holding_asset) && bloc.holding_asset) {
@@ -279,16 +285,20 @@ function renderPositions() {
     }
 
     el.positionsList.innerHTML = positions.map((pos) => {
-        const pnl = typeof pos.pnl === 'number' ? `${pos.pnl >= 0 ? '+' : ''}${fmtMoney(pos.pnl)}` : '--';
+        const symbol = pos.symbol || pos.asset || '--';
+        const side = pos.side || 'Hold';
+        const pnl = typeof pos.pnl === 'number' ? `${pos.pnl >= 0 ? '+' : ''}${fmtMoney(pos.pnl)}` : (typeof pos.size_usd === 'number' ? fmtMoney(pos.size_usd) : '--');
+        const entry = pos.entry ?? pos.entry_price;
+        const size = pos.size ?? pos.units ?? '--';
         return `
             <div class="position-row">
                 <div class="position-top">
-                    <div>${pos.symbol || '--'} ${pos.side || ''}</div>
+                    <div>${symbol} ${side}</div>
                     <div class="${typeof pos.pnl === 'number' ? (pos.pnl >= 0 ? 'good' : 'bad') : ''}">${pnl}</div>
                 </div>
                 <div class="meta-row">
-                    <span>Entry: ${fmtMoney(pos.entry)}</span>
-                    <span>Size: ${pos.size ?? '--'}</span>
+                    <span>Entry: ${typeof entry === 'number' ? fmtMoney(entry) : '--'}</span>
+                    <span>Size: ${size}</span>
                     <span>Status: ${titleCase(pos.status)}</span>
                 </div>
             </div>
