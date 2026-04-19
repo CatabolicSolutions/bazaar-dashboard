@@ -488,21 +488,24 @@ class ETHScalper:
                         'price': entry_price,
                         'type': item.get('source', 'persisted_resume'),
                     }
-                    position = trade_manager.create_position(signal, float(item.get('size_usd') or (lot_units * entry_price)), paper=False)
-                    position.id = item_id
-                    position.entry_price = entry_price
-                    position.target_price = float(item.get('target_price') or (entry_price * 1.005))
-                    position.stop_price = float(item.get('stop_price') or (entry_price * 0.997))
-                    position.entry_time = float(item.get('entry_time') or time.time())
-                    position.direction = 'long'
+                    from execution.trade_manager import Position, PositionStatus
+                    position = Position(
+                        id=item_id,
+                        signal=signal,
+                        entry_price=entry_price,
+                        size_usd=float(item.get('size_usd') or (lot_units * entry_price)),
+                        direction='long',
+                        status=PositionStatus.OPEN,
+                        entry_time=float(item.get('entry_time') or time.time()),
+                        target_price=float(item.get('target_price') or (entry_price * 1.005)),
+                        stop_price=float(item.get('stop_price') or (entry_price * 0.997)),
+                        paper=False,
+                    )
                     position.tx_hash = item.get('tx_hash')
                     position.executed_to_amount_units = lot_units
-                    position.status = position.status.OPEN
-                    position.paper = False
-                    position.signal = signal
                     position.source = item.get('source', 'persisted_resume')
                     position.resumable_after_restart = True
-                    trade_manager.positions[position.id] = position
+                    trade_manager.positions[item_id] = position
                 resumed_ids.add(item_id)
                 if position.id not in trade_manager.active_monitors:
                     print(f"   ♻️ Resuming persisted live position {position.id} from {item.get('source')}")

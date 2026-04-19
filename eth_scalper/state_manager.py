@@ -99,7 +99,11 @@ class StateManager:
             'updated_at': datetime.now(timezone.utc).isoformat(),
             'positions': []
         }
+        seen_ids = set()
         for pos in positions:
+            if getattr(pos, 'id', None) in seen_ids:
+                continue
+            seen_ids.add(getattr(pos, 'id', None))
             state['positions'].append({
                 'id': pos.id,
                 'direction': pos.direction,
