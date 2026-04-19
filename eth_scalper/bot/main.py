@@ -42,6 +42,7 @@ class ETHScalper:
         self.last_dashboard_update = 0
         self.dashboard_update_interval = 5  # Update dashboard every 5 seconds
         self.last_forced_entry = 0
+        self.execution_pending = False
     
     async def run(self):
         """Main event loop"""
@@ -124,9 +125,9 @@ class ETHScalper:
         if eth_cur is not None and eth_mid is not None:
             print(f"   📏 ETH midpoint check: current=${eth_cur:.2f}, midpoint=${eth_mid:.2f}, at_or_below_mid={eth_cur <= eth_mid}")
 
-        if signal:
+        if signal and not self.execution_pending:
             await self._handle_signal(signal)
-        elif (eth_cur is not None and eth_mid is not None and eth_cur <= eth_mid and len(trade_manager.get_open_positions()) == 0):
+        elif (eth_cur is not None and eth_mid is not None and eth_cur <= eth_mid and len(trade_manager.get_open_positions()) == 0 and not self.execution_pending):
             print("🎯 Natural midline buy condition met, forcing immediate buy_pullback handling")
             mid_signal = {
                 'timestamp': time.time(),
@@ -144,7 +145,7 @@ class ETHScalper:
                 'sell_strength_bias': False,
             }
             await self._handle_signal(mid_signal)
-        elif (not PAPER_TRADING_MODE and now - self.last_forced_entry > AUTO_MANUAL_BUY_FALLBACK_SECONDS and len(trade_manager.get_open_positions()) == 0):
+        elif (not PAPER_TRADING_MODE and now - self.last_forced_entry > AUTO_MANUAL_BUY_FALLBACK_SECONDS and len(trade_manager.get_open_positions()) == 0 and not self.execution_pending):
             print("⏰ No natural signal recently, forcing fallback live entry")
             self.last_forced_entry = now
             await self._manual_buy()
@@ -446,10 +447,12 @@ class ETHScalper:
         position.trade_id = trade_id
 
         print(f"   📊 Position created: {position.id}")
+        self.execution_pending = True
 
         if PAPER_TRADING_MODE:
             print("   ❌ Production live path blocked: PAPER_TRADING_MODE is enabled")
             emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=signal.get('type'), notes='paper_mode_enabled')
+            self.execution_pending = False
             return
 
         asyncio.create_task(self._execute_live_trade(position))
@@ -506,121 +509,125 @@ class ETHScalper:
         from web3 import Web3
         w3 = Web3()
         print(f"   🧪 EXECUTOR STATE: enabled={live_executor.enabled} id={id(live_executor)} position={position.id}")
-        funded_side = position.signal.get('funded_side', 'USDC')
-        target_symbol = position.signal.get('symbol', 'ETH')
-        target_token = WETH_ADDRESS if target_symbol == 'ETH' else CBBTC_ADDRESS
-        if funded_side == 'USDC':
-            from_token = USDC_ADDRESS
-            to_token = target_token
-            amount_wei = int(position.size_usd * 1e6)
-            print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC -> {target_symbol} using runtime-visible USDC inventory...")
-        else:
-            from_token = ETH_ADDRESS
-            to_token = WETH_ADDRESS
-            native_eth_available = float(position.signal.get('native_eth_balance') or 0.0)
-            target_amount_eth = min(position.size_usd / max(position.entry_price, 1), native_eth_available)
-            provisional_amount_wei = int(target_amount_eth * 1e18)
-            print(f"   🔄 Getting provisional swap quote for {target_amount_eth:.6f} ETH -> WETH (native available {native_eth_available:.6f})...")
-
-            provisional_swap = live_executor.get_swap_data(
-                from_token=from_token,
-                to_token=to_token,
-                amount=provisional_amount_wei
-            )
-            if not provisional_swap:
-                print(f"   ❌ Failed to get provisional swap quote")
-                return
-
-            wallet = wallet_monitor.get_all_balances()
-            native_eth_balance = float(wallet.get('eth') or 0.0)
-            native_eth_balance_wei = int(native_eth_balance * 1e18)
-            quote_gas = int(((provisional_swap.get('tx') or {}).get('gas') or 250000))
-            gas_price_wei = int(w3.to_wei(max(wallet.get('gas') or 0.006, 0.006), 'gwei'))
-            estimated_gas_cost_wei = quote_gas * gas_price_wei
-            min_gas_buffer_wei = int(0.0003 * 1e18)
-            gas_reserve_wei = max(int(estimated_gas_cost_wei * 3), min_gas_buffer_wei)
-            spendable_wei = max(0, native_eth_balance_wei - gas_reserve_wei)
-
-            print(f"   ⛽ Native ETH balance: {native_eth_balance_wei} wei")
-            print(f"   ⛽ Estimated gas cost: {estimated_gas_cost_wei} wei")
-            print(f"   ⛽ Gas reserve chosen: {gas_reserve_wei} wei")
-            print(f"   ⛽ Final spendable ETH: {spendable_wei} wei")
-
-            if spendable_wei < int(0.0005 * 1e18):
-                print(f"   ❌ Spendable ETH after gas reserve too small: {spendable_wei} wei")
-                return
-
-            amount_wei = min(provisional_amount_wei, spendable_wei)
-            amount_eth = amount_wei / 1e18
-            print(f"   🔄 Getting final swap quote for {amount_eth:.6f} ETH -> WETH after gas reserve...")
-
         try:
-            invariant_fn = getattr(live_executor, 'pretrade_invariant_check')
-        except Exception:
-            invariant_fn = None
+            funded_side = position.signal.get('funded_side', 'USDC')
+            target_symbol = position.signal.get('symbol', 'ETH')
+            target_token = WETH_ADDRESS if target_symbol == 'ETH' else CBBTC_ADDRESS
+            if funded_side == 'USDC':
+                from_token = USDC_ADDRESS
+                to_token = target_token
+                amount_wei = int(position.size_usd * 1e6)
+                print(f"   🔄 Getting swap quote for ${position.size_usd:.2f} USDC -> {target_symbol} using runtime-visible USDC inventory...")
+            else:
+                from_token = ETH_ADDRESS
+                to_token = WETH_ADDRESS
+                native_eth_available = float(position.signal.get('native_eth_balance') or 0.0)
+                target_amount_eth = min(position.size_usd / max(position.entry_price, 1), native_eth_available)
+                provisional_amount_wei = int(target_amount_eth * 1e18)
+                print(f"   🔄 Getting provisional swap quote for {target_amount_eth:.6f} ETH -> WETH (native available {native_eth_available:.6f})...")
 
-        if callable(invariant_fn):
-            invariant_check = invariant_fn(
+                provisional_swap = live_executor.get_swap_data(
+                    from_token=from_token,
+                    to_token=to_token,
+                    amount=provisional_amount_wei
+                )
+                if not provisional_swap:
+                    print(f"   ❌ Failed to get provisional swap quote")
+                    return
+
+                wallet = wallet_monitor.get_all_balances()
+                native_eth_balance = float(wallet.get('eth') or 0.0)
+                native_eth_balance_wei = int(native_eth_balance * 1e18)
+                quote_gas = int(((provisional_swap.get('tx') or {}).get('gas') or 250000))
+                gas_price_wei = int(w3.to_wei(max(wallet.get('gas') or 0.006, 0.006), 'gwei'))
+                estimated_gas_cost_wei = quote_gas * gas_price_wei
+                min_gas_buffer_wei = int(0.0003 * 1e18)
+                gas_reserve_wei = max(int(estimated_gas_cost_wei * 3), min_gas_buffer_wei)
+                spendable_wei = max(0, native_eth_balance_wei - gas_reserve_wei)
+
+                print(f"   ⛽ Native ETH balance: {native_eth_balance_wei} wei")
+                print(f"   ⛽ Estimated gas cost: {estimated_gas_cost_wei} wei")
+                print(f"   ⛽ Gas reserve chosen: {gas_reserve_wei} wei")
+                print(f"   ⛽ Final spendable ETH: {spendable_wei} wei")
+
+                if spendable_wei < int(0.0005 * 1e18):
+                    print(f"   ❌ Spendable ETH after gas reserve too small: {spendable_wei} wei")
+                    return
+
+                amount_wei = min(provisional_amount_wei, spendable_wei)
+                amount_eth = amount_wei / 1e18
+                print(f"   🔄 Getting final swap quote for {amount_eth:.6f} ETH -> WETH after gas reserve...")
+
+            try:
+                invariant_fn = getattr(live_executor, 'pretrade_invariant_check')
+            except Exception:
+                invariant_fn = None
+
+            if callable(invariant_fn):
+                invariant_check = invariant_fn(
+                    from_token=from_token,
+                    to_token=to_token,
+                    amount=amount_wei,
+                )
+                if not invariant_check.get('ok'):
+                    print(f"   ❌ Invariant gate failed: {invariant_check.get('reason')}")
+                    emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes=invariant_check.get('reason'), data=invariant_check)
+                    return
+
+                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='previewed', outcome_type='info', status='success', setup_type=position.signal.get('type'), data=invariant_check)
+            else:
+                print("   ⚠️ pretrade_invariant_check unavailable, proceeding with direct swap path")
+
+            swap_data = live_executor.get_swap_data(
                 from_token=from_token,
                 to_token=to_token,
-                amount=amount_wei,
+                amount=amount_wei
             )
-            if not invariant_check.get('ok'):
-                print(f"   ❌ Invariant gate failed: {invariant_check.get('reason')}")
-                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes=invariant_check.get('reason'), data=invariant_check)
-                return
-
-            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='previewed', outcome_type='info', status='success', setup_type=position.signal.get('type'), data=invariant_check)
-        else:
-            print("   ⚠️ pretrade_invariant_check unavailable, proceeding with direct swap path")
-        swap_data = live_executor.get_swap_data(
-            from_token=from_token,
-            to_token=to_token,
-            amount=amount_wei
-        )
-        
-        if not swap_data:
-            print(f"   ❌ Failed to get swap quote")
-            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='swap_quote_failed')
-            return
-        
-        print(f"   💰 Swap quote received, executing...")
-        emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='submitted', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'swap_data_present': True})
-        
-        tx_hash = live_executor.execute_swap(swap_data)
-        
-        if tx_hash:
-            position.tx_hash = tx_hash
-            try:
-                to_amount = swap_data.get('to_amount')
-                dst_token = swap_data.get('dst_token')
-                if to_amount is not None and dst_token == WETH_ADDRESS:
-                    position.executed_to_amount_units = int(to_amount) / 1e18
-            except Exception:
-                position.executed_to_amount_units = None
-
-            success = await trade_manager.open_position(position)
-            if not success:
-                print(f"   ❌ Failed to open position after live tx")
-                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='reconciliation_failure', status='failure', setup_type=position.signal.get('type'), notes='open_position_failed_after_tx')
-                return
-
-            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='filled', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash})
-            risk_manager.record_trade(position.signal, position.size_usd, paper=False)
-            trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
-            position.source = 'autonomous_entry'
-            position.resumable_after_restart = True
-            position.max_hold_seconds = trade_manager.max_hold_time
-            state_manager.persist_live_position(position)
-            print(f"   ✅ POSITION OPENED WITH LIVE TX: {position.id}")
-            print(f"   ✅ SWAP EXECUTED: {tx_hash}")
-            print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
             
-            # Monitor the trade
-            asyncio.create_task(self._monitor_live_position(position))
-        else:
-            print(f"   ❌ Swap execution failed")
-            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='swap_execution_failed')
+            if not swap_data:
+                print(f"   ❌ Failed to get swap quote")
+                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='swap_quote_failed')
+                return
+            
+            print(f"   💰 Swap quote received, executing...")
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='submitted', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'swap_data_present': True})
+            
+            tx_hash = live_executor.execute_swap(swap_data)
+            
+            if tx_hash:
+                position.tx_hash = tx_hash
+                try:
+                    to_amount = swap_data.get('to_amount')
+                    dst_token = swap_data.get('dst_token')
+                    if to_amount is not None and dst_token == WETH_ADDRESS:
+                        position.executed_to_amount_units = int(to_amount) / 1e18
+                except Exception:
+                    position.executed_to_amount_units = None
+
+                success = await trade_manager.open_position(position)
+                if not success:
+                    print(f"   ❌ Failed to open position after live tx")
+                    emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='reconciliation_failure', status='failure', setup_type=position.signal.get('type'), notes='open_position_failed_after_tx')
+                    return
+
+                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='filled', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash})
+                risk_manager.record_trade(position.signal, position.size_usd, paper=False)
+                trade_manager.start_monitoring(position.id, price_feed.get_eth_price)
+                position.source = 'autonomous_entry'
+                position.resumable_after_restart = True
+                position.max_hold_seconds = trade_manager.max_hold_time
+                state_manager.persist_live_position(position)
+                print(f"   ✅ POSITION OPENED WITH LIVE TX: {position.id}")
+                print(f"   ✅ SWAP EXECUTED: {tx_hash}")
+                print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
+                
+                # Monitor the trade
+                asyncio.create_task(self._monitor_live_position(position))
+            else:
+                print(f"   ❌ Swap execution failed")
+                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes='swap_execution_failed')
+        finally:
+            self.execution_pending = False
     
     async def _monitor_live_position(self, position):
         """Monitor live position and close when target/stop hit"""
