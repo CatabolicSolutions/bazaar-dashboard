@@ -11,6 +11,7 @@ ROOT = Path(__file__).parent
 STATE_DIR = ROOT / 'state'
 LOGS_DIR = ROOT / 'logs'
 DUST_WETH_EPSILON = 1e-12
+MIN_TRADABLE_WETH_UNITS = 1e-6
 
 # Ensure directories exist
 STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -262,7 +263,7 @@ class StateManager:
                     enriched['resumable_after_restart'] = False
                     reconciled.append(enriched)
                     continue
-                if enriched.get('source') == 'inventory_reconciliation' and weth_balance <= DUST_WETH_EPSILON:
+                if enriched.get('source') == 'inventory_reconciliation' and weth_balance < MIN_TRADABLE_WETH_UNITS:
                     enriched['allocated_units'] = 0.0
                     enriched['linked_to_wallet_inventory'] = False
                     enriched['allocation_state'] = 'closed'
@@ -305,7 +306,7 @@ class StateManager:
                     'notes': 'Unallocated legacy WETH inventory not linked to a tracked execution lot.'
                 })
             return reconciled
-        if weth_balance > DUST_WETH_EPSILON:
+        if weth_balance >= MIN_TRADABLE_WETH_UNITS:
             return [{
                 'id': 'reconciled_live_inventory_weth',
                 'source': 'inventory_reconciliation',

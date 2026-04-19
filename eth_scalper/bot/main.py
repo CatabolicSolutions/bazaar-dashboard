@@ -472,6 +472,9 @@ class ETHScalper:
                 item_id = item.get('id')
                 if not item_id or item_id in resumed_ids:
                     continue
+                item_lot_units = float(item.get('allocated_units') or item.get('lot_units') or 0.0)
+                if item.get('source') == 'inventory_reconciliation' and item_lot_units < 1e-6:
+                    continue
                 if item.get('status') == 'closed':
                     continue
                 if not item.get('linked_to_wallet_inventory', True):
@@ -702,6 +705,22 @@ class ETHScalper:
         if executed_units is None or executed_units <= 0:
             print(f"   ❌ Exit blocked - no executed WETH units recorded for {position.id}")
             return
+
+        if executed_units < 1e-6:
+            print(f"   🧹 Closing dust-sized inventory position without swap: {position.id}")
+            closed_position = await trade_manager.close_position(position.id, current_price, 'dust_inventory_cleared')
+            if closed_position:
+                state_manager.mark_position_closed(
+                    position=closed_position,
+                    exit_price=current_price,
+                    exit_time=closed_position.exit_time,
+                    pnl_usd=0.0,
+                    pnl_pct=0.0,
+                    reason='dust_inventory_cleared',
+                )
+                state_manager.update_positions(trade_manager.get_open_positions())
+                return {'closed': True, 'reason': 'dust_inventory_cleared'}
+            return {'closed': False, 'reason': 'dust_close_failed'}
 
         sell_amount = int(executed_units * 1e18)
         try:
