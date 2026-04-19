@@ -262,19 +262,39 @@ class ETHScalper:
             db_client.add_wallet_balance_entry(wallet) # Pass the full wallet for more detailed logging
             
             weth_balance = wallet.get('weth', 0.0) if isinstance(wallet, dict) else 0.0
+            cbbtc_balance = wallet.get('cbbtc', 0.0) if isinstance(wallet, dict) else 0.0
+            eth_balance = wallet.get('eth', 0.0) if isinstance(wallet, dict) else 0.0
+            cbbtc_price = float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0) if isinstance(wallet, dict) else 0.0
+            eth_price = float(wallet.get('eth_price_usd', 0.0) or 0.0) if isinstance(wallet, dict) else 0.0
             if weth_balance <= 1e-12:
                 weth_balance = 0.0
-            inferred_open_positions = len(trade_manager.get_open_positions())
-            live_inventory = {
-                'eth': wallet.get('eth', 0.0),
-                'weth': weth_balance,
-                'usdc': wallet.get('usdc', 0.0),
-                'has_live_weth_inventory': bool(weth_balance and weth_balance > 0),
-            }
+            if cbbtc_balance <= 1e-12:
+                cbbtc_balance = 0.0
             tracked_positions = trade_manager.get_open_positions()
-            if weth_balance and weth_balance > 0 and inferred_open_positions == 0:
-                inferred_open_positions = 1
             reconciled_positions = state_manager.build_reconciled_positions(wallet, tracked_positions)
+            inferred_open_positions = len(tracked_positions)
+            invested_capital = 0.0
+            for pos in reconciled_positions:
+                units = float(pos.get('allocated_units') or pos.get('binding_units') or pos.get('lot_units') or 0.0)
+                asset = str(pos.get('binding_asset') or pos.get('asset') or '').upper()
+                if asset == 'CBBTC':
+                    invested_capital += units * cbbtc_price
+                elif asset == 'WETH':
+                    invested_capital += units * eth_price
+            live_inventory = {
+                'eth': eth_balance,
+                'weth': weth_balance,
+                'cbbtc': cbbtc_balance,
+                'usdc': wallet.get('usdc', 0.0),
+                'eth_price_usd': eth_price,
+                'cbbtc_price_usd': cbbtc_price,
+                'invested_capital_usd': round(invested_capital, 2),
+                'has_live_weth_inventory': bool(weth_balance and weth_balance > 0),
+                'has_live_cbbtc_inventory': bool(cbbtc_balance and cbbtc_balance > 0),
+                'has_active_inventory_position': bool(invested_capital > 0),
+            }
+            if invested_capital > 0 and inferred_open_positions == 0:
+                inferred_open_positions = 1
 
             deployable_capital = float(wallet.get('usdc', 0.0) or 0.0)
             state_manager.update_bot_state(

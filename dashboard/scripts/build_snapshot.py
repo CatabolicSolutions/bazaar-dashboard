@@ -116,7 +116,14 @@ def build_bloc_status(bot_state, wallet_state, positions_state, signal_rows, err
     usdc = float(wallet_state.get('usdc', 0) or 0)
     weth = float(wallet_state.get('weth', 0) or 0)
     eth = float(wallet_state.get('eth', 0) or 0)
-    funded_side = 'USDC' if usdc >= max(weth * eth_price, eth * eth_price) else 'inventory'
+    cbbtc = float(wallet_state.get('cbbtc', 0) or 0)
+    btc_price = float(wallet_state.get('cbbtc_price_usd', wallet_state.get('btc_price_usd', 0)) or 0)
+    invested_capital_usd = float(((bot_state.get('live_inventory') or {}).get('invested_capital_usd')) or 0)
+    deployable_capital_usd = float(bot_state.get('available_capital', 0) or 0)
+    if invested_capital_usd <= 0:
+        invested_capital_usd = round((weth * eth_price) + (cbbtc * btc_price), 2)
+    funded_side = 'inventory' if invested_capital_usd > deployable_capital_usd else 'USDC'
+    compounding_state = 'holding_active_inventory' if invested_capital_usd > 0 else ('flat_deployable' if deployable_capital_usd > 0 else 'idle_unfunded')
     return {
         'mode': bot_state.get('mode', 'unknown'),
         'status': bot_state.get('status', 'unknown'),
@@ -124,7 +131,10 @@ def build_bloc_status(bot_state, wallet_state, positions_state, signal_rows, err
         'capitalAllocation': {
             'ethUsdApprox': round(eth * eth_price, 2),
             'wethUsdApprox': round(weth * eth_price, 2),
+            'cbbtcUsdApprox': round(cbbtc * btc_price, 2),
             'usdc': round(usdc, 2),
+            'deployableCapitalUsd': round(deployable_capital_usd, 2),
+            'investedCapitalUsd': round(invested_capital_usd, 2),
             'estimatedTotalUsd': round(float(wallet_state.get('estimated_total_usd', 0) or 0), 2),
         },
         'fundedSide': funded_side,
@@ -132,11 +142,12 @@ def build_bloc_status(bot_state, wallet_state, positions_state, signal_rows, err
         'activePosition': visible_positions[0] if visible_positions else None,
         'lastAction': last_signal,
         'lastTransaction': (visible_positions[0].get('tx_hash') if visible_positions else None),
-        'nextExpectedAction': 'monitor_open_position' if visible_positions else 'await_compounding_signal',
+        'nextExpectedAction': 'monitor_open_position' if (visible_positions or invested_capital_usd > 0) else 'await_compounding_signal',
         'lastFailure': last_failure,
         'heartbeat': bot_state.get('status', 'unknown'),
         'automationEnabled': bot_state.get('status') == 'running',
         'haltReason': None if bot_state.get('status') == 'running' else 'bot not running',
+        'compoundingState': compounding_state,
     }
 
 
