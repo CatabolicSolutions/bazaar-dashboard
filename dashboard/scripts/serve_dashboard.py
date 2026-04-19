@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 import requests
 from operator_feedback import append_feedback
 from session_capture import append_event
+from hq_repository import hq_repository
 import sys
 import position_manager
 import trade_journal
@@ -380,6 +381,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_activity()
         elif self.path == '/api/eth-scalper/status':
             return self._handle_eth_scalper_status()
+        elif self.path == '/api/hq/status':
+            return self._handle_hq_status()
         elif self.path == '/api/eth-scalper/trades':
             return self._handle_eth_scalper_trades()
         elif self.path == '/api/eth-scalper/positions':
@@ -1030,6 +1033,53 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, state)
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _build_hq_live_payload(self):
+        state_file = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
+        wallet_file = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+        positions_file = ROOT / 'eth_scalper' / 'state' / 'positions.json'
+        state = json.loads(state_file.read_text()) if state_file.exists() else {}
+        wallet = json.loads(wallet_file.read_text()) if wallet_file.exists() else {}
+        positions = json.loads(positions_file.read_text()) if positions_file.exists() else {'positions': []}
+        live_inventory = state.get('live_inventory') or {}
+        reconciled_positions = state.get('reconciled_positions') or []
+        holding_asset = 'CBBTC' if float(wallet.get('cbbtc') or 0.0) > 1e-8 else ('WETH' if float(wallet.get('weth') or 0.0) > 1e-12 else None)
+        holding_units = wallet.get('cbbtc') if holding_asset == 'CBBTC' else (wallet.get('weth') if holding_asset == 'WETH' else None)
+        invested_capital = float(live_inventory.get('invested_capital_usd') or 0.0)
+        if invested_capital <= 0:
+            invested_capital = (
+                float(wallet.get('cbbtc') or 0.0) * float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0)
+            ) + (
+                float(wallet.get('weth') or 0.0) * float(wallet.get('eth_price_usd') or 0.0)
+            )
+        compounding_state = 'holding_active_inventory' if (holding_asset or reconciled_positions) else ('flat_deployable' if float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0) > 0 else 'idle_unfunded')
+        return {
+            'source': 'serve_dashboard',
+            'updated_at': now_iso(),
+            'live': {
+                'status': state.get('status', 'unknown'),
+                'mode': state.get('mode', 'unknown'),
+                'compounding_state': compounding_state,
+                'holding_asset': holding_asset,
+                'holding_units': holding_units,
+                'deployable_capital_usd': float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0),
+                'invested_capital_usd': round(invested_capital, 2),
+                'wallet': wallet,
+                'active_positions': len((positions or {}).get('positions', [])) or (1 if compounding_state == 'holding_active_inventory' else 0),
+                'reconciled_positions': reconciled_positions,
+            }
+        }
+
+    def _handle_hq_status(self):
+        try:
+            payload = self._build_hq_live_payload()
+            hq_repository.create_tables()
+            hq_repository.append_snapshot(payload)
+            latest = hq_repository.get_latest_snapshot() or payload
+            latest['events'] = hq_repository.get_recent_events(limit=12)
+            return self.json_response(200, latest)
+        except Exception as e:
+            return self.json_response(200, self._build_hq_live_payload())
 
     def _handle_eth_scalper_trades(self):
         """Get recent trades"""

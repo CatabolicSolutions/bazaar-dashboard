@@ -5,6 +5,7 @@ const state = {
     tradier: { bp: 0, positions: 0, orders: 0, health: 'red' },
     bloc: { usdc: 0, weth: 0, positions: 0, health: 'red' },
     hq: { engine_truth_board: { tradier: {}, bloc: {} } },
+    hqLive: null,
     positions: [],
     activity: [],
     sie: {}
@@ -58,10 +59,23 @@ function titleCase(v) {
 
 function truth() {
     const board = state.hq?.engine_truth_board || { tradier: {}, bloc: {} };
+    const live = state.hqLive?.live || {};
     return {
         ...board,
         tradier: { ...(board.tradier || {}), ...(state.tradier || {}) },
-        bloc: { ...(board.bloc || {}), ...(state.bloc || {}) }
+        bloc: {
+            ...(board.bloc || {}),
+            ...(state.bloc || {}),
+            ...(live ? {
+                compounding_state: live.compounding_state,
+                holding_asset: live.holding_asset,
+                holding_units: live.holding_units,
+                invested_capital_usd: live.invested_capital_usd,
+                available_capital_usd: live.deployable_capital_usd,
+                status_label: live.compounding_state,
+                positions: live.active_positions,
+            } : {})
+        }
     };
 }
 
@@ -327,13 +341,14 @@ function wireControls() {
 
 async function pollData() {
     try {
-        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes] = await Promise.all([
+        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes, hqRes] = await Promise.all([
             fetch(`${API_BASE}/api/tradier/status`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/bloc/status`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/positions`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/activity`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/sie/status`).then(r => r.json()).catch(() => ({})),
-            fetch(`${API_BASE}/snapshot.json`).then(r => r.json()).catch(() => ({}))
+            fetch(`${API_BASE}/snapshot.json`).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE}/api/hq/status`).then(r => r.json()).catch(() => ({}))
         ]);
 
         state.tradier = { ...state.tradier, ...tradierRes };
@@ -342,6 +357,7 @@ async function pollData() {
         state.activity = activityRes.activity || [];
         state.sie = sieRes || {};
         if (snapshotRes.hq) state.hq = snapshotRes.hq;
+        if (hqRes.live) state.hqLive = hqRes;
 
         renderAll();
     } catch (err) {
