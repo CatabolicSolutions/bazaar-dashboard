@@ -516,6 +516,7 @@ class ETHScalper:
     
     async def _resume_persisted_live_positions(self):
         """Load durable live positions and resume monitoring after restart."""
+        resumed_any = False
         try:
             wallet = wallet_monitor.get_all_balances()
             # Try to load open positions from DB first
