@@ -3,54 +3,67 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, create_engine
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+SQLALCHEMY_AVAILABLE = True
+try:
+    from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, create_engine
+    from sqlalchemy.dialects.postgresql import JSONB
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.orm import sessionmaker
+except Exception:
+    SQLALCHEMY_AVAILABLE = False
+    Boolean = Column = DateTime = Integer = String = Text = None
+    JSONB = None
+    create_engine = None
+    declarative_base = None
+    sessionmaker = None
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/eth_scalper_db")
 
-Base = declarative_base()
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base() if SQLALCHEMY_AVAILABLE else None
+engine = create_engine(DATABASE_URL) if SQLALCHEMY_AVAILABLE else None
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) if SQLALCHEMY_AVAILABLE else None
 
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-class HQSnapshot(Base):
-    __tablename__ = "hq_snapshots"
+if SQLALCHEMY_AVAILABLE:
+    class HQSnapshot(Base):
+        __tablename__ = "hq_snapshots"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    created_at = Column(DateTime(timezone=True), default=now_utc, index=True)
-    source = Column(String, nullable=False, default="dashboard")
-    mode = Column(String, nullable=True)
-    status = Column(String, nullable=True)
-    compounding_state = Column(String, nullable=True)
-    holding_asset = Column(String, nullable=True)
-    holding_units = Column(String, nullable=True)
-    deployable_capital_usd = Column(String, nullable=True)
-    invested_capital_usd = Column(String, nullable=True)
-    payload = Column(JSONB, nullable=False)
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        created_at = Column(DateTime(timezone=True), default=now_utc, index=True)
+        source = Column(String, nullable=False, default="dashboard")
+        mode = Column(String, nullable=True)
+        status = Column(String, nullable=True)
+        compounding_state = Column(String, nullable=True)
+        holding_asset = Column(String, nullable=True)
+        holding_units = Column(String, nullable=True)
+        deployable_capital_usd = Column(String, nullable=True)
+        invested_capital_usd = Column(String, nullable=True)
+        payload = Column(JSONB, nullable=False)
 
 
-class HQEvent(Base):
-    __tablename__ = "hq_events"
+    class HQEvent(Base):
+        __tablename__ = "hq_events"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    created_at = Column(DateTime(timezone=True), default=now_utc, index=True)
-    event_type = Column(String, nullable=False, index=True)
-    severity = Column(String, nullable=False, default="info")
-    title = Column(String, nullable=False)
-    message = Column(Text, nullable=True)
-    payload = Column(JSONB, nullable=True)
-    acknowledged = Column(Boolean, nullable=False, default=False)
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        created_at = Column(DateTime(timezone=True), default=now_utc, index=True)
+        event_type = Column(String, nullable=False, index=True)
+        severity = Column(String, nullable=False, default="info")
+        title = Column(String, nullable=False)
+        message = Column(Text, nullable=True)
+        payload = Column(JSONB, nullable=True)
+        acknowledged = Column(Boolean, nullable=False, default=False)
+else:
+    HQSnapshot = None
+    HQEvent = None
 
 
 class HQRepository:
     def __init__(self):
-        self.enabled = DATABASE_URL.startswith("postgresql")
+        self.enabled = SQLALCHEMY_AVAILABLE and DATABASE_URL.startswith("postgresql")
 
     def create_tables(self) -> None:
         if not self.enabled:
