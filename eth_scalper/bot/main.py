@@ -955,7 +955,7 @@ class ETHScalper:
         print(f"   💰 Daily P&L: ${risk['daily_pnl']:+.2f}")
         print(f"   📊 Trades: {risk['daily_trades']} today, {trades['total_trades']} total")
         print(f"   🎯 Open: {risk['open_positions']}")
-        print(f"   💵 Wallet: {wallet['eth']:.4f} ETH, ${wallet['usdc']:.2f} USDC")
+        print(f"   💵 Wallet[{wallet.get('address', 'unknown')}]: {wallet['eth']:.4f} ETH, {wallet.get('weth', 0.0):.6f} WETH, {wallet.get('cbbtc', 0.0):.8f} CBBTC, ${wallet['usdc']:.2f} USDC")
     
     async def _send_price_alert(self, current_price: float, change_pct: float):
         """Send alert on significant price movement"""
@@ -977,7 +977,8 @@ class ETHScalper:
         print(f"Daily Trades: {risk['daily_trades']}")
         print(f"Open Positions: {risk['open_positions']}")
         print(f"Available Capital: ${wallet['usdc']:.2f}")
-        print(f"Wallet: {wallet['eth']:.4f} ETH, ${wallet['usdc']:.2f} USDC")
+        print(f"Wallet address: {wallet.get('address', 'unknown')}")
+        print(f"Wallet: {wallet['eth']:.4f} ETH, {wallet.get('weth', 0.0):.6f} WETH, {wallet.get('cbbtc', 0.0):.8f} CBBTC, ${wallet['usdc']:.2f} USDC")
         print(f"Recent Win Rate: {momentum['recent_win_rate']:.1%}")
         print(f"1inch Requests: {rate['inch_requests_today']}/{rate['inch_limit']}")
         print(f"Total Trades: {trades['total_trades']}")
