@@ -617,6 +617,7 @@ class ETHScalper:
                 position.resumable_after_restart = True
                 position.max_hold_seconds = trade_manager.max_hold_time
                 state_manager.persist_live_position(position)
+                state_manager.update_positions(trade_manager.get_open_positions())
                 print(f"   ✅ POSITION OPENED WITH LIVE TX: {position.id}")
                 print(f"   ✅ SWAP EXECUTED: {tx_hash}")
                 print(f"   🔗 View on Basescan: https://basescan.org/tx/{tx_hash}")
@@ -728,6 +729,7 @@ class ETHScalper:
                 pnl_pct=closed_position.pnl_pct,
                 reason=reason,
             )
+            state_manager.update_positions(trade_manager.get_open_positions())
             
             emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='closed', outcome_type='closed_trade_outcome', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash, 'pnl_usd': pnl_usd, 'pnl_pct': pnl_pct, 'result': 'losing_trade' if pnl_usd < 0 else 'winning_trade'})
             print(f"   💰 Trade complete: ${pnl_usd:+.2f} ({pnl_pct:+.2f}%)")
