@@ -1004,8 +1004,8 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_eth_scalper_status(self):
         """Get ETH scalper bot status"""
         try:
-            # Read from bot state file if it exists
             state_file = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
+            wallet_file = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
             if state_file.exists():
                 state = json.loads(state_file.read_text())
             else:
@@ -1014,6 +1014,19 @@ class Handler(SimpleHTTPRequestHandler):
                     'pnl': {'today': 0, 'total': 0},
                     'requests': {'used': 0, 'limit': 900}
                 }
+            wallet = json.loads(wallet_file.read_text()) if wallet_file.exists() else {}
+            live_inventory = state.get('live_inventory') or {}
+            reconciled_positions = state.get('reconciled_positions') or []
+            invested_capital = float(live_inventory.get('invested_capital_usd') or 0.0)
+            if invested_capital <= 0:
+                cbbtc_units = float(wallet.get('cbbtc') or 0.0)
+                weth_units = float(wallet.get('weth') or 0.0)
+                invested_capital = (cbbtc_units * float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0)) + (weth_units * float(wallet.get('eth_price_usd') or 0.0))
+            has_inventory_hold = bool(reconciled_positions) or bool(live_inventory.get('has_active_inventory_position')) or invested_capital > 0
+            if has_inventory_hold and not state.get('open_positions'):
+                state['open_positions'] = 1
+            state['invested_capital_usd'] = round(invested_capital, 2)
+            state['compounding_state'] = 'holding_active_inventory' if has_inventory_hold else ('flat_deployable' if float(state.get('available_capital') or 0.0) > 0 else 'idle_unfunded')
             return self.json_response(200, state)
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
@@ -1040,11 +1053,38 @@ class Handler(SimpleHTTPRequestHandler):
         """Get open positions"""
         try:
             positions_file = ROOT / 'eth_scalper' / 'state' / 'positions.json'
+            state_file = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
+            wallet_file = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
             if positions_file.exists():
                 positions = json.loads(positions_file.read_text())
             else:
                 positions = {'positions': []}
-            return self.json_response(200, positions)
+            pos_list = positions.get('positions', []) if isinstance(positions, dict) else []
+            state = json.loads(state_file.read_text()) if state_file.exists() else {}
+            wallet = json.loads(wallet_file.read_text()) if wallet_file.exists() else {}
+            reconciled_positions = state.get('reconciled_positions') or []
+            if not pos_list and reconciled_positions:
+                synthetic = []
+                for pos in reconciled_positions:
+                    units = float(pos.get('allocated_units') or pos.get('binding_units') or pos.get('lot_units') or 0.0)
+                    asset = str(pos.get('binding_asset') or pos.get('asset') or '').upper()
+                    mark = None
+                    if asset == 'CBBTC':
+                        mark = float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0)
+                    elif asset == 'WETH':
+                        mark = float(wallet.get('eth_price_usd') or 0.0)
+                    synthetic.append({
+                        'symbol': asset or 'INVENTORY',
+                        'side': 'Hold',
+                        'entry_price': pos.get('entry_price'),
+                        'current_price': mark,
+                        'pnl': None,
+                        'status': pos.get('status') or 'holding_active_inventory',
+                        'size': units,
+                        'size_usd': round(units * mark, 2) if mark and units else None,
+                    })
+                pos_list = synthetic
+            return self.json_response(200, {'positions': pos_list})
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
@@ -1254,17 +1294,37 @@ class Handler(SimpleHTTPRequestHandler):
             import json
             wallet_path = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
             positions_path = ROOT / 'eth_scalper' / 'state' / 'positions.json'
+            state_path = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
             wallet = json.loads(wallet_path.read_text()) if wallet_path.exists() else {}
             positions_data = json.loads(positions_path.read_text()) if positions_path.exists() else {}
-            usdc = wallet.get('usdc', 0.0)
-            weth = wallet.get('eth', 0.0)
-            pos_list = positions_data.get('positions', [])
+            bot_state = json.loads(state_path.read_text()) if state_path.exists() else {}
+            usdc = float(wallet.get('usdc', 0.0) or 0.0)
+            eth = float(wallet.get('eth', 0.0) or 0.0)
+            weth = float(wallet.get('weth', 0.0) or 0.0)
+            cbbtc = float(wallet.get('cbbtc', 0.0) or 0.0)
+            btc_price = float(wallet.get('cbbtc_price_usd', wallet.get('btc_price_usd', 0.0)) or 0.0)
+            eth_price = float(wallet.get('eth_price_usd', 0.0) or 0.0)
+            pos_list = positions_data.get('positions', []) if isinstance(positions_data, dict) else []
+            reconciled_positions = bot_state.get('reconciled_positions') or []
+            active_positions = len(pos_list) if pos_list else (1 if reconciled_positions else 0)
+            invested_capital = float(((bot_state.get('live_inventory') or {}).get('invested_capital_usd')) or 0.0)
+            if invested_capital <= 0:
+                invested_capital = (weth * eth_price) + (cbbtc * btc_price)
+            holding_asset = 'CBBTC' if cbbtc > 1e-8 else ('WETH' if weth > 1e-12 else None)
+            holding_units = cbbtc if holding_asset == 'CBBTC' else (weth if holding_asset == 'WETH' else 0.0)
             health = 'green'
             return self.json_response(200, {
                 'usdc': usdc,
-                'weth': weth,
-                'positions': len(pos_list),
-                'health': health
+                'weth': eth,
+                'positions': active_positions,
+                'health': health,
+                'available_capital_usd': usdc,
+                'invested_capital_usd': round(invested_capital, 2),
+                'compounding_state': 'holding_active_inventory' if active_positions else ('flat_deployable' if usdc > 0 else 'idle_unfunded'),
+                'holding_asset': holding_asset,
+                'holding_units': holding_units,
+                'status_label': 'holding_active_inventory' if active_positions else ('flat_deployable' if usdc > 0 else 'idle_unfunded'),
+                'top_blocker': None if active_positions else ('no deployable capital' if usdc <= 0 else None),
             })
         except Exception as e:
             return self.json_response(200, {
@@ -1299,14 +1359,16 @@ class Handler(SimpleHTTPRequestHandler):
                     'current': pos.get('current_price', 0.0),
                     'pnl': pos.get('pnl_dollar', 0.0)
                 })
-            # Map Bloc positions (assuming same format)
+            # Map Bloc positions (including synthetic inventory-backed holds)
             for pos in bloc_positions:
                 formatted.append({
                     'symbol': pos.get('symbol', ''),
                     'side': pos.get('side', 'Buy'),
                     'entry': pos.get('entry_price', 0.0),
                     'current': pos.get('current_price', 0.0),
-                    'pnl': pos.get('pnl', 0.0)
+                    'pnl': pos.get('pnl'),
+                    'status': pos.get('status', 'unknown'),
+                    'size': pos.get('size') or pos.get('size_usd')
                 })
             return self.json_response(200, {'positions': formatted})
         except Exception as e:

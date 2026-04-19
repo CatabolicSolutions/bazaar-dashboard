@@ -159,10 +159,16 @@ function renderHeadline() {
     el.headlineTradierSub.textContent = `${titleCase(t.status_label)} • ${fmtMoney(t.available_capital_usd)}`;
 
     el.headlineBloc.textContent = `${readinessScore(b)}/3 ready`;
-    el.headlineBlocSub.textContent = `${titleCase(b.status_label)} • ${fmtMoney(b.available_capital_usd, 2)}`;
+    const blocCapitalLine = b.compounding_state === 'holding_active_inventory'
+        ? `${titleCase(b.status_label)} • ${fmtMoney(b.invested_capital_usd, 2)} invested`
+        : `${titleCase(b.status_label)} • ${fmtMoney(b.available_capital_usd, 2)}`;
+    el.headlineBlocSub.textContent = blocCapitalLine;
 
-    el.headlineExposure.textContent = `${activePositions} ${activePositions === 1 ? 'position' : 'positions'}`;
-    el.headlineExposureSub.textContent = activePositions > 0 ? 'Live risk requires supervision' : 'No active risk detected';
+    const effectivePositions = b.compounding_state === 'holding_active_inventory' && activePositions === 0 ? 1 : activePositions;
+    el.headlineExposure.textContent = `${effectivePositions} ${effectivePositions === 1 ? 'position' : 'positions'}`;
+    el.headlineExposureSub.textContent = effectivePositions > 0
+        ? (b.compounding_state === 'holding_active_inventory' ? 'Active compounding inventory requires supervision' : 'Live risk requires supervision')
+        : 'No active risk detected';
 
     el.directiveTitle.textContent = directive.title;
     el.directiveBadge.textContent = directive.badge;
@@ -193,11 +199,12 @@ function renderReadiness() {
                 <div><span>Funded</span>${fmtBool(data.funded)}</div>
                 <div><span>Path ready</span>${fmtBool(data.path_ready)}</div>
                 <div><span>Edge proven</span>${fmtBool(data.edge_proven)}</div>
-                <div><span>Capital</span>${fmtMoney(data.available_capital_usd ?? capital, 2)}</div>
+                <div><span>Capital</span>${fmtMoney((data.compounding_state === 'holding_active_inventory' ? data.invested_capital_usd : data.available_capital_usd) ?? capital, 2)}</div>
                 <div><span>Last stage</span>${titleCase(data.last_lifecycle_stage)}</div>
                 <div><span>Last attempt</span>${titleCase(data.last_attempt_status)}</div>
+                <div><span>Holding</span>${data.holding_asset ? `${data.holding_asset} ${data.holding_units}` : '--'}</div>
             </div>
-            <div class="blocker"><strong>Top blocker:</strong> ${data.top_blocker || data.last_rejection_reason || 'None currently surfaced'}</div>
+            <div class="blocker"><strong>Top blocker:</strong> ${data.compounding_state === 'holding_active_inventory' ? 'Monitoring active compounding inventory for recycle/exit' : (data.top_blocker || data.last_rejection_reason || 'None currently surfaced')}</div>
         </div>
     `).join('');
 }
@@ -215,6 +222,11 @@ function renderNextActions() {
 function renderPositions() {
     const positions = Array.isArray(state.positions) ? state.positions : [];
     if (!positions.length) {
+        const bloc = truth().bloc || {};
+        if (bloc.compounding_state === 'holding_active_inventory' && bloc.holding_asset) {
+            el.positionsList.innerHTML = `<div class="position-row"><div class="position-top"><div>${bloc.holding_asset} HOLD</div><div>${fmtMoney(bloc.invested_capital_usd, 2)}</div></div><div class="meta-row"><span>Units: ${bloc.holding_units ?? '--'}</span><span>Status: Holding active inventory</span><span>Action: Monitor for recycle</span></div></div>`;
+            return;
+        }
         el.positionsList.innerHTML = '<div class="positions-empty">No active positions. That is good if edge is absent, bad if the engine should be live and is silently stalled.</div>';
         return;
     }
