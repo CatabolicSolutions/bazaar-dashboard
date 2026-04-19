@@ -14,12 +14,33 @@ for candidate in (str(ROOT_DIR), str(PACKAGE_PARENT)):
         sys.path.insert(0, candidate)
 
 import importlib.util
+
+class _NoOpDbClient:
+    def create_tables(self):
+        return None
+    def add_wallet_balance_entry(self, *args, **kwargs):
+        return None
+    def add_signal_entry(self, *args, **kwargs):
+        return None
+    def add_position_entry(self, *args, **kwargs):
+        return None
+    def get_open_positions_from_db(self):
+        return []
+    def update_position_entry(self, *args, **kwargs):
+        return None
+    def add_trade_entry(self, *args, **kwargs):
+        return None
+
 _db_client_path = ROOT_DIR / 'db' / 'client.py'
-_db_client_spec = importlib.util.spec_from_file_location('eth_scalper_db_client', _db_client_path)
-if _db_client_spec is None or _db_client_spec.loader is None:
-    raise ModuleNotFoundError(f'Unable to load db client from {_db_client_path}')
-db_client = importlib.util.module_from_spec(_db_client_spec)
-_db_client_spec.loader.exec_module(db_client)
+if _db_client_path.exists():
+    _db_client_spec = importlib.util.spec_from_file_location('eth_scalper_db_client', _db_client_path)
+    if _db_client_spec is not None and _db_client_spec.loader is not None:
+        db_client = importlib.util.module_from_spec(_db_client_spec)
+        _db_client_spec.loader.exec_module(db_client)
+    else:
+        db_client = _NoOpDbClient()
+else:
+    db_client = _NoOpDbClient()
 
 from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, WETH_ADDRESS, CBBTC_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS, BLOC_MIN_NET_PROFIT_PCT, BLOC_MIN_LIQUIDITY_USD
 from config.logger import logger, log_signal, log_trade
