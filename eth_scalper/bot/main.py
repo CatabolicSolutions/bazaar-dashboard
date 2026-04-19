@@ -369,7 +369,7 @@ class ETHScalper:
         can_trade, reason = risk_manager.can_trade(signal)
         
         if not can_trade:
-            if isinstance(reason, str) and reason.startswith("Capital deployed in active inventory:"):
+            if isinstance(reason, str) and reason.startswith("Capital deployed in active inventory"):
                 print(f"   ⏸️ Hold state: {reason}")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='success', setup_type=signal.get('type'), notes='active_inventory_position_holding_for_compounding')
                 db_client.add_signal_entry(signal, executed=False, reason='active_inventory_position_holding_for_compounding') # Log to DB

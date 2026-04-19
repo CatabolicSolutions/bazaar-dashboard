@@ -67,8 +67,10 @@ class RiskManager:
             available = INITIAL_CAPITAL_USD - used_capital
             invested = 0.0
         
-        if available <= 0 and invested > 0:
-            return False, f"Capital deployed in active inventory: ${invested:.2f} invested"
+        if available <= 0 and (invested > 0 or has_live_inventory):
+            if invested > 0:
+                return False, f"Capital deployed in active inventory: ${invested:.2f} invested"
+            return False, "Capital deployed in active inventory"
         if available <= 0:
             return False, f"Insufficient capital: ${available:.2f} available"
         
