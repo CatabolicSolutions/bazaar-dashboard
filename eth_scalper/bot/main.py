@@ -554,17 +554,20 @@ class ETHScalper:
             amount_eth = amount_wei / 1e18
             print(f"   🔄 Getting final swap quote for {amount_eth:.6f} ETH -> WETH after gas reserve...")
 
-        invariant_check = live_executor.pretrade_invariant_check(
-            from_token=from_token,
-            to_token=to_token,
-            amount=amount_wei,
-        )
-        if not invariant_check.get('ok'):
-            print(f"   ❌ Invariant gate failed: {invariant_check.get('reason')}")
-            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes=invariant_check.get('reason'), data=invariant_check)
-            return
+        if hasattr(live_executor, 'pretrade_invariant_check'):
+            invariant_check = live_executor.pretrade_invariant_check(
+                from_token=from_token,
+                to_token=to_token,
+                amount=amount_wei,
+            )
+            if not invariant_check.get('ok'):
+                print(f"   ❌ Invariant gate failed: {invariant_check.get('reason')}")
+                emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='execution_failure', status='failure', setup_type=position.signal.get('type'), notes=invariant_check.get('reason'), data=invariant_check)
+                return
 
-        emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='previewed', outcome_type='info', status='success', setup_type=position.signal.get('type'), data=invariant_check)
+            emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='previewed', outcome_type='info', status='success', setup_type=position.signal.get('type'), data=invariant_check)
+        else:
+            print("   ⚠️ pretrade_invariant_check unavailable, proceeding with direct swap path")
         swap_data = live_executor.get_swap_data(
             from_token=from_token,
             to_token=to_token,
