@@ -188,6 +188,20 @@ function buildNextActions() {
 function renderHeadline() {
     const t = truth().tradier || {};
     const b = truth().bloc || {};
+    if (state.hqLive && state.hqLive.live && state.hqLive.live.compounding_state === 'holding_active_inventory') {
+        el.asof.textContent = `Updated ${new Date().toLocaleString()} • HQv5`;
+        el.headlineDecision.textContent = 'Monitor compounding hold';
+        el.headlineReason.textContent = `Holding ${state.hqLive.live.holding_asset} (${state.hqLive.live.holding_units}) as active compounding inventory.`;
+        el.headlineBloc.textContent = 'Holding active inventory';
+        el.headlineBlocSub.textContent = `${state.hqLive.live.holding_asset} • ${fmtMoney(state.hqLive.live.invested_capital_usd, 2)} invested`;
+        el.headlineExposure.textContent = `${state.hqLive.live.active_positions || 1} position`;
+        el.headlineExposureSub.textContent = 'Active compounding inventory requires supervision';
+        el.directiveTitle.textContent = 'Monitor compounding hold';
+        el.directiveBadge.textContent = 'Active Hold';
+        el.directiveBadge.className = 'decision-badge badge-amber';
+        el.directiveCopy.textContent = `Deployed capital is in ${state.hqLive.live.holding_asset}. Focus on recycle and exit quality.`;
+        el.miniBlocCapital.textContent = `${fmtMoney(state.hqLive.live.invested_capital_usd, 2)} in ${state.hqLive.live.holding_asset}`;
+    }
     const liveB = { ...(state.bloc || {}), ...((state.hqLive && state.hqLive.live) ? {
         holding_asset: state.hqLive.live.holding_asset,
         holding_units: state.hqLive.live.holding_units,
@@ -351,27 +365,42 @@ function wireControls() {
 
 async function pollData() {
     try {
-        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes, hqRes] = await Promise.all([
+        const hqRes = await fetch(`${API_BASE}/api/hq/status`).then(r => r.json()).catch(() => ({}));
+        if (hqRes.live) {
+            state.hqLive = hqRes;
+            state.bloc = {
+                ...state.bloc,
+                compounding_state: hqRes.live.compounding_state,
+                holding_asset: hqRes.live.holding_asset,
+                holding_units: hqRes.live.holding_units,
+                invested_capital_usd: hqRes.live.invested_capital_usd,
+                available_capital_usd: hqRes.live.deployable_capital_usd,
+                positions: hqRes.live.active_positions,
+            };
+            state.positions = hqRes.live.positions || [];
+        }
+
+        const [tradierRes, blocRes, positionsRes, activityRes, sieRes, snapshotRes] = await Promise.all([
             fetch(`${API_BASE}/api/tradier/status`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/bloc/status`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/positions`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/activity`).then(r => r.json()).catch(() => ({})),
             fetch(`${API_BASE}/api/sie/status`).then(r => r.json()).catch(() => ({})),
-            fetch(`${API_BASE}/snapshot.json`).then(r => r.json()).catch(() => ({})),
-            fetch(`${API_BASE}/api/hq/status`).then(r => r.json()).catch(() => ({}))
+            fetch(`${API_BASE}/snapshot.json`).then(r => r.json()).catch(() => ({}))
         ]);
 
         state.tradier = { ...state.tradier, ...tradierRes };
         state.bloc = { ...state.bloc, ...blocRes };
-        state.positions = positionsRes.positions || [];
+        if (!state.positions.length) state.positions = positionsRes.positions || [];
         state.activity = activityRes.activity || [];
         state.sie = sieRes || {};
         if (snapshotRes.hq) state.hq = snapshotRes.hq;
-        if (hqRes.live) state.hqLive = hqRes;
 
         renderAll();
     } catch (err) {
         console.error('Poll error:', err);
+        if (el.directiveTitle) el.directiveTitle.textContent = 'Client render error';
+        if (el.directiveCopy) el.directiveCopy.textContent = String(err && err.message ? err.message : err);
     }
 }
 
