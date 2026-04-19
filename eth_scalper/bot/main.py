@@ -13,7 +13,10 @@ for candidate in (str(ROOT_DIR), str(PACKAGE_PARENT)):
     if candidate not in sys.path:
         sys.path.insert(0, candidate)
 
-import db.client as db_client
+try:
+    import db.client as db_client
+except ModuleNotFoundError:
+    from eth_scalper.db import client as db_client
 
 from config.settings import validate_config, PAPER_TRADING_MODE, MIN_PROFIT_AFTER_GAS_PERCENT, ETH_ADDRESS, USDC_ADDRESS, WETH_ADDRESS, CBBTC_ADDRESS, MAX_POSITION_USD, AUTO_MANUAL_BUY_FALLBACK_SECONDS, BLOC_MIN_NET_PROFIT_PCT, BLOC_MIN_LIQUIDITY_USD
 from config.logger import logger, log_signal, log_trade
