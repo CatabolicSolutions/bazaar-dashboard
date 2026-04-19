@@ -463,38 +463,47 @@ class ETHScalper:
             wallet = wallet_monitor.get_all_balances()
             reconciled = state_manager.build_reconciled_positions(wallet, trade_manager.get_open_positions())
             resumed_any = False
+            resumed_ids = set()
             for item in reconciled:
+                item_id = item.get('id')
+                if not item_id or item_id in resumed_ids:
+                    continue
+                if item.get('status') == 'closed':
+                    continue
                 if not item.get('linked_to_wallet_inventory', True):
+                    continue
+                if item.get('allocation_state') not in (None, 'allocated') and item.get('source') != 'inventory_reconciliation':
                     continue
                 if not item.get('resumable_after_restart'):
                     continue
-                if item.get('status') not in ('open', 'allocated', 'tracked_trade_manager_state') and item.get('source') != 'inventory_reconciliation':
+                if item.get('status') not in ('open', 'allocated', 'tracked_trade_manager_state', 'legacy_unallocated_inventory') and item.get('source') != 'inventory_reconciliation':
                     continue
-                position = trade_manager.get_position(item.get('id')) if item.get('id') else None
+                position = trade_manager.get_position(item_id)
                 if position is None:
                     entry_price = float(item.get('entry_price') or 0) or 2200.0
+                    lot_units = float(item.get('allocated_units') or item.get('lot_units') or 0)
                     signal = {
                         'timestamp': item.get('entry_time') or time.time(),
                         'direction': 'up',
                         'price': entry_price,
                         'type': item.get('source', 'persisted_resume'),
                     }
-                    position = trade_manager.create_position(signal, float(item.get('size_usd') or (float(item.get('allocated_units') or item.get('lot_units') or 0)) * entry_price), paper=False)
-                    if item.get('id'):
-                        position.id = item.get('id')
+                    position = trade_manager.create_position(signal, float(item.get('size_usd') or (lot_units * entry_price)), paper=False)
+                    position.id = item_id
                     position.entry_price = entry_price
                     position.target_price = float(item.get('target_price') or (entry_price * 1.005))
                     position.stop_price = float(item.get('stop_price') or (entry_price * 0.997))
                     position.entry_time = float(item.get('entry_time') or time.time())
                     position.direction = 'long'
                     position.tx_hash = item.get('tx_hash')
-                    position.executed_to_amount_units = float(item.get('allocated_units') or item.get('lot_units') or 0)
+                    position.executed_to_amount_units = lot_units
                     position.status = position.status.OPEN
                     position.paper = False
                     position.signal = signal
                     position.source = item.get('source', 'persisted_resume')
                     position.resumable_after_restart = True
                     trade_manager.positions[position.id] = position
+                resumed_ids.add(item_id)
                 if position.id not in trade_manager.active_monitors:
                     print(f"   ♻️ Resuming persisted live position {position.id} from {item.get('source')}")
                     asyncio.create_task(self._monitor_live_position(position))
