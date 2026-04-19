@@ -50,6 +50,10 @@ class ETHScalper:
         print("=" * 60)
         print("🤖 ETH SCALPER BOT")
         print("=" * 60)
+        print(f"🗂️  State dir: {state_manager.positions_file.parent}")
+        print(f"🗂️  Positions file: {state_manager.positions_file}")
+        print(f"🗂️  Persisted positions file: {state_manager.persisted_positions_file}")
+        print(f"🗂️  Bot state file: {state_manager.bot_state_file}")
         
         # Validate config
         try:
@@ -381,7 +385,7 @@ class ETHScalper:
             if funded_side is None:
                 print(f"   ❌ Live wallet underfunded for entry: need deployable inventory, have ~${native_eth_usd:.2f} native ETH, ${usdc_balance:.2f} USDC, ${weth_balance_usd:.2f} WETH inventory")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='wallet_underfunded')
-                state_manager.log_signal(signal, executed=False, reason="wallet_underfunded")
+                db_client.add_signal_entry(signal, executed=False, reason="wallet_underfunded") # Log to DB
                 return
             signal['funded_side'] = funded_side
             signal['native_eth_balance'] = native_eth_balance
@@ -395,15 +399,15 @@ class ETHScalper:
             has_open_position = len(trade_manager.get_open_positions()) > 0
             if has_open_position:
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='open_position_exists')
-                state_manager.log_signal(signal, executed=False, reason='open_position_exists')
+                db_client.add_signal_entry(signal, executed=False, reason='open_position_exists') # Log to DB
                 return
             if funded_side != 'USDC':
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='usdc_inventory_required_for_redeployment')
-                state_manager.log_signal(signal, executed=False, reason='usdc_inventory_required_for_redeployment')
+                db_client.add_signal_entry(signal, executed=False, reason='usdc_inventory_required_for_redeployment') # Log to DB
                 return
             if size_usd < BLOC_MIN_LIQUIDITY_USD:
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='insufficient_exit_liquidity')
-                state_manager.log_signal(signal, executed=False, reason='insufficient_exit_liquidity')
+                db_client.add_signal_entry(signal, executed=False, reason='insufficient_exit_liquidity') # Log to DB
                 return
 
             base_token = WETH_ADDRESS if signal.get('symbol', 'ETH') == 'ETH' else CBBTC_ADDRESS
@@ -413,13 +417,13 @@ class ETHScalper:
             if not quote:
                 print("   ❌ Rejected: missing_quote")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='missing_quote')
-                state_manager.log_signal(signal, executed=False, reason='missing_quote')
+                db_client.add_signal_entry(signal, executed=False, reason='missing_quote') # Log to DB
                 return
             quote_age_seconds = max(0.0, time.time() - inch_client.last_quote_time)
             if quote_age_seconds > 5.0:
                 print(f"   ❌ Rejected: quote_stale ({quote_age_seconds:.2f}s)")
                 emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='quote_stale')
-                state_manager.log_signal(signal, executed=False, reason='quote_stale')
+                db_client.add_signal_entry(signal, executed=False, reason='quote_stale') # Log to DB
                 return
 
             decimals = 18 if signal.get('symbol', 'ETH') == 'ETH' else 8
@@ -449,13 +453,13 @@ class ETHScalper:
                 if friction_pct >= gross_edge_pct:
                     print(f"   ❌ Rejected: friction_exceeds_edge (friction={friction_pct:.4f}%, gross_edge={gross_edge_pct:.4f}%)")
                     emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='friction_exceeds_edge', data={'friction_pct': friction_pct, 'gross_edge_pct': gross_edge_pct})
-                    state_manager.log_signal(signal, executed=False, reason='friction_exceeds_edge')
+                    db_client.add_signal_entry(signal, executed=False, reason='friction_exceeds_edge') # Log to DB
                     return
                 live_min_edge_pct = min(BLOC_MIN_NET_PROFIT_PCT, 0.002)
                 if expected_edge_pct < live_min_edge_pct:
                     print(f"   ❌ Rejected: edge_below_net_target (expected_edge={expected_edge_pct:.4f}%, target={live_min_edge_pct:.4f}%)")
                     emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct, 'target_pct': live_min_edge_pct})
-                    state_manager.log_signal(signal, executed=False, reason='edge_below_net_target')
+                    db_client.add_signal_entry(signal, executed=False, reason='edge_below_net_target') # Log to DB
                     return
             else:
                 print(f"   ✅ Canonical midline all-in entry override: allowing execution despite entry friction (expected_edge={expected_edge_pct:.4f}%)")
@@ -463,12 +467,14 @@ class ETHScalper:
 
         print(f"   ✅ Qualified for execution: size=${size_usd:.2f}, expected_edge={signal.get('expected_edge_pct')}, funded_side={signal.get('funded_side')}")
         emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='qualified', outcome_type='info', status='success', setup_type=signal.get('type'), data={'size_usd': size_usd})
-        state_manager.log_signal(signal, executed=True, reason="passed_all_checks")
+        db_client.add_signal_entry(signal, executed=True, reason="passed_all_checks") # Log to DB after passing all checks
 
         # Create position
         position = trade_manager.create_position(signal, size_usd, paper=False)
         position.trade_id = trade_id
+        db_client.add_position_entry(position) # Add position to DB
 
+        print(f"   📊 Position created: {position.id}")
         print(f"   📊 Position created: {position.id}")
         self.execution_pending = True
 
@@ -484,9 +490,41 @@ class ETHScalper:
         """Load durable live positions and resume monitoring after restart."""
         try:
             wallet = wallet_monitor.get_all_balances()
+            # Try to load open positions from DB first
+            db_open_positions = db_client.get_open_positions_from_db()
+            # Convert DB position objects to trade_manager's Position class
+            current_trade_manager_positions = trade_manager.get_open_positions()
+            for db_pos in db_open_positions:
+                if db_pos.position_id not in trade_manager.positions: # Avoid re-adding already tracked positions
+                    # Reconstruct trade_manager.Position object from DB data
+                    from execution.trade_manager import Position, PositionStatus
+                    signal_data = db_pos.metadata_json or {}
+                    position = Position(
+                        id=db_pos.position_id,
+                        signal=signal_data,
+                        entry_price=db_pos.entry_price,
+                        size_usd=db_pos.size_usd,
+                        direction=db_pos.direction,
+                        status=PositionStatus(db_pos.status),
+                        entry_time=db_pos.entry_time.timestamp(),
+                        target_price=db_pos.target_price,
+                        stop_price=db_pos.stop_price,
+                        paper=False, # Assuming live for persisted positions
+                    )
+                    position.tx_hash = db_pos.tx_hash
+                    position.executed_to_amount_units = db_pos.executed_units
+                    position.source = "db_persisted_resume"
+                    position.resumable_after_restart = db_pos.is_resumable
+                    trade_manager.positions[position.id] = position
+                    if position.id not in trade_manager.active_monitors:
+                        print(f"   ♻️ Resuming persisted live position {position.id} from DB")
+                        asyncio.create_task(self._monitor_live_position(position))
+                        resumed_any = True
+            
+            # Fallback to state_manager for reconciliation if no DB positions or if state_manager has more
             reconciled = state_manager.build_reconciled_positions(wallet, trade_manager.get_open_positions())
-            resumed_any = False
-            resumed_ids = set()
+            resumed_any = resumed_any or False # Reset to prevent double resuming
+            resumed_ids = set(p.position_id for p in db_open_positions) # Keep track of already resumed
             for item in reconciled:
                 item_id = item.get('id')
                 if not item_id or item_id in resumed_ids:
@@ -657,7 +695,9 @@ class ETHScalper:
                     print(f"   ❌ Failed to open position after live tx")
                     emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='failed', outcome_type='reconciliation_failure', status='failure', setup_type=position.signal.get('type'), notes='open_position_failed_after_tx')
                     return
-
+                
+                db_client.update_position_entry(position) # Update position in DB
+                
                 emit_event(engine='bloc_1inch', trade_id=getattr(position, 'trade_id', None), position_id=position.id, stage='filled', outcome_type='info', status='success', setup_type=position.signal.get('type'), data={'tx_hash': tx_hash})
                 risk_manager.record_trade(position.signal, position.size_usd, paper=False)
                 position.source = 'autonomous_entry'
@@ -803,15 +843,19 @@ class ETHScalper:
         closed_position = await trade_manager.close_position(position.id, current_price, reason)
         
         if closed_position:
-            state_manager.log_trade(
-                position=closed_position,
+            # Log trade to DB
+            db_client.add_trade_entry(
+                position_obj=closed_position,
                 exit_price=current_price,
-                pnl_usd=pnl_usd,
-                pnl_pct=pnl_pct,
-                gas_cost=2.0,  # Approximate
-                reason=reason
+                reason=reason,
+                pnl_usd=closed_position.pnl_usd,
+                pnl_pct=closed_position.pnl_pct,
+                gas_cost_usd=2.0, # Approximate
             )
-            state_manager.mark_position_closed(
+            # Update position status in DB
+            db_client.update_position_entry(closed_position)
+            
+            state_manager.mark_position_closed( # Keep state_manager updated for now
                 position=closed_position,
                 exit_price=current_price,
                 exit_time=closed_position.exit_time,

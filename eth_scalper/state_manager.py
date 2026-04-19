@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from config.settings import HOLD_TIME_MAX_SECONDS
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent
 STATE_DIR = ROOT / 'state'
 LOGS_DIR = ROOT / 'logs'
 DUST_WETH_EPSILON = 1e-12
