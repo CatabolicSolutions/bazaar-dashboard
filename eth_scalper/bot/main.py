@@ -430,17 +430,27 @@ class ETHScalper:
             signal['estimated_friction_pct'] = friction_pct
             signal['quoted_out_usd'] = quoted_out_usd
 
-            if friction_pct >= gross_edge_pct:
-                print(f"   ❌ Rejected: friction_exceeds_edge (friction={friction_pct:.4f}%, gross_edge={gross_edge_pct:.4f}%)")
-                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='friction_exceeds_edge', data={'friction_pct': friction_pct, 'gross_edge_pct': gross_edge_pct})
-                state_manager.log_signal(signal, executed=False, reason='friction_exceeds_edge')
-                return
-            live_min_edge_pct = min(BLOC_MIN_NET_PROFIT_PCT, 0.002)
-            if expected_edge_pct < live_min_edge_pct:
-                print(f"   ❌ Rejected: edge_below_net_target (expected_edge={expected_edge_pct:.4f}%, target={live_min_edge_pct:.4f}%)")
-                emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct, 'target_pct': live_min_edge_pct})
-                state_manager.log_signal(signal, executed=False, reason='edge_below_net_target')
-                return
+            canonical_midline_entry = (
+                signal.get('symbol', 'ETH') == 'ETH'
+                and signal.get('funded_side') == 'USDC'
+                and signal.get('type') in ('buy_pullback', 'forced_midline_buy')
+                and bool(signal.get('direction') == 'down')
+            )
+            if not canonical_midline_entry:
+                if friction_pct >= gross_edge_pct:
+                    print(f"   ❌ Rejected: friction_exceeds_edge (friction={friction_pct:.4f}%, gross_edge={gross_edge_pct:.4f}%)")
+                    emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='friction_exceeds_edge', data={'friction_pct': friction_pct, 'gross_edge_pct': gross_edge_pct})
+                    state_manager.log_signal(signal, executed=False, reason='friction_exceeds_edge')
+                    return
+                live_min_edge_pct = min(BLOC_MIN_NET_PROFIT_PCT, 0.002)
+                if expected_edge_pct < live_min_edge_pct:
+                    print(f"   ❌ Rejected: edge_below_net_target (expected_edge={expected_edge_pct:.4f}%, target={live_min_edge_pct:.4f}%)")
+                    emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='rejected', outcome_type='rejected_setup', status='failure', setup_type=signal.get('type'), notes='edge_below_net_target', data={'expected_edge_pct': expected_edge_pct, 'target_pct': live_min_edge_pct})
+                    state_manager.log_signal(signal, executed=False, reason='edge_below_net_target')
+                    return
+            else:
+                print(f"   ✅ Canonical midline all-in entry override: allowing execution despite entry friction (expected_edge={expected_edge_pct:.4f}%)")
+                signal['entry_edge_override'] = 'canonical_midline_all_in'
 
         print(f"   ✅ Qualified for execution: size=${size_usd:.2f}, expected_edge={signal.get('expected_edge_pct')}, funded_side={signal.get('funded_side')}")
         emit_event(engine='bloc_1inch', trade_id=trade_id, position_id=None, stage='qualified', outcome_type='info', status='success', setup_type=signal.get('type'), data={'size_usd': size_usd})
