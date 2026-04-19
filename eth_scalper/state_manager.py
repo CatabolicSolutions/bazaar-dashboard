@@ -10,6 +10,7 @@ from config.settings import HOLD_TIME_MAX_SECONDS
 ROOT = Path(__file__).parent
 STATE_DIR = ROOT / 'state'
 LOGS_DIR = ROOT / 'logs'
+DUST_WETH_EPSILON = 1e-12
 
 # Ensure directories exist
 STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -242,6 +243,8 @@ class StateManager:
             return reconciled
 
         weth_balance = float((wallet or {}).get('weth') or 0.0)
+        if weth_balance <= DUST_WETH_EPSILON:
+            weth_balance = 0.0
         if weth_balance > 0 and persisted_positions:
             remaining = weth_balance
             reconciled = []
@@ -256,6 +259,14 @@ class StateManager:
                     enriched['allocated_units'] = 0.0
                     enriched['linked_to_wallet_inventory'] = False
                     enriched['allocation_state'] = 'closed'
+                    enriched['resumable_after_restart'] = False
+                    reconciled.append(enriched)
+                    continue
+                if enriched.get('source') == 'inventory_reconciliation' and weth_balance <= DUST_WETH_EPSILON:
+                    enriched['allocated_units'] = 0.0
+                    enriched['linked_to_wallet_inventory'] = False
+                    enriched['allocation_state'] = 'closed'
+                    enriched['status'] = 'closed'
                     enriched['resumable_after_restart'] = False
                     reconciled.append(enriched)
                     continue
@@ -294,7 +305,7 @@ class StateManager:
                     'notes': 'Unallocated legacy WETH inventory not linked to a tracked execution lot.'
                 })
             return reconciled
-        if weth_balance > 0:
+        if weth_balance > DUST_WETH_EPSILON:
             return [{
                 'id': 'reconciled_live_inventory_weth',
                 'source': 'inventory_reconciliation',

@@ -222,6 +222,8 @@ class ETHScalper:
             # Update wallet state from live on-chain reads
             wallet = wallet_monitor.get_all_balances()
             weth_balance = wallet.get('weth', 0.0) if isinstance(wallet, dict) else 0.0
+            if weth_balance <= 1e-12:
+                weth_balance = 0.0
             inferred_open_positions = len(trade_manager.get_open_positions())
             live_inventory = {
                 'eth': wallet.get('eth', 0.0),
@@ -316,6 +318,8 @@ class ETHScalper:
             native_eth_balance = wallet.get('eth', 0.0)
             native_eth_usd = native_eth_balance * signal['price']
             weth_balance = wallet.get('weth', 0.0)
+            if weth_balance <= 1e-12:
+                weth_balance = 0.0
             weth_balance_usd = weth_balance * signal['price']
             usdc_balance = wallet.get('usdc', 0.0)
 

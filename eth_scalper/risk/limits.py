@@ -1,6 +1,9 @@
 """Risk management - daily limits, position tracking, cooldowns"""
 import time
 from typing import Dict, Optional
+
+DUST_WETH_EPSILON = 1e-12
+
 from config.settings import (
     MAX_POSITION_USD, MAX_DAILY_LOSS_USD, INITIAL_CAPITAL_USD, MAX_DAILY_TRADES
 )
@@ -36,14 +39,21 @@ class RiskManager:
         
         # Check if we have open position in this pair
         pair = self._get_pair_key(signal)
+        try:
+            from wallet_monitor import wallet_monitor
+            wallet = wallet_monitor.get_all_balances()
+            wallet_weth = float(wallet.get('weth') or 0.0)
+        except Exception:
+            wallet = {}
+            wallet_weth = 0.0
+        if pair in self.open_positions and wallet_weth <= DUST_WETH_EPSILON:
+            self.open_positions.pop(pair, None)
         if pair in self.open_positions:
             return False, f"Open position exists: {pair}"
         
         # Check capital availability
         used_capital = sum(p.get('size_usd', p.get('size', 0)) for p in self.open_positions.values())
         try:
-            from wallet_monitor import wallet_monitor
-            wallet = wallet_monitor.get_all_balances()
             available = max(0.0, float(wallet.get('usdc') or 0.0) - used_capital)
         except Exception:
             available = INITIAL_CAPITAL_USD - used_capital
