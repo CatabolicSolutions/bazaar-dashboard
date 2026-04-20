@@ -350,8 +350,10 @@ class Handler(SimpleHTTPRequestHandler):
     
     def do_GET(self):
         self.refresh_snapshot()
-        if self.path in ('/', '/war-room', '/war-room/'):
+        if self.path in ('/', '/hq', '/war-room', '/war-room/'):
             return self._handle_war_room_page()
+        elif self.path in ('/legacy', '/legacy/'):
+            self.path = '/index.html'
         elif self.path == '/api/live-positions':
             return self._handle_live_positions()
         elif self.path == '/api/live-scanner':
@@ -1212,7 +1214,7 @@ class Handler(SimpleHTTPRequestHandler):
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WAR ROOM — Bazaar Operator Console</title>
+    <title>HQ — Bazaar Operator Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1224,8 +1226,8 @@ class Handler(SimpleHTTPRequestHandler):
             <div class="hero-top">
                 <div>
                     <div class="eyebrow">Bazaar of Fortunes</div>
-                    <h1>War Room Operator Console</h1>
-                    <div class="subline">Decision-first command view for readiness, capital, blockers, and live execution posture.</div>
+                    <h1>HQ Operator Console</h1>
+                    <div class="subline">Live operator truth for deployed capital, blockers, execution posture, and next action. Legacy dashboard moved to /legacy.</div>
                 </div>
                 <div class="asof">Updated {esc(updated_at)} | {esc(payload.get('build'))} | db {esc(persistence)}</div>
             </div>
@@ -1253,7 +1255,7 @@ class Handler(SimpleHTTPRequestHandler):
             <div class="stack">
                 <section class="card section"><div class="section-head"><div><div class="section-title">Next best actions</div><div class="section-sub">What to do next, in order</div></div></div><div class="next-action-list">{next_actions_html}</div></section>
                 <section class="card section"><div class="section-head"><div><div class="section-title">Recent activity</div><div class="section-sub">Latest execution and journal trail</div></div></div><div class="activity-list">{events_html}</div></section>
-                <section class="card section"><div class="section-head"><div><div class="section-title">Quick controls</div><div class="section-sub">Operator interrupts</div></div></div><div class="toolbar"><button class="toolbtn">Pause Bloc</button><button class="toolbtn">Pause Tradier</button><button class="toolbtn danger">Emergency Close All</button></div></section>
+                <section class="card section"><div class="section-head"><div><div class="section-title">Operator notes</div><div class="section-sub">Surface intent, not clutter</div></div></div><div class="ops-item"><div class="ops-summary">Root now serves HQ-first operator truth. Old dashboard remains available at <span class="mono">/legacy</span>.</div><div class="kv"><div><span>Build</span>{esc(payload.get('build'))}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Route</span>/</div><div><span>Legacy</span>/legacy</div></div></div></section>
             </div>
         </div>
     </div>
