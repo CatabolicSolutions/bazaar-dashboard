@@ -1,8 +1,12 @@
 """Configuration loader - handles env vars safely"""
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env file
+# Load env files deterministically from the package directory first, then fall back.
+SETTINGS_DIR = Path(__file__).resolve().parent
+ETH_SCALPER_ROOT = SETTINGS_DIR.parent
+load_dotenv(ETH_SCALPER_ROOT / '.env')
 load_dotenv()
 
 # RPC / API
