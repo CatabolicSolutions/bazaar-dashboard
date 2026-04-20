@@ -18,7 +18,6 @@ from session_capture import append_event
 from hq_repository import hq_repository
 import position_manager
 import trade_journal
-from eth_scalper import wallet_monitor
 from datetime import datetime
 
 def now_iso() -> str:
@@ -27,7 +26,9 @@ def now_iso() -> str:
 # Get the repository root based on this script's location
 SCRIPT_DIR = Path(__file__).parent.resolve()
 ROOT = SCRIPT_DIR.parent.parent
-sys.path.append(str(ROOT / 'scripts'))
+for candidate in (str(ROOT), str(ROOT / 'scripts'), str(ROOT / 'eth_scalper')):
+    if candidate not in sys.path:
+        sys.path.insert(0, candidate)
 
 # Load environment from .bazaar.env if not already set
 env_file = ROOT / '.bazaar.env'
@@ -47,6 +48,8 @@ if env_file.exists():
                         os.environ[key] = value
 PUBLIC = ROOT / 'dashboard' / 'public'
 BUILDER = ROOT / 'dashboard' / 'scripts' / 'build_snapshot.py'
+
+from wallet_monitor import wallet_monitor
 SAVE_POSITIONS = ROOT / 'dashboard' / 'scripts' / 'save_positions.py'
 SAVE_QUEUE = ROOT / 'dashboard' / 'scripts' / 'save_queue.py'
 EXECUTE_LEADER = ROOT / 'dashboard' / 'scripts' / 'execute_leader.py'
