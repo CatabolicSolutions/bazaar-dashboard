@@ -27,7 +27,7 @@ const el = {
 function fmtMoney(v, digits = 2) {
   const n = Number(v);
   if (!Number.isFinite(n)) return '--';
-  return `$${n.toFixed(digits)}`;
+  return '$' + n.toFixed(digits);
 }
 
 function safe(v, fallback = '--') {
@@ -50,13 +50,13 @@ function renderHQ(payload) {
   const activePositions = Number(live.active_positions || positions.length || 0);
   const status = safe(live.compounding_state, 'unknown');
 
-  const dbLabel = payload && payload.persistence ? ` • db ${payload.persistence}` : '';
-  el.asof.textContent = `Updated ${new Date().toLocaleString()} • ${HQ_BUILD_ID}${dbLabel}`;
+  const dbLabel = payload && payload.persistence ? ' | db ' + payload.persistence : '';
+  el.asof.textContent = 'Updated ' + new Date().toLocaleString() + ' | ' + HQ_BUILD_ID + dbLabel;
   el.headlineDecision.textContent = status === 'holding_active_inventory' ? 'Manage active compounding inventory' : 'Monitor live state';
   el.headlineReason.textContent = safe(
     live.operator_summary,
     status === 'holding_active_inventory'
-      ? `Holding ${holdingAsset}${holdingUnits != null ? ` (${holdingUnits})` : ''} as active compounding inventory.`
+      ? 'Holding ' + holdingAsset + (holdingUnits != null ? ' (' + holdingUnits + ')' : '') + ' as active compounding inventory.'
       : 'Waiting for live system truth.'
   );
 
@@ -65,10 +65,10 @@ function renderHQ(payload) {
 
   el.headlineBloc.textContent = status === 'holding_active_inventory' ? 'Holding active inventory' : 'Bloc runtime';
   el.headlineBlocSub.textContent = status === 'holding_active_inventory'
-    ? `${holdingAsset} • ${fmtMoney(invested)} invested`
-    : `${fmtMoney(deployable)} deployable`;
+    ? holdingAsset + ' | ' + fmtMoney(invested) + ' invested'
+    : fmtMoney(deployable) + ' deployable';
 
-  el.headlineExposure.textContent = `${activePositions} ${activePositions === 1 ? 'position' : 'positions'}`;
+  el.headlineExposure.textContent = String(activePositions) + ' ' + (activePositions === 1 ? 'position' : 'positions');
   el.headlineExposureSub.textContent = status === 'holding_active_inventory'
     ? 'Active compounding inventory requires supervision'
     : 'No active risk detected';
@@ -79,91 +79,100 @@ function renderHQ(payload) {
   el.directiveCopy.textContent = safe(
     live.operator_focus,
     status === 'holding_active_inventory'
-      ? `Deployed capital is in ${holdingAsset}. Focus on recycle and exit quality, not fresh entry.`
+      ? 'Deployed capital is in ' + holdingAsset + '. Focus on recycle and exit quality, not fresh entry.'
       : 'Pulling live system truth.'
   );
 
   el.miniTradierCapital.textContent = '--';
   el.miniBlocCapital.textContent = status === 'holding_active_inventory'
-    ? `${fmtMoney(invested)} in ${holdingAsset}`
-    : `${fmtMoney(deployable)}`;
-  el.miniReality.textContent = `ETH ${fmtMoney(wallet.eth_price_usd || wallet.eth_price || NaN)} | Wallet ${safe(wallet.address)}`;
+    ? fmtMoney(invested) + ' in ' + holdingAsset
+    : fmtMoney(deployable);
+  el.miniReality.textContent = 'ETH ' + fmtMoney(wallet.eth_price_usd || wallet.eth_price || NaN) + ' | Wallet ' + safe(wallet.address);
 
-  el.readinessList.innerHTML = `
-    <div class="ops-item">
-      <div class="ops-item-head">
-        <div class="ops-name">Bloc</div>
-        <div class="decision-badge badge-amber">${safe(live.mode, 'live').toUpperCase()}</div>
-      </div>
-      <div class="ops-summary">${status === 'holding_active_inventory' ? `Holding ${holdingAsset} for managed recycle.` : 'Runtime connected.'}</div>
-      <div class="kv">
-        <div><span>State</span>${safe(status)}</div>
-        <div><span>Persistence</span>${safe(payload.persistence)}</div>
-        <div><span>Holding</span>${holdingAsset}${holdingUnits != null ? ` ${holdingUnits}` : ''}</div>
-        <div><span>Invested</span>${fmtMoney(invested)}</div>
-        <div><span>Deployable</span>${fmtMoney(deployable)}</div>
-        <div><span>Wallet USDC</span>${fmtMoney(wallet.usdc)}</div>
-      </div>
-      <div class="blocker"><strong>Operator focus:</strong> ${safe(live.operator_focus, status === 'holding_active_inventory' ? 'Supervise exit and recycle conditions.' : 'Await live setup or funded state.')}</div>
-    </div>
-  `;
+  el.readinessList.innerHTML = [
+    '<div class="ops-item">',
+    '  <div class="ops-item-head">',
+    '    <div class="ops-name">Bloc</div>',
+    '    <div class="decision-badge badge-amber">' + safe(live.mode, 'live').toUpperCase() + '</div>',
+    '  </div>',
+    '  <div class="ops-summary">' + (status === 'holding_active_inventory' ? ('Holding ' + holdingAsset + ' for managed recycle.') : 'Runtime connected.') + '</div>',
+    '  <div class="kv">',
+    '    <div><span>State</span>' + safe(status) + '</div>',
+    '    <div><span>Persistence</span>' + safe(payload.persistence) + '</div>',
+    '    <div><span>Holding</span>' + holdingAsset + (holdingUnits != null ? ' ' + holdingUnits : '') + '</div>',
+    '    <div><span>Invested</span>' + fmtMoney(invested) + '</div>',
+    '    <div><span>Deployable</span>' + fmtMoney(deployable) + '</div>',
+    '    <div><span>Wallet USDC</span>' + fmtMoney(wallet.usdc) + '</div>',
+    '  </div>',
+    '  <div class="blocker"><strong>Operator focus:</strong> ' + safe(live.operator_focus, status === 'holding_active_inventory' ? 'Supervise exit and recycle conditions.' : 'Await live setup or funded state.') + '</div>',
+    '</div>'
+  ].join('');
 
-  el.nextActions.innerHTML = status === 'holding_active_inventory'
-    ? `
-      <div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track ${holdingAsset} exposure and recycle path.</div></div>
-      <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Verify mark and units</strong>Confirm ${holdingUnits != null ? holdingUnits : '--'} units and ${fmtMoney(invested)} invested.</div></div>
-      <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Do not force new entry</strong>Compounding capital is deployed, not missing.</div></div>
-    `
-    : `
-      <div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Verify funded readiness</strong>Confirm deployable cash and runtime health before any new entry.</div></div>
-      <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Wait for valid edge</strong>No forced trade until signal quality clears mandate.</div></div>
-      <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Preserve capital discipline</strong>Stay flat until setup quality is real.</div></div>
-    `;
+  if (status === 'holding_active_inventory') {
+    el.nextActions.innerHTML = [
+      '<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track ' + holdingAsset + ' exposure and recycle path.</div></div>',
+      '<div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Verify mark and units</strong>Confirm ' + (holdingUnits != null ? holdingUnits : '--') + ' units and ' + fmtMoney(invested) + ' invested.</div></div>',
+      '<div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Do not force new entry</strong>Compounding capital is deployed, not missing.</div></div>'
+    ].join('');
+  } else {
+    el.nextActions.innerHTML = [
+      '<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Verify funded readiness</strong>Confirm deployable cash and runtime health before any new entry.</div></div>',
+      '<div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Wait for valid edge</strong>No forced trade until signal quality clears mandate.</div></div>',
+      '<div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Preserve capital discipline</strong>Stay flat until setup quality is real.</div></div>'
+    ].join('');
+  }
 
   if (positions.length) {
-    el.positionsList.innerHTML = positions.map((pos) => `
-      <div class="position-row">
-        <div class="position-top">
-          <div>${safe(pos.asset, holdingAsset)} HOLD</div>
-          <div>${fmtMoney(invested)}</div>
-        </div>
-        <div class="meta-row">
-          <span>Units: ${safe(pos.units, holdingUnits)}</span>
-          <span>Status: ${safe(pos.status, status)}</span>
-          <span>Source: ${safe(pos.source)}</span>
-        </div>
-      </div>
-    `).join('');
+    el.positionsList.innerHTML = positions.map(function(pos) {
+      return [
+        '<div class="position-row">',
+        '  <div class="position-top">',
+        '    <div>' + safe(pos.asset, holdingAsset) + ' HOLD</div>',
+        '    <div>' + fmtMoney(invested) + '</div>',
+        '  </div>',
+        '  <div class="meta-row">',
+        '    <span>Units: ' + safe(pos.units, holdingUnits) + '</span>',
+        '    <span>Status: ' + safe(pos.status, status) + '</span>',
+        '    <span>Source: ' + safe(pos.source) + '</span>',
+        '  </div>',
+        '</div>'
+      ].join('');
+    }).join('');
   } else {
-    el.positionsList.innerHTML = `
-      <div class="position-row">
-        <div class="position-top">
-          <div>${holdingAsset} HOLD</div>
-          <div>${fmtMoney(invested)}</div>
-        </div>
-        <div class="meta-row">
-          <span>Units: ${holdingUnits != null ? holdingUnits : '--'}</span>
-          <span>Status: ${status}</span>
-          <span>Source: wallet truth</span>
-        </div>
-      </div>
-    `;
+    el.positionsList.innerHTML = [
+      '<div class="position-row">',
+      '  <div class="position-top">',
+      '    <div>' + holdingAsset + ' HOLD</div>',
+      '    <div>' + fmtMoney(invested) + '</div>',
+      '  </div>',
+      '  <div class="meta-row">',
+      '    <span>Units: ' + (holdingUnits != null ? holdingUnits : '--') + '</span>',
+      '    <span>Status: ' + status + '</span>',
+      '    <span>Source: wallet truth</span>',
+      '  </div>',
+      '</div>'
+    ].join('');
   }
 
   const events = Array.isArray(payload.events) ? payload.events : [];
-  el.activityList.innerHTML = events.length
-    ? events.map((row) => `
-      <div class="activity-row">
-        <div class="activity-top"><div>${safe(row.title)}</div><div>${safe(row.created_at)}</div></div>
-        <div class="meta-row"><span>${safe(row.event_type)}</span><span>${safe(row.severity)}</span></div>
-      </div>
-    `).join('')
-    : '<div class="activity-empty">No recent HQ events available.</div>';
+  if (events.length) {
+    el.activityList.innerHTML = events.map(function(row) {
+      return [
+        '<div class="activity-row">',
+        '  <div class="activity-top"><div>' + safe(row.title) + '</div><div>' + safe(row.created_at) + '</div></div>',
+        '  <div class="meta-row"><span>' + safe(row.event_type) + '</span><span>' + safe(row.severity) + '</span></div>',
+        '</div>'
+      ].join('');
+    }).join('');
+  } else {
+    el.activityList.innerHTML = '<div class="activity-empty">No recent HQ events available.</div>';
+  }
 }
 
 async function pollData() {
   try {
-    const payload = await fetch(`${API_BASE}/api/hq/status?build=${encodeURIComponent(HQ_BUILD_ID)}`, { cache: 'no-store' }).then((r) => r.json());
+    const response = await fetch(API_BASE + '/api/hq/status?build=' + encodeURIComponent(HQ_BUILD_ID), { cache: 'no-store' });
+    const payload = await response.json();
     renderHQ(payload);
   } catch (err) {
     console.error('War Room HQ poll failed:', err);
