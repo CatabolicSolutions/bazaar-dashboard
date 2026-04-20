@@ -78,7 +78,7 @@ function renderHQ(payload) {
   el.miniTradierCapital.textContent = '--';
   el.miniBlocCapital.textContent = status === 'holding_active_inventory'
     ? `${fmtMoney(invested)} in ${holdingAsset}`
-    : fmtMoney(deployable);
+    : `${fmtMoney(deployable)}`;
   el.miniReality.textContent = `ETH ${fmtMoney(wallet.eth_price_usd || wallet.eth_price || NaN)} | Wallet ${safe(wallet.address)}`;
 
   el.readinessList.innerHTML = `
