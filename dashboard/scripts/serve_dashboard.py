@@ -126,7 +126,11 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode())
 
-
+    def html_response(self, status_code, html):
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
 
     def _run_save(self, script_path, body):
         proc = subprocess.run(
@@ -347,7 +351,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         self.refresh_snapshot()
         if self.path in ('/', '/war-room', '/war-room/'):
-            self.path = '/war-room/index.html'
+            return self._handle_war_room_page()
         elif self.path == '/api/live-positions':
             return self._handle_live_positions()
         elif self.path == '/api/live-scanner':
@@ -1142,6 +1146,120 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, latest)
         except Exception as e:
             return self.json_response(200, self._build_hq_live_payload())
+
+    def _handle_war_room_page(self):
+        payload = self._build_hq_live_payload()
+        try:
+            hq_repository.create_tables()
+            hq_repository.append_snapshot(payload)
+            latest = hq_repository.get_latest_snapshot() or payload
+            latest['build'] = payload.get('build')
+            latest['persistence'] = payload.get('persistence')
+            latest['source'] = payload.get('source')
+            latest['updated_at'] = payload.get('updated_at')
+            latest['events'] = hq_repository.get_recent_events(limit=12)
+            payload = latest
+        except Exception:
+            pass
+
+        live = payload.get('live') or {}
+        wallet = live.get('wallet') or {}
+        positions = live.get('positions') or []
+        events = payload.get('events') or []
+        holding_asset = live.get('holding_asset') or 'Inventory'
+        holding_units = live.get('holding_units')
+        invested = float(live.get('invested_capital_usd') or 0.0)
+        deployable = float(live.get('deployable_capital_usd') or 0.0)
+        active_positions = int(live.get('active_positions') or len(positions) or 0)
+        status = str(live.get('compounding_state') or 'unknown')
+        persistence = payload.get('persistence') or 'memory-only'
+        updated_at = payload.get('updated_at') or now_iso()
+        operator_summary = live.get('operator_summary') or 'Waiting for live system truth.'
+        operator_focus = live.get('operator_focus') or 'Pulling live system truth.'
+
+        def esc(value):
+            text = '' if value is None else str(value)
+            return (text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;'))
+
+        def money(value):
+            try:
+                return f"${float(value):.2f}"
+            except Exception:
+                return '--'
+
+        positions_html = ''.join([
+            f'''<div class="position-row"><div class="position-top"><div>{esc((pos.get('asset') or holding_asset))} HOLD</div><div>{money(invested)}</div></div><div class="meta-row"><span>Units: {esc(pos.get('units') if pos.get('units') is not None else holding_units if holding_units is not None else '--')}</span><span>Status: {esc(pos.get('status') or status)}</span><span>Source: {esc(pos.get('source') or 'wallet_truth')}</span></div></div>'''
+            for pos in positions
+        ]) or f'''<div class="position-row"><div class="position-top"><div>{esc(holding_asset)} HOLD</div><div>{money(invested)}</div></div><div class="meta-row"><span>Units: {esc(holding_units if holding_units is not None else '--')}</span><span>Status: {esc(status)}</span><span>Source: wallet truth</span></div></div>'''
+
+        events_html = ''.join([
+            f'''<div class="activity-row"><div class="activity-top"><div>{esc(row.get('title'))}</div><div>{esc(row.get('created_at'))}</div></div><div class="meta-row"><span>{esc(row.get('event_type'))}</span><span>{esc(row.get('severity'))}</span></div></div>'''
+            for row in events
+        ]) or '<div class="activity-empty">No recent HQ events available.</div>'
+
+        next_actions_html = (
+            f'''<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track {esc(holding_asset)} exposure and recycle path.</div></div>
+<div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Verify mark and units</strong>Confirm {esc(holding_units if holding_units is not None else '--')} units and {money(invested)} invested.</div></div>
+<div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Do not force new entry</strong>Compounding capital is deployed, not missing.</div></div>'''
+            if status == 'holding_active_inventory' else
+            '''<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Verify funded readiness</strong>Confirm deployable cash and runtime health before any new entry.</div></div>
+<div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Wait for valid edge</strong>No forced trade until signal quality clears mandate.</div></div>
+<div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Preserve capital discipline</strong>Stay flat until setup quality is real.</div></div>'''
+        )
+
+        html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WAR ROOM — Bazaar Operator Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>{(ROOT / 'dashboard' / 'public' / 'war-room' / 'index.html').read_text().split('<style>',1)[1].split('</style>',1)[0]}</style>
+</head>
+<body>
+    <div class="shell">
+        <section class="card hero">
+            <div class="hero-top">
+                <div>
+                    <div class="eyebrow">Bazaar of Fortunes</div>
+                    <h1>War Room Operator Console</h1>
+                    <div class="subline">Decision-first command view for readiness, capital, blockers, and live execution posture.</div>
+                </div>
+                <div class="asof">Updated {esc(updated_at)} | {esc(payload.get('build'))} | db {esc(persistence)}</div>
+            </div>
+            <div class="status-strip">
+                <div class="pill-card"><div class="pill-label">Primary Decision</div><div class="pill-value">{esc('Manage active compounding inventory' if status == 'holding_active_inventory' else 'Monitor live state')}</div><div class="pill-sub">{esc(operator_summary)}</div></div>
+                <div class="pill-card"><div class="pill-label">Tradier Readiness</div><div class="pill-value mono">Tradier readiness</div><div class="pill-sub">Separate execution path</div></div>
+                <div class="pill-card"><div class="pill-label">Bloc Readiness</div><div class="pill-value mono">{esc('Holding active inventory' if status == 'holding_active_inventory' else 'Bloc runtime')}</div><div class="pill-sub">{esc(holding_asset + ' | ' + money(invested) + ' invested' if status == 'holding_active_inventory' else money(deployable) + ' deployable')}</div></div>
+                <div class="pill-card"><div class="pill-label">Live Exposure</div><div class="pill-value mono">{esc(str(active_positions) + (' position' if active_positions == 1 else ' positions'))}</div><div class="pill-sub">{esc('Active compounding inventory requires supervision' if status == 'holding_active_inventory' else 'No active risk detected')}</div></div>
+            </div>
+            <div class="decision">
+                <div class="decision-head"><div><div class="eyebrow">Operator directive</div><div class="decision-title">{esc('Manage compounding hold' if status == 'holding_active_inventory' else 'Stand by')}</div></div><div class="decision-badge badge-amber">{esc('ACTIVE HOLD' if status == 'holding_active_inventory' else 'MONITORING')}</div></div>
+                <div class="decision-copy">{esc(operator_focus)}</div>
+                <div class="decision-grid">
+                    <div class="mini-stat"><div class="label">Tradier capital</div><div class="value mono">--</div></div>
+                    <div class="mini-stat"><div class="label">Bloc capital</div><div class="value mono">{esc((money(invested) + ' in ' + holding_asset) if status == 'holding_active_inventory' else money(deployable))}</div></div>
+                    <div class="mini-stat"><div class="label">Reality feed</div><div class="value mono">{esc('ETH ' + money(wallet.get('eth_price_usd') or wallet.get('eth_price') or 'nan') + ' | Wallet ' + str(wallet.get('address') or '--'))}</div></div>
+                </div>
+            </div>
+        </section>
+        <div class="grid">
+            <div class="stack">
+                <section class="card section"><div class="section-head"><div><div class="section-title">System readiness</div><div class="section-sub">Condensed truth for each execution path</div></div></div><div class="ops-list"><div class="ops-item"><div class="ops-item-head"><div class="ops-name">Bloc</div><div class="decision-badge badge-amber">{esc(str(live.get('mode') or 'live').upper())}</div></div><div class="ops-summary">{esc(('Holding ' + holding_asset + ' for managed recycle.') if status == 'holding_active_inventory' else 'Runtime connected.')}</div><div class="kv"><div><span>State</span>{esc(status)}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Holding</span>{esc(holding_asset + (' ' + str(holding_units) if holding_units is not None else ''))}</div><div><span>Invested</span>{money(invested)}</div><div><span>Deployable</span>{money(deployable)}</div><div><span>Wallet USDC</span>{money(wallet.get('usdc') or 0.0)}</div></div><div class="blocker"><strong>Operator focus:</strong> {esc(operator_focus)}</div></div></div></section>
+                <section class="card section"><div class="section-head"><div><div class="section-title">Active positions</div><div class="section-sub">Only live risk that needs attention</div></div></div><div class="positions-list">{positions_html}</div></section>
+            </div>
+            <div class="stack">
+                <section class="card section"><div class="section-head"><div><div class="section-title">Next best actions</div><div class="section-sub">What to do next, in order</div></div></div><div class="next-action-list">{next_actions_html}</div></section>
+                <section class="card section"><div class="section-head"><div><div class="section-title">Recent activity</div><div class="section-sub">Latest execution and journal trail</div></div></div><div class="activity-list">{events_html}</div></section>
+                <section class="card section"><div class="section-head"><div><div class="section-title">Quick controls</div><div class="section-sub">Operator interrupts</div></div></div><div class="toolbar"><button class="toolbtn">Pause Bloc</button><button class="toolbtn">Pause Tradier</button><button class="toolbtn danger">Emergency Close All</button></div></section>
+            </div>
+        </div>
+    </div>
+</body>
+</html>'''
+        return self.html_response(200, html)
 
     def _handle_eth_scalper_trades(self):
         """Get recent trades"""
