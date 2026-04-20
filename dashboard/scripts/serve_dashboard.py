@@ -1093,10 +1093,14 @@ class Handler(SimpleHTTPRequestHandler):
                 'source': 'wallet_truth',
             })
 
-        compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0) > 0 else 'idle_unfunded')
+        wallet_usdc = float(wallet.get('usdc', 0.0) or 0.0)
+        deployable_capital = wallet_usdc
+        if not cleaned_positions:
+            deployable_capital = float(state.get('available_capital') or wallet_usdc or 0.0)
+        compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if deployable_capital > 0 else 'idle_unfunded')
         return {
             'source': 'serve_dashboard',
-            'build': 'HQv7-postgres-2026-04-19',
+            'build': 'HQv8-operator-truth-2026-04-20',
             'persistence': 'postgresql' if hq_repository.enabled else 'memory-only',
             'updated_at': now_iso(),
             'live': {
@@ -1105,8 +1109,18 @@ class Handler(SimpleHTTPRequestHandler):
                 'compounding_state': compounding_state,
                 'holding_asset': holding_asset,
                 'holding_units': holding_units,
-                'deployable_capital_usd': float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0),
+                'deployable_capital_usd': round(deployable_capital, 2),
                 'invested_capital_usd': round(invested_capital, 2),
+                'operator_summary': (
+                    f'Holding {holding_asset} inventory, manage recycle and exit quality.'
+                    if compounding_state == 'holding_active_inventory' and holding_asset
+                    else ('Deployable cash available for next entry.' if deployable_capital > 0 else 'No funded deployable state detected.')
+                ),
+                'operator_focus': (
+                    'Supervise live inventory, protect gains, and recycle only on valid edge.'
+                    if compounding_state == 'holding_active_inventory'
+                    else ('Wait for valid edge and funded conditions.' if deployable_capital > 0 else 'Restore funding or runtime prerequisites.')
+                ),
                 'wallet': wallet,
                 'active_positions': len(cleaned_positions) or (1 if compounding_state == 'holding_active_inventory' else 0),
                 'positions': cleaned_positions,
@@ -1120,6 +1134,10 @@ class Handler(SimpleHTTPRequestHandler):
             hq_repository.create_tables()
             hq_repository.append_snapshot(payload)
             latest = hq_repository.get_latest_snapshot() or payload
+            latest['build'] = payload.get('build')
+            latest['persistence'] = payload.get('persistence')
+            latest['source'] = payload.get('source')
+            latest['updated_at'] = payload.get('updated_at')
             latest['events'] = hq_repository.get_recent_events(limit=12)
             return self.json_response(200, latest)
         except Exception as e:

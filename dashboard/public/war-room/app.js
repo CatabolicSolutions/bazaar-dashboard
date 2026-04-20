@@ -1,6 +1,6 @@
 const API_BASE = '';
 const POLL_INTERVAL = 5000;
-const HQ_BUILD_ID = 'HQv7-postgres-2026-04-19';
+const HQ_BUILD_ID = 'HQv8-operator-truth-2026-04-20';
 
 const el = {
   asof: document.getElementById('asof'),
@@ -50,13 +50,13 @@ function renderHQ(payload) {
   const activePositions = Number(live.active_positions || (positions.length || 0));
   const status = safe(live.compounding_state, 'unknown');
 
-  const sourceLabel = payload && payload.source ? ` • source ${payload.source}` : '';
   const dbLabel = payload && payload.persistence ? ` • db ${payload.persistence}` : '';
-  el.asof.textContent = `Updated ${new Date().toLocaleString()} • ${HQ_BUILD_ID}${sourceLabel}${dbLabel}`;
-  el.headlineDecision.textContent = status === 'holding_active_inventory' ? 'Monitor compounding hold' : 'Monitor live state';
-  el.headlineReason.textContent = status === 'holding_active_inventory'
-    ? `Holding ${holdingAsset}${holdingUnits != null ? ` (${holdingUnits})` : ''} as active compounding inventory.`
-    : 'Waiting for live system truth.';
+  el.asof.textContent = `Updated ${new Date().toLocaleString()} • ${HQ_BUILD_ID}${dbLabel}`;
+  el.headlineDecision.textContent = status === 'holding_active_inventory' ? 'Manage active compounding inventory' : 'Monitor live state';
+  el.headlineReason.textContent = safe(live.operator_summary,
+    status === 'holding_active_inventory'
+      ? `Holding ${holdingAsset}${holdingUnits != null ? ` (${holdingUnits})` : ''} as active compounding inventory.`
+      : 'Waiting for live system truth.');
 
   el.headlineTradier.textContent = 'Tradier readiness';
   el.headlineTradierSub.textContent = 'Separate execution path';
@@ -71,12 +71,13 @@ function renderHQ(payload) {
     ? 'Active compounding inventory requires supervision'
     : 'No active risk detected';
 
-  el.directiveTitle.textContent = status === 'holding_active_inventory' ? 'Monitor compounding hold' : 'Stand by';
+  el.directiveTitle.textContent = status === 'holding_active_inventory' ? 'Manage compounding hold' : 'Stand by';
   el.directiveBadge.textContent = status === 'holding_active_inventory' ? 'ACTIVE HOLD' : 'MONITORING';
   el.directiveBadge.className = `decision-badge ${status === 'holding_active_inventory' ? 'badge-amber' : 'badge-amber'}`;
-  el.directiveCopy.textContent = status === 'holding_active_inventory'
-    ? `Deployed capital is in ${holdingAsset}. Focus on recycle and exit quality, not fresh entry.`
-    : 'Pulling live system truth.';
+  el.directiveCopy.textContent = safe(live.operator_focus,
+    status === 'holding_active_inventory'
+      ? `Deployed capital is in ${holdingAsset}. Focus on recycle and exit quality, not fresh entry.`
+      : 'Pulling live system truth.');
 
   el.miniTradierCapital.textContent = '--';
   el.miniBlocCapital.textContent = status === 'holding_active_inventory'
@@ -88,24 +89,32 @@ function renderHQ(payload) {
     <div class="ops-item">
       <div class="ops-item-head">
         <div class="ops-name">Bloc</div>
-        <div class="decision-badge badge-amber">LIVE</div>
+        <div class="decision-badge badge-amber">${safe(live.mode, 'live').toUpperCase()}</div>
       </div>
       <div class="ops-summary">${status === 'holding_active_inventory' ? `Holding ${holdingAsset} for managed recycle.` : 'Runtime connected.'}</div>
       <div class="kv">
         <div><span>State</span>${safe(status)}</div>
+        <div><span>Persistence</span>${safe(payload.persistence)}</div>
         <div><span>Holding</span>${holdingAsset}${holdingUnits != null ? ` ${holdingUnits}` : ''}</div>
         <div><span>Invested</span>${fmtMoney(invested)}</div>
         <div><span>Deployable</span>${fmtMoney(deployable)}</div>
+        <div><span>Wallet USDC</span>${fmtMoney(wallet.usdc)}</div>
       </div>
-      <div class="blocker"><strong>Operator focus:</strong> ${status === 'holding_active_inventory' ? 'Supervise exit and recycle conditions.' : 'Await live setup or funded state.'}</div>
+      <div class="blocker"><strong>Operator focus:</strong> ${safe(live.operator_focus, status === 'holding_active_inventory' ? 'Supervise exit and recycle conditions.' : 'Await live setup or funded state.')}</div>
     </div>
   `;
 
-  el.nextActions.innerHTML = `
-    <div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track ${holdingAsset} exposure and recycle path.</div></div>
-    <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Verify mark and units</strong>Confirm ${holdingUnits != null ? holdingUnits : '--'} units and ${fmtMoney(invested)} invested.</div></div>
-    <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Do not force new entry</strong>Compounding capital is deployed, not missing.</div></div>
-  `;
+  el.nextActions.innerHTML = status === 'holding_active_inventory'
+    ? `
+      <div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track ${holdingAsset} exposure and recycle path.</div></div>
+      <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Verify mark and units</strong>Confirm ${holdingUnits != null ? holdingUnits : '--'} units and ${fmtMoney(invested)} invested.</div></div>
+      <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Do not force new entry</strong>Compounding capital is deployed, not missing.</div></div>
+    `
+    : `
+      <div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Verify funded readiness</strong>Confirm deployable cash and runtime health before any new entry.</div></div>
+      <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Wait for valid edge</strong>No forced trade until signal quality clears mandate.</div></div>
+      <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Preserve capital discipline</strong>Stay flat until setup quality is real.</div></div>
+    `;
 
   if (positions.length) {
     el.positionsList.innerHTML = positions.map((pos) => `
