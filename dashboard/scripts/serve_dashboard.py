@@ -18,6 +18,7 @@ from session_capture import append_event
 from hq_repository import hq_repository
 import position_manager
 import trade_journal
+from eth_scalper import wallet_monitor
 from datetime import datetime
 
 def now_iso() -> str:
@@ -1013,7 +1014,6 @@ class Handler(SimpleHTTPRequestHandler):
         """Get ETH scalper bot status"""
         try:
             state_file = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
-            wallet_file = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
             if state_file.exists():
                 state = json.loads(state_file.read_text())
             else:
@@ -1022,7 +1022,8 @@ class Handler(SimpleHTTPRequestHandler):
                     'pnl': {'today': 0, 'total': 0},
                     'requests': {'used': 0, 'limit': 900}
                 }
-            wallet = json.loads(wallet_file.read_text()) if wallet_file.exists() else {}
+            current_wallet_data = wallet_monitor.get_all_balances()
+            wallet = current_wallet_data
             live_inventory = state.get('live_inventory') or {}
             reconciled_positions = state.get('reconciled_positions') or []
             invested_capital = float(live_inventory.get('invested_capital_usd') or 0.0)
@@ -1041,10 +1042,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _build_hq_live_payload(self):
         state_file = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
-        wallet_file = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
         positions_file = ROOT / 'eth_scalper' / 'state' / 'positions.json'
         state = json.loads(state_file.read_text()) if state_file.exists() else {}
-        wallet = json.loads(wallet_file.read_text()) if wallet_file.exists() else {}
+        current_wallet_data = wallet_monitor.get_all_balances()
+        wallet = current_wallet_data
         positions = json.loads(positions_file.read_text()) if positions_file.exists() else {'positions': []}
         live_inventory = state.get('live_inventory') or {}
         reconciled_positions = state.get('reconciled_positions') or []
@@ -1092,6 +1093,8 @@ class Handler(SimpleHTTPRequestHandler):
         compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if float(state.get('available_capital') or wallet.get('usdc', 0.0) or 0.0) > 0 else 'idle_unfunded')
         return {
             'source': 'serve_dashboard',
+            'build': 'HQv7-postgres-2026-04-19',
+            'persistence': 'postgresql' if hq_repository.enabled else 'memory-only',
             'updated_at': now_iso(),
             'live': {
                 'status': state.get('status', 'unknown'),

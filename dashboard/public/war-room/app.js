@@ -1,5 +1,6 @@
 const API_BASE = '';
 const POLL_INTERVAL = 5000;
+const HQ_BUILD_ID = 'HQv7-postgres-2026-04-19';
 
 const el = {
   asof: document.getElementById('asof'),
@@ -49,7 +50,9 @@ function renderHQ(payload) {
   const activePositions = Number(live.active_positions || (positions.length || 0));
   const status = safe(live.compounding_state, 'unknown');
 
-  el.asof.textContent = `Updated ${new Date().toLocaleString()} • HQv6`;
+  const sourceLabel = payload && payload.source ? ` • source ${payload.source}` : '';
+  const dbLabel = payload && payload.persistence ? ` • db ${payload.persistence}` : '';
+  el.asof.textContent = `Updated ${new Date().toLocaleString()} • ${HQ_BUILD_ID}${sourceLabel}${dbLabel}`;
   el.headlineDecision.textContent = status === 'holding_active_inventory' ? 'Monitor compounding hold' : 'Monitor live state';
   el.headlineReason.textContent = status === 'holding_active_inventory'
     ? `Holding ${holdingAsset}${holdingUnits != null ? ` (${holdingUnits})` : ''} as active compounding inventory.`
@@ -147,7 +150,7 @@ function renderHQ(payload) {
 
 async function pollData() {
   try {
-    const payload = await fetch(`${API_BASE}/api/hq/status`).then(r => r.json());
+    const payload = await fetch(`${API_BASE}/api/hq/status?build=${encodeURIComponent(HQ_BUILD_ID)}`, { cache: 'no-store' }).then(r => r.json());
     renderHQ(payload);
   } catch (err) {
     console.error('War Room HQ poll failed:', err);
