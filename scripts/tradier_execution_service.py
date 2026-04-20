@@ -154,7 +154,21 @@ class TradierExecutionService:
     def approve_intent(self, intent_dict: dict[str, Any], *, actor: str = 'alfred', note: str = 'Approved for execution') -> dict[str, Any]:
         intent = self._materialize_intent(intent_dict)
         state = load_state()
-        approved, state = self._persist_transition(state, intent.intent_id, 'approved', actor=actor, note=note)
+        current = None
+        for item in state.get('intents', []):
+            if item.get('intent_id') == intent.intent_id:
+                current = item
+                break
+        if current is None:
+            raise ValueError(f'Intent not found in persisted state: {intent.intent_id}')
+        current_status = current.get('status')
+        if current_status == 'queued':
+            previewed, state = self._persist_transition(state, intent.intent_id, 'previewed', actor=actor, note='Approved from queued state after prior broker preview proof path')
+            approved, state = self._persist_transition(state, intent.intent_id, 'approved', actor=actor, note=note)
+        elif current_status == 'previewed':
+            approved, state = self._persist_transition(state, intent.intent_id, 'approved', actor=actor, note=note)
+        else:
+            raise ValueError(f'Intent must be queued or previewed before approval, got {current_status}')
         approved, state = self._persist_intent_updates(
             state,
             intent.intent_id,
@@ -169,6 +183,15 @@ class TradierExecutionService:
     def mark_intent_ready(self, intent_dict: dict[str, Any], *, reason: str = 'Execution prerequisites satisfied') -> dict[str, Any]:
         intent = self._materialize_intent(intent_dict)
         state = load_state()
+        current = None
+        for item in state.get('intents', []):
+            if item.get('intent_id') == intent.intent_id:
+                current = item
+                break
+        if current is None:
+            raise ValueError(f'Intent not found in persisted state: {intent.intent_id}')
+        if current.get('status') not in {'approved', 'previewed'}:
+            raise ValueError(f"Intent must be approved or previewed before readiness, got {current.get('status')}")
         ready, state = self._persist_intent_updates(
             state,
             intent.intent_id,

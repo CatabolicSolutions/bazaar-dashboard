@@ -43,7 +43,7 @@ def require_env():
 
 
 def occ_option_symbol(symbol: str, expiry: str, option_type: str, strike: float) -> str:
-    root = symbol.upper().ljust(6)
+    root = symbol.upper().ljust(6).replace(' ', '')
     try:
         dt = datetime.strptime(expiry, '%Y-%m-%d')
     except ValueError:
@@ -51,7 +51,7 @@ def occ_option_symbol(symbol: str, expiry: str, option_type: str, strike: float)
     yymmdd = dt.strftime('%y%m%d')
     cp = 'C' if option_type.lower().startswith('c') else 'P'
     strike_int = int(round(float(strike) * 1000))
-    return f"{root}{yymmdd}{cp}{strike_int:08d}".replace(' ', '')
+    return f"{root}{yymmdd}{cp}{strike_int:08d}"
 
 
 def post_order(payload: dict, preview: bool = True):

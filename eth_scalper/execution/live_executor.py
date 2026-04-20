@@ -188,6 +188,57 @@ class LiveExecutor:
             return None
         return int.from_bytes(result[:32], 'big')
 
+    def pretrade_invariant_check(self, from_token: str, to_token: str, amount: int, slippage: float = None) -> Dict:
+        if not self.enabled:
+            return {'ok': False, 'reason': 'live_executor_disabled'}
+        try:
+            w3 = self._get_web3()
+            approve_response = requests.get(
+                f'{self.base_url}/approve/spender',
+                headers=self.headers,
+                timeout=15
+            )
+            spender = approve_response.json().get('address') if approve_response.ok else '0x1111111254eeb25477b68fb85ed929f73a960582'
+            allowance_result = self.ensure_allowance(from_token, spender, amount)
+            if not allowance_result or (allowance_result.get('status') == 0):
+                return {'ok': False, 'reason': 'allowance_check_failed', 'spender': spender, 'allowance_result': allowance_result}
+            params = {
+                'src': from_token,
+                'dst': to_token,
+                'amount': str(amount),
+                'from': WALLET_ADDRESS,
+                'slippage': slippage or MAX_SLIPPAGE_PERCENT,
+                'disableEstimate': 'false',
+                'allowPartialFill': 'false'
+            }
+            response = requests.get(
+                f'{self.base_url}/swap',
+                headers=self.headers,
+                params=params,
+                timeout=15
+            )
+            if response.status_code >= 400:
+                return {'ok': False, 'reason': f'swap_quote_http_{response.status_code}', 'spender': spender, 'body': response.text}
+            data = response.json()
+            tx = data.get('tx') or {}
+            min_receive = data.get('toAmount')
+            return {
+                'ok': True,
+                'wallet': WALLET_ADDRESS,
+                'chain': CHAIN_ID,
+                'token_in': from_token,
+                'token_out': to_token,
+                'spender': spender,
+                'allowance_result': allowance_result,
+                'quote_source': '1inch',
+                'slippage': slippage or MAX_SLIPPAGE_PERCENT,
+                'estimated_gas': tx.get('gas'),
+                'minimum_receive': min_receive,
+                'rpc_connected': w3.is_connected(),
+            }
+        except Exception as e:
+            return {'ok': False, 'reason': str(e)}
+
     def get_swap_data(
         self,
         from_token: str,
