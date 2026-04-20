@@ -1178,6 +1178,11 @@ class Handler(SimpleHTTPRequestHandler):
         updated_at = payload.get('updated_at') or now_iso()
         operator_summary = live.get('operator_summary') or 'Waiting for live system truth.'
         operator_focus = live.get('operator_focus') or 'Pulling live system truth.'
+        wallet_eth_price = wallet.get('eth_price_usd') or wallet.get('eth_price')
+        reality_feed = ('ETH ' + (f"${float(wallet_eth_price):.2f}" if wallet_eth_price not in (None, '', 'nan') else '--') + ' | Wallet ' + str(wallet.get('address') or '--'))
+        tradier_state = json.loads((ROOT / 'out' / 'tradier_account_state.json').read_text()) if (ROOT / 'out' / 'tradier_account_state.json').exists() else {}
+        tradier_buying_power = tradier_state.get('balances', {}).get('total_cash') or tradier_state.get('balances', {}).get('cash_available') or tradier_state.get('buying_power')
+        tradier_status = 'Ready' if tradier_buying_power not in (None, '', 0, 0.0, '0') else 'Idle'
 
         def esc(value):
             text = '' if value is None else str(value)
@@ -1190,13 +1195,19 @@ class Handler(SimpleHTTPRequestHandler):
                 return '--'
 
         positions_html = ''.join([
-            f'''<div class="position-row"><div class="position-top"><div>{esc((pos.get('asset') or holding_asset))} HOLD</div><div>{money(invested)}</div></div><div class="meta-row"><span>Units: {esc(pos.get('units') if pos.get('units') is not None else holding_units if holding_units is not None else '--')}</span><span>Status: {esc(pos.get('status') or status)}</span><span>Source: {esc(pos.get('source') or 'wallet_truth')}</span></div></div>'''
+            f'''<div class="position-row"><div class="position-top"><div>{esc((pos.get('asset') or holding_asset))} HOLD</div><div>{money(invested)}</div></div><div class="meta-row"><span>Units: {esc(pos.get('units') if pos.get('units') is not None else holding_units if holding_units is not None else '--')}</span><span>Status: {esc('active compounding inventory' if (pos.get('status') or status) == 'holding_active_inventory' else (pos.get('status') or status).replace('_',' '))}</span><span>Source: {esc('inventory reconciliation' if (pos.get('source') or 'wallet_truth') in {'inventory_reconciliation','wallet_truth'} else (pos.get('source') or 'wallet truth').replace('_',' '))}</span></div></div>'''
             for pos in positions
-        ]) or f'''<div class="position-row"><div class="position-top"><div>{esc(holding_asset)} HOLD</div><div>{money(invested)}</div></div><div class="meta-row"><span>Units: {esc(holding_units if holding_units is not None else '--')}</span><span>Status: {esc(status)}</span><span>Source: wallet truth</span></div></div>'''
+        ]) or f'''<div class="position-row"><div class="position-top"><div>{esc(holding_asset)} HOLD</div><div>{money(invested)}</div></div><div class="meta-row"><span>Units: {esc(holding_units if holding_units is not None else '--')}</span><span>Status: {esc('active compounding inventory' if status == 'holding_active_inventory' else status.replace('_',' '))}</span><span>Source: wallet truth</span></div></div>'''
 
+        derived_events = []
+        if status == 'holding_active_inventory':
+            derived_events.append({'title': 'Active inventory detected', 'created_at': updated_at, 'event_type': 'inventory', 'severity': 'info'})
+        if persistence == 'postgresql':
+            derived_events.append({'title': 'PostgreSQL persistence live', 'created_at': updated_at, 'event_type': 'persistence', 'severity': 'info'})
+        merged_events = (events or [])[:8] or derived_events
         events_html = ''.join([
-            f'''<div class="activity-row"><div class="activity-top"><div>{esc(row.get('title'))}</div><div>{esc(row.get('created_at'))}</div></div><div class="meta-row"><span>{esc(row.get('event_type'))}</span><span>{esc(row.get('severity'))}</span></div></div>'''
-            for row in events
+            f'''<div class="activity-row"><div class="activity-top"><div>{esc(row.get('title'))}</div><div>{esc(row.get('created_at'))}</div></div><div class="meta-row"><span>{esc((row.get('event_type') or '').replace('_',' '))}</span><span>{esc(row.get('severity'))}</span></div></div>'''
+            for row in merged_events
         ]) or '<div class="activity-empty">No recent HQ events available.</div>'
 
         next_actions_html = (
@@ -1233,7 +1244,7 @@ class Handler(SimpleHTTPRequestHandler):
             </div>
             <div class="status-strip">
                 <div class="pill-card"><div class="pill-label">Primary Decision</div><div class="pill-value">{esc('Manage active compounding inventory' if status == 'holding_active_inventory' else 'Monitor live state')}</div><div class="pill-sub">{esc(operator_summary)}</div></div>
-                <div class="pill-card"><div class="pill-label">Tradier Readiness</div><div class="pill-value mono">Tradier readiness</div><div class="pill-sub">Separate execution path</div></div>
+                <div class="pill-card"><div class="pill-label">Tradier Readiness</div><div class="pill-value mono">{esc(tradier_status)}</div><div class="pill-sub">{esc((money(tradier_buying_power) + ' buying power') if tradier_buying_power not in (None, '', 0, 0.0, '0') else 'Separate execution path')}</div></div>
                 <div class="pill-card"><div class="pill-label">Bloc Readiness</div><div class="pill-value mono">{esc('Holding active inventory' if status == 'holding_active_inventory' else 'Bloc runtime')}</div><div class="pill-sub">{esc(holding_asset + ' | ' + money(invested) + ' invested' if status == 'holding_active_inventory' else money(deployable) + ' deployable')}</div></div>
                 <div class="pill-card"><div class="pill-label">Live Exposure</div><div class="pill-value mono">{esc(str(active_positions) + (' position' if active_positions == 1 else ' positions'))}</div><div class="pill-sub">{esc('Active compounding inventory requires supervision' if status == 'holding_active_inventory' else 'No active risk detected')}</div></div>
             </div>
@@ -1243,7 +1254,7 @@ class Handler(SimpleHTTPRequestHandler):
                 <div class="decision-grid">
                     <div class="mini-stat"><div class="label">Tradier capital</div><div class="value mono">--</div></div>
                     <div class="mini-stat"><div class="label">Bloc capital</div><div class="value mono">{esc((money(invested) + ' in ' + holding_asset) if status == 'holding_active_inventory' else money(deployable))}</div></div>
-                    <div class="mini-stat"><div class="label">Reality feed</div><div class="value mono">{esc('ETH ' + money(wallet.get('eth_price_usd') or wallet.get('eth_price') or 'nan') + ' | Wallet ' + str(wallet.get('address') or '--'))}</div></div>
+                    <div class="mini-stat"><div class="label">Reality feed</div><div class="value mono">{esc(reality_feed)}</div></div>
                 </div>
             </div>
         </section>
