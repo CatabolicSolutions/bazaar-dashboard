@@ -47,16 +47,18 @@ function renderHQ(payload) {
   const holdingUnits = live.holding_units;
   const invested = Number(live.invested_capital_usd || 0);
   const deployable = Number(live.deployable_capital_usd || 0);
-  const activePositions = Number(live.active_positions || (positions.length || 0));
+  const activePositions = Number(live.active_positions || positions.length || 0);
   const status = safe(live.compounding_state, 'unknown');
 
   const dbLabel = payload && payload.persistence ? ` • db ${payload.persistence}` : '';
   el.asof.textContent = `Updated ${new Date().toLocaleString()} • ${HQ_BUILD_ID}${dbLabel}`;
   el.headlineDecision.textContent = status === 'holding_active_inventory' ? 'Manage active compounding inventory' : 'Monitor live state';
-  el.headlineReason.textContent = safe(live.operator_summary,
+  el.headlineReason.textContent = safe(
+    live.operator_summary,
     status === 'holding_active_inventory'
       ? `Holding ${holdingAsset}${holdingUnits != null ? ` (${holdingUnits})` : ''} as active compounding inventory.`
-      : 'Waiting for live system truth.');
+      : 'Waiting for live system truth.'
+  );
 
   el.headlineTradier.textContent = 'Tradier readiness';
   el.headlineTradierSub.textContent = 'Separate execution path';
@@ -66,18 +68,20 @@ function renderHQ(payload) {
     ? `${holdingAsset} • ${fmtMoney(invested)} invested`
     : `${fmtMoney(deployable)} deployable`;
 
-  el.headlineExposure.textContent = `${activePositions || 0} ${(activePositions || 0) === 1 ? 'position' : 'positions'}`;
+  el.headlineExposure.textContent = `${activePositions} ${activePositions === 1 ? 'position' : 'positions'}`;
   el.headlineExposureSub.textContent = status === 'holding_active_inventory'
     ? 'Active compounding inventory requires supervision'
     : 'No active risk detected';
 
   el.directiveTitle.textContent = status === 'holding_active_inventory' ? 'Manage compounding hold' : 'Stand by';
   el.directiveBadge.textContent = status === 'holding_active_inventory' ? 'ACTIVE HOLD' : 'MONITORING';
-  el.directiveBadge.className = `decision-badge ${status === 'holding_active_inventory' ? 'badge-amber' : 'badge-amber'}`;
-  el.directiveCopy.textContent = safe(live.operator_focus,
+  el.directiveBadge.className = 'decision-badge badge-amber';
+  el.directiveCopy.textContent = safe(
+    live.operator_focus,
     status === 'holding_active_inventory'
       ? `Deployed capital is in ${holdingAsset}. Focus on recycle and exit quality, not fresh entry.`
-      : 'Pulling live system truth.');
+      : 'Pulling live system truth.'
+  );
 
   el.miniTradierCapital.textContent = '--';
   el.miniBlocCapital.textContent = status === 'holding_active_inventory'
@@ -159,7 +163,7 @@ function renderHQ(payload) {
 
 async function pollData() {
   try {
-    const payload = await fetch(`${API_BASE}/api/hq/status?build=${encodeURIComponent(HQ_BUILD_ID)}`, { cache: 'no-store' }).then(r => r.json());
+    const payload = await fetch(`${API_BASE}/api/hq/status?build=${encodeURIComponent(HQ_BUILD_ID)}`, { cache: 'no-store' }).then((r) => r.json());
     renderHQ(payload);
   } catch (err) {
     console.error('War Room HQ poll failed:', err);
