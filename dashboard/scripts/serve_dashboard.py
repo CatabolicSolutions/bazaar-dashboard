@@ -1276,6 +1276,8 @@ class Handler(SimpleHTTPRequestHandler):
         war_room_html = (ROOT / 'dashboard' / 'public' / 'war-room' / 'index.html').read_text()
         war_room_style = war_room_html.split('<style>', 1)[1].split('</style>', 1)[0]
 
+        hq_lesson_copy = "Yesterday's lesson: the old dashboard kept drifting into disconnected UI, stale routes, and runtime mismatch. HQ now stays decision-first, with SQL called out explicitly and legacy UI isolated behind /legacy."
+
         html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1308,7 +1310,7 @@ class Handler(SimpleHTTPRequestHandler):
             <div class="decision">
                 <div class="decision-head"><div><div class="eyebrow">Operator directive</div><div class="decision-title">{esc('Manage compounding hold' if status == 'holding_active_inventory' else 'Stand by')}</div></div><div class="decision-badge badge-amber">{esc('ACTIVE HOLD' if status == 'holding_active_inventory' else 'MONITORING')}</div></div>
                 <div class="decision-copy">{esc(primary_directive)}</div>
-                <div class="pill-sub">{esc('Yesterday\'s lesson: the old dashboard kept drifting into disconnected UI, stale routes, and runtime mismatch. HQ now stays decision-first, with SQL called out explicitly and legacy UI isolated behind /legacy.')}</div>
+                <div class="pill-sub">{esc(hq_lesson_copy)}</div>
                 <div class="decision-grid">
                     <div class="mini-stat"><div class="label">Tradier capital</div><div class="value mono">--</div></div>
                     <div class="mini-stat"><div class="label">Bloc capital</div><div class="value mono">{esc((money(invested) + ' in ' + holding_asset) if status == 'holding_active_inventory' else money(deployable))}</div></div>
