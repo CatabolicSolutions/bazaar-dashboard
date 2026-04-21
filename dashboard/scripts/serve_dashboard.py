@@ -1072,12 +1072,81 @@ class Handler(SimpleHTTPRequestHandler):
 
         tradier_state_path = ROOT / 'out' / 'tradier_account_state.json'
         tradier_state = json.loads(tradier_state_path.read_text()) if tradier_state_path.exists() else {}
-        tradier_balances = tradier_state.get('balances', {}) if isinstance(tradier_state, dict) else {}
-        tradier_buying_power = tradier_balances.get('total_cash') or tradier_balances.get('cash_available') or tradier_state.get('buying_power') or 0.0
+        tradier_buying_power = (
+            tradier_state.get('option_buying_power')
+            or tradier_state.get('cash_available')
+            or tradier_state.get('total_cash')
+            or (tradier_state.get('balances', {}) if isinstance(tradier_state.get('balances', {}), dict) else {}).get('total_cash')
+            or (tradier_state.get('balances', {}) if isinstance(tradier_state.get('balances', {}), dict) else {}).get('cash_available')
+            or tradier_state.get('buying_power')
+            or 0.0
+        )
         tradier_positions = tradier_state.get('positions') or []
         tradier_orders = tradier_state.get('orders') or []
-        tradier_ready = float(tradier_buying_power or 0.0) > 0
-        tradier_blocker = None if tradier_ready else 'No Tradier buying power detected.'
+        tradier_ready = bool(tradier_state.get('ready_for_options_execution')) or float(tradier_buying_power or 0.0) > 0
+        tradier_blockers = tradier_state.get('blockers') or []
+        tradier_blocker = None if tradier_ready else (tradier_blockers[0] if tradier_blockers else 'No Tradier buying power detected.')
+
+        def parse_iso(value):
+            if not value:
+                return None
+            try:
+                return datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+            except Exception:
+                return None
+
+        now_dt = datetime.now(timezone.utc)
+        tradier_last_checked_at = parse_iso(tradier_state.get('checked_at'))
+        tradier_last_audit_ts = None
+        tradier_last_fill_ts = None
+        tradier_last_preview_ts = None
+        tradier_audit_path = ROOT / 'out' / 'tradier_execution_audit.jsonl'
+        if tradier_audit_path.exists():
+            for line in tradier_audit_path.read_text(errors='ignore').splitlines()[-300:]:
+                try:
+                    row = json.loads(line)
+                except Exception:
+                    continue
+                ts = parse_iso(row.get('ts'))
+                action = str(row.get('action') or '').lower()
+                if ts and (tradier_last_audit_ts is None or ts > tradier_last_audit_ts):
+                    tradier_last_audit_ts = ts
+                if action == 'preview' and ts and (tradier_last_preview_ts is None or ts > tradier_last_preview_ts):
+                    tradier_last_preview_ts = ts
+                response = row.get('response') or {}
+                order = (response.get('orders') or {}).get('order') if isinstance(response.get('orders'), dict) else response.get('order')
+                if isinstance(order, dict):
+                    status_text = str(order.get('status') or '').lower()
+                    tx_ts = parse_iso(order.get('transaction_date') or order.get('create_date')) or ts
+                    if status_text == 'filled' and tx_ts and (tradier_last_fill_ts is None or tx_ts > tradier_last_fill_ts):
+                        tradier_last_fill_ts = tx_ts
+
+        bloc_state_updated_at = parse_iso(state.get('updated_at'))
+        bloc_last_trade_ts = None
+        bloc_trades_path = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
+        if bloc_trades_path.exists():
+            for line in bloc_trades_path.read_text(errors='ignore').splitlines()[-300:]:
+                try:
+                    row = json.loads(line)
+                except Exception:
+                    continue
+                message = str(row.get('message') or '').lower()
+                ts = parse_iso(row.get('timestamp'))
+                if not ts:
+                    continue
+                if any(term in message for term in ['buy', 'sell', 'swap', 'filled', 'executed', 'submitted trade']):
+                    if bloc_last_trade_ts is None or ts > bloc_last_trade_ts:
+                        bloc_last_trade_ts = ts
+
+        def age_hours(dt):
+            if not dt:
+                return None
+            return round((now_dt - dt.astimezone(timezone.utc)).total_seconds() / 3600.0, 2)
+
+        tradier_stale = (age_hours(tradier_last_fill_ts or tradier_last_preview_ts or tradier_last_audit_ts or tradier_last_checked_at) or 999) >= 24
+        bloc_stale = (age_hours(bloc_last_trade_ts or bloc_state_updated_at) or 999) >= 24
+        zero_action_today = (state.get('daily_trades') or 0) == 0 and tradier_last_fill_ts is None
+        action_required = tradier_stale and bloc_stale and zero_action_today
 
         cleaned_positions = []
         for pos in reconciled_positions:
@@ -1114,12 +1183,22 @@ class Handler(SimpleHTTPRequestHandler):
             deployable_capital = float(state.get('available_capital') or wallet_usdc or 0.0)
         compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if deployable_capital > 0 else 'idle_unfunded')
         primary_directive = (
-            'Manage active Bloc inventory and avoid forcing fresh exposure.'
-            if compounding_state == 'holding_active_inventory'
-            else ('Tradier is funded. Hunt only clean, high-clarity setups.' if tradier_ready else 'Stay flat. Restore readiness and wait for valid edge.')
+            'Action required, both engines are stale and no realized behavior is visible.'
+            if action_required
+            else (
+                'Manage active Bloc inventory and avoid forcing fresh exposure.'
+                if compounding_state == 'holding_active_inventory'
+                else ('Tradier is funded. Hunt only clean, high-clarity setups.' if tradier_ready else 'Stay flat. Restore readiness and wait for valid edge.')
+            )
         )
         next_actions = []
-        if compounding_state == 'holding_active_inventory':
+        if action_required:
+            next_actions = [
+                {'title': 'Acknowledge zero-action state', 'detail': 'Both engines are stale. Treat inactivity itself as the operational failure.'},
+                {'title': 'Force Tradier diagnosis', 'detail': f'Last Tradier fill/attempt is stale. Buying power currently shows ${float(tradier_buying_power or 0.0):.2f}.'},
+                {'title': 'Force Bloc diagnosis', 'detail': 'Bloc has not produced a recent trade. Verify trigger logic, runtime freshness, and execution path.'},
+            ]
+        elif compounding_state == 'holding_active_inventory':
             next_actions = [
                 {'title': 'Supervise active inventory', 'detail': f'{holding_asset or "Inventory"} is deployed. Focus on recycle path, not fresh entry.'},
                 {'title': 'Verify live mark and invalidation', 'detail': 'Confirm current mark, target, and stop before adding any new risk.'},
@@ -1151,14 +1230,22 @@ class Handler(SimpleHTTPRequestHandler):
                 'deployable_capital_usd': round(deployable_capital, 2),
                 'invested_capital_usd': round(invested_capital, 2),
                 'operator_summary': (
-                    f'Holding {holding_asset} inventory, manage recycle and exit quality.'
-                    if compounding_state == 'holding_active_inventory' and holding_asset
-                    else ('Deployable cash available for next entry.' if deployable_capital > 0 else 'No funded deployable state detected.')
+                    'Both engines are stale and no realized action is visible.'
+                    if action_required
+                    else (
+                        f'Holding {holding_asset} inventory, manage recycle and exit quality.'
+                        if compounding_state == 'holding_active_inventory' and holding_asset
+                        else ('Deployable cash available for next entry.' if deployable_capital > 0 else 'No funded deployable state detected.')
+                    )
                 ),
                 'operator_focus': (
-                    'Supervise live inventory, protect gains, and recycle only on valid edge.'
-                    if compounding_state == 'holding_active_inventory'
-                    else ('Wait for valid edge and funded conditions.' if deployable_capital > 0 else 'Restore funding or runtime prerequisites.')
+                    'Intervene directly, stale systems should not be allowed to masquerade as healthy.'
+                    if action_required
+                    else (
+                        'Supervise live inventory, protect gains, and recycle only on valid edge.'
+                        if compounding_state == 'holding_active_inventory'
+                        else ('Wait for valid edge and funded conditions.' if deployable_capital > 0 else 'Restore funding or runtime prerequisites.')
+                    )
                 ),
                 'primary_directive': primary_directive,
                 'next_actions': next_actions,
@@ -1166,6 +1253,24 @@ class Handler(SimpleHTTPRequestHandler):
                 'active_positions': len(cleaned_positions) or (1 if compounding_state == 'holding_active_inventory' else 0),
                 'positions': cleaned_positions,
                 'reconciled_positions': cleaned_positions,
+                'action_required': action_required,
+                'scoreboard': {
+                    'tradier_fills_today': 0 if tradier_last_fill_ts is None or tradier_last_fill_ts.date() != now_dt.date() else 1,
+                    'tradier_previews_today': 0 if tradier_last_preview_ts is None or tradier_last_preview_ts.date() != now_dt.date() else 1,
+                    'bloc_trades_today': int(state.get('daily_trades') or 0),
+                    'realized_actions_today': (0 if tradier_last_fill_ts is None or tradier_last_fill_ts.date() != now_dt.date() else 1) + int(state.get('daily_trades') or 0),
+                },
+                'freshness': {
+                    'tradier_last_checked_at': tradier_last_checked_at.isoformat() if tradier_last_checked_at else None,
+                    'tradier_last_preview_at': tradier_last_preview_ts.isoformat() if tradier_last_preview_ts else None,
+                    'tradier_last_fill_at': tradier_last_fill_ts.isoformat() if tradier_last_fill_ts else None,
+                    'tradier_age_hours': age_hours(tradier_last_fill_ts or tradier_last_preview_ts or tradier_last_audit_ts or tradier_last_checked_at),
+                    'tradier_stale': tradier_stale,
+                    'bloc_last_trade_at': bloc_last_trade_ts.isoformat() if bloc_last_trade_ts else None,
+                    'bloc_last_state_at': bloc_state_updated_at.isoformat() if bloc_state_updated_at else None,
+                    'bloc_age_hours': age_hours(bloc_last_trade_ts or bloc_state_updated_at),
+                    'bloc_stale': bloc_stale,
+                },
                 'tradier': {
                     'ready': tradier_ready,
                     'status': 'ready' if tradier_ready else 'idle',
@@ -1212,6 +1317,9 @@ class Handler(SimpleHTTPRequestHandler):
         positions = live.get('positions') or []
         events = payload.get('events') or []
         tradier = live.get('tradier') or {}
+        freshness = live.get('freshness') or {}
+        scoreboard = live.get('scoreboard') or {}
+        action_required = bool(live.get('action_required'))
         next_actions_data = live.get('next_actions') or []
         holding_asset = live.get('holding_asset') or 'Inventory'
         holding_units = live.get('holding_units')
@@ -1230,6 +1338,16 @@ class Handler(SimpleHTTPRequestHandler):
         tradier_status = 'Ready' if tradier.get('ready') else 'Idle'
         sql_status = 'PostgreSQL live' if persistence == 'postgresql' else 'Memory only'
         sql_detail = 'HQ snapshots and events are being persisted.' if persistence == 'postgresql' else 'DATABASE_URL/SQLAlchemy path not live, so HQ history is transient.'
+        tradier_age = freshness.get('tradier_age_hours')
+        bloc_age = freshness.get('bloc_age_hours')
+
+        def age_label(hours):
+            if hours is None:
+                return 'unknown'
+            try:
+                return f'{float(hours):.1f}h ago'
+            except Exception:
+                return 'unknown'
 
         def esc(value):
             text = '' if value is None else str(value)
@@ -1277,6 +1395,8 @@ class Handler(SimpleHTTPRequestHandler):
         war_room_style = war_room_html.split('<style>', 1)[1].split('</style>', 1)[0]
 
         hq_lesson_copy = "Yesterday's lesson: the old dashboard kept drifting into disconnected UI, stale routes, and runtime mismatch. HQ now stays decision-first, with SQL called out explicitly and legacy UI isolated behind /legacy."
+        action_banner_html = f'''<section class="card section" style="border:1px solid rgba(239,68,68,0.45); background:rgba(127,29,29,0.24);"><div class="section-head"><div><div class="section-title">Action required</div><div class="section-sub">Inactivity is now a surfaced failure state</div></div></div><div class="blocker"><strong>Both engines are stale.</strong> Tradier freshness: {esc(age_label(tradier_age))}. Bloc freshness: {esc(age_label(bloc_age))}. Realized actions today: {esc(str(scoreboard.get('realized_actions_today', 0)))}.</div></section>''' if action_required else ''
+        scoreboard_html = f'''<section class="card section"><div class="section-head"><div><div class="section-title">Execution scoreboard</div><div class="section-sub">Today, not vibes</div></div></div><div class="ops-item"><div class="kv"><div><span>Tradier fills</span>{esc(scoreboard.get('tradier_fills_today', 0))}</div><div><span>Tradier previews</span>{esc(scoreboard.get('tradier_previews_today', 0))}</div><div><span>Bloc trades</span>{esc(scoreboard.get('bloc_trades_today', 0))}</div><div><span>Realized actions</span>{esc(scoreboard.get('realized_actions_today', 0))}</div><div><span>Tradier freshness</span>{esc(age_label(tradier_age))}</div><div><span>Bloc freshness</span>{esc(age_label(bloc_age))}</div></div></div></section>'''
 
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -1291,6 +1411,7 @@ class Handler(SimpleHTTPRequestHandler):
 </head>
 <body>
     <div class="shell">
+        {action_banner_html}
         <section class="card hero">
             <div class="hero-top">
                 <div>
@@ -1312,7 +1433,7 @@ class Handler(SimpleHTTPRequestHandler):
                 <div class="decision-copy">{esc(primary_directive)}</div>
                 <div class="pill-sub">{esc(hq_lesson_copy)}</div>
                 <div class="decision-grid">
-                    <div class="mini-stat"><div class="label">Tradier capital</div><div class="value mono">--</div></div>
+                    <div class="mini-stat"><div class="label">Tradier capital</div><div class="value mono">{money(tradier_buying_power)}</div></div>
                     <div class="mini-stat"><div class="label">Bloc capital</div><div class="value mono">{esc((money(invested) + ' in ' + holding_asset) if status == 'holding_active_inventory' else money(deployable))}</div></div>
                     <div class="mini-stat"><div class="label">Reality feed</div><div class="value mono">{esc(reality_feed)}</div></div>
                 </div>
@@ -1325,6 +1446,7 @@ class Handler(SimpleHTTPRequestHandler):
             </div>
             <div class="stack">
                 <section class="card section"><div class="section-head"><div><div class="section-title">Next best actions</div><div class="section-sub">What to do next, in order</div></div></div><div class="next-action-list"><div class="next-action"><div class="num">0</div><div class="action-copy"><strong>Landing principle</strong>HQ is the decision-first landing page. War Room remains the live operator shell. Legacy dashboard is still available, but no longer owns first impression.</div></div>{next_actions_html}</div></section>
+                {scoreboard_html}
                 <section class="card section"><div class="section-head"><div><div class="section-title">Recent activity</div><div class="section-sub">Latest execution and journal trail</div></div></div><div class="activity-list">{events_html}</div></section>
                 <section class="card section"><div class="section-head"><div><div class="section-title">Operator notes</div><div class="section-sub">Surface intent, not clutter</div></div></div><div class="ops-item"><div class="ops-summary">Root now serves HQ-first operator truth. Old dashboard remains available at <span class="mono">/legacy</span>.</div><div class="kv"><div><span>Build</span>{esc(payload.get('build'))}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Route</span>/</div><div><span>Legacy</span>/legacy</div></div></div><div class="ops-item" style="margin-top:10px;"><div class="ops-summary">Use this page for real decisions: capital, blockers, active inventory, and next action. If a view does not change behavior, it should probably die.</div></div></section>
             </div>
