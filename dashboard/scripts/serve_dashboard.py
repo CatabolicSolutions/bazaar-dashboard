@@ -816,11 +816,25 @@ class Handler(SimpleHTTPRequestHandler):
             tradier_refresh_error = None
             bloc_state = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
             wallet_state = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+            trades_log = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
+            bloc_state_data = self.read_json(bloc_state, {}) if bloc_state.exists() else {}
+            wallet_state_data = self.read_json(wallet_state, {}) if wallet_state.exists() else {}
+            last_trade_timestamp = None
+            if trades_log.exists():
+                try:
+                    last_line = trades_log.read_text(errors='ignore').splitlines()[-1]
+                    last_trade_timestamp = json.loads(last_line).get('timestamp') if last_line else None
+                except Exception:
+                    last_trade_timestamp = None
             bloc_snapshot = {
                 'bot_state_exists': bloc_state.exists(),
                 'wallet_exists': wallet_state.exists(),
-                'bot_state_updated_at': self.read_json(bloc_state, {}).get('updated_at') if bloc_state.exists() else None,
-                'wallet_address': self.read_json(wallet_state, {}).get('address') if wallet_state.exists() else None,
+                'bot_state_updated_at': bloc_state_data.get('updated_at'),
+                'wallet_updated_at': wallet_state_data.get('updated_at'),
+                'wallet_address': wallet_state_data.get('address'),
+                'last_trade_timestamp': last_trade_timestamp,
+                'status': bloc_state_data.get('status'),
+                'mode': bloc_state_data.get('mode'),
             }
 
             try:
@@ -2096,15 +2110,27 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json_response(200, {'ok': refresh_error is None, 'message': message, 'checked_at': checked_at, 'refresh_error': refresh_error, 'state': tradier_state})
             elif command == 'diagnose_bloc':
                 wallet_path = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+                trades_log = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
                 wallet = json.loads(wallet_path.read_text()) if wallet_path.exists() else {}
                 bot_updated_at = state.get('updated_at', 'unknown')
+                wallet_updated_at = wallet.get('updated_at', 'unknown')
                 wallet_address = wallet.get('address', 'unknown')
                 usdc = wallet.get('usdc', 0)
                 eth = wallet.get('eth', 0)
                 gas = wallet.get('gas', 0)
-                message = f'Bloc status={state.get("status", "unknown")}, mode={state.get("mode", "unknown")}, daily_trades={state.get("daily_trades", 0)}, bot_updated_at={bot_updated_at}, usdc={usdc}, eth={eth}, gas={gas}, wallet={wallet_address}'
-                hq_repository.append_event('operator_command', 'Bloc diagnosis run', message, 'info', {'command': command, 'bot_updated_at': bot_updated_at, 'wallet': wallet_address})
-                return self.json_response(200, {'ok': True, 'message': message, 'bot_updated_at': bot_updated_at, 'wallet': wallet, 'bot_state': state})
+                last_trade_timestamp = 'unknown'
+                last_trade_message = 'none'
+                if trades_log.exists():
+                    try:
+                        last_line = trades_log.read_text(errors='ignore').splitlines()[-1]
+                        last_trade = json.loads(last_line) if last_line else {}
+                        last_trade_timestamp = last_trade.get('timestamp', 'unknown')
+                        last_trade_message = last_trade.get('message', 'none')
+                    except Exception:
+                        pass
+                message = f'Bloc status={state.get("status", "unknown")}, mode={state.get("mode", "unknown")}, daily_trades={state.get("daily_trades", 0)}, bot_updated_at={bot_updated_at}, wallet_updated_at={wallet_updated_at}, last_trade={last_trade_timestamp}, usdc={usdc}, eth={eth}, gas={gas}, wallet={wallet_address}'
+                hq_repository.append_event('operator_command', 'Bloc diagnosis run', message, 'info', {'command': command, 'bot_updated_at': bot_updated_at, 'wallet_updated_at': wallet_updated_at, 'last_trade_timestamp': last_trade_timestamp, 'wallet': wallet_address})
+                return self.json_response(200, {'ok': True, 'message': message, 'bot_updated_at': bot_updated_at, 'wallet_updated_at': wallet_updated_at, 'last_trade_timestamp': last_trade_timestamp, 'last_trade_message': last_trade_message, 'wallet': wallet, 'bot_state': state})
             elif command == 'pause_tradier':
                 hq_repository.append_event('operator_command', 'Tradier pause requested', 'Tradier pause command recorded for operator review.', 'warning', {'command': command})
                 return self.json_response(200, {'ok': True, 'message': 'Tradier pause request recorded'})
