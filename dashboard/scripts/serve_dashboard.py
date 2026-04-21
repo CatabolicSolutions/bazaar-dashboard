@@ -1181,6 +1181,9 @@ class Handler(SimpleHTTPRequestHandler):
                         tradier_last_fill_ts = tx_ts
 
         bloc_state_updated_at = parse_iso(state.get('updated_at'))
+        wallet_state_path = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+        wallet_state = json.loads(wallet_state_path.read_text()) if wallet_state_path.exists() else {}
+        bloc_wallet_updated_at = parse_iso(wallet_state.get('updated_at'))
         bloc_last_trade_ts = None
         bloc_trades_path = ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl'
         if bloc_trades_path.exists():
@@ -1202,8 +1205,9 @@ class Handler(SimpleHTTPRequestHandler):
                 return None
             return round((now_dt - dt.astimezone(timezone.utc)).total_seconds() / 3600.0, 2)
 
+        bloc_runtime_ts = max([dt for dt in [bloc_state_updated_at, bloc_wallet_updated_at] if dt is not None], default=None)
         tradier_stale = (age_hours(tradier_last_fill_ts or tradier_last_preview_ts or tradier_last_audit_ts or tradier_last_checked_at) or 999) >= 24
-        bloc_stale = (age_hours(bloc_last_trade_ts or bloc_state_updated_at) or 999) >= 24
+        bloc_stale = (age_hours(bloc_runtime_ts) or 999) >= 24
         zero_action_today = (state.get('daily_trades') or 0) == 0 and tradier_last_fill_ts is None
         action_required = tradier_stale and bloc_stale and zero_action_today
 
@@ -1292,7 +1296,7 @@ class Handler(SimpleHTTPRequestHandler):
                     'Both engines are stale and no realized action is visible.'
                     if action_required
                     else (
-                        f'Holding {holding_asset} inventory, manage recycle and exit quality.'
+                        f'Holding {holding_asset} inventory, service live, manage recycle and exit quality.'
                         if compounding_state == 'holding_active_inventory' and holding_asset
                         else ('Deployable cash available for next entry.' if deployable_capital > 0 else 'No funded deployable state detected.')
                     )
