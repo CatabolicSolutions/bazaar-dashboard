@@ -812,6 +812,33 @@ class Handler(SimpleHTTPRequestHandler):
                 self.write_json(REFRESH_STATUS_STATE, status)
                 return self.json_response(504, {'ok': False, 'error': status['message'], 'data': status})
 
+            tradier_refresh = None
+            tradier_refresh_error = None
+            bloc_state = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
+            wallet_state = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+            bloc_snapshot = {
+                'bot_state_exists': bloc_state.exists(),
+                'wallet_exists': wallet_state.exists(),
+                'bot_state_updated_at': self.read_json(bloc_state, {}).get('updated_at') if bloc_state.exists() else None,
+                'wallet_address': self.read_json(wallet_state, {}).get('address') if wallet_state.exists() else None,
+            }
+
+            try:
+                tradier_proc = subprocess.run(
+                    ['python3', str(ROOT / 'scripts' / 'tradier_account.py'), 'ready'],
+                    cwd=str(ROOT),
+                    capture_output=True,
+                    text=True,
+                    timeout=45,
+                    env=os.environ,
+                )
+                if tradier_proc.returncode == 0:
+                    tradier_refresh = json.loads(tradier_proc.stdout or '{}')
+                else:
+                    tradier_refresh_error = (tradier_proc.stderr or tradier_proc.stdout or 'tradier account refresh failed').strip()[-400:]
+            except Exception as exc:
+                tradier_refresh_error = str(exc)
+
             if proc.returncode == 0:
                 self.refresh_snapshot()
                 status = self._canonical_refresh_payload(
@@ -819,18 +846,28 @@ class Handler(SimpleHTTPRequestHandler):
                     stage='complete',
                     message='Manual refresh completed',
                     stdout_tail=proc.stdout or '',
-                    stderr_tail=proc.stderr or '',
+                    stderr_tail=((proc.stderr or '') + ('\n' + tradier_refresh_error if tradier_refresh_error else '')),
                 )
+                if tradier_refresh is not None:
+                    status['tradierAccount'] = tradier_refresh
+                if tradier_refresh_error:
+                    status['tradierRefreshError'] = tradier_refresh_error
+                status['blocSnapshot'] = bloc_snapshot
                 self.write_json(REFRESH_STATUS_STATE, status)
-                return self.json_response(200, {'ok': True, 'data': status})
+                return self.json_response(200, {'ok': True, 'data': status, 'message': status['message']})
 
             status = self._canonical_refresh_payload(
                 ok=False,
                 stage='failed',
                 message=((proc.stderr or proc.stdout or 'Manual refresh failed').strip()[-400:]) or 'Manual refresh failed',
                 stdout_tail=proc.stdout or '',
-                stderr_tail=proc.stderr or '',
+                stderr_tail=((proc.stderr or '') + ('\n' + tradier_refresh_error if tradier_refresh_error else '')),
             )
+            if tradier_refresh is not None:
+                status['tradierAccount'] = tradier_refresh
+            if tradier_refresh_error:
+                status['tradierRefreshError'] = tradier_refresh_error
+            status['blocSnapshot'] = bloc_snapshot
             self.write_json(REFRESH_STATUS_STATE, status)
             return self.json_response(500, {'ok': False, 'error': status['message'], 'data': status})
         finally:
@@ -2030,18 +2067,44 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json_response(200, {'ok': True, 'message': 'Bloc resumed'})
             elif command == 'diagnose_tradier':
                 tradier_state_path = ROOT / 'out' / 'tradier_account_state.json'
-                tradier_state = json.loads(tradier_state_path.read_text()) if tradier_state_path.exists() else {}
+                prior_state = json.loads(tradier_state_path.read_text()) if tradier_state_path.exists() else {}
+                refresh_error = None
+                try:
+                    tradier_proc = subprocess.run(
+                        ['python3', str(ROOT / 'scripts' / 'tradier_account.py'), 'ready'],
+                        cwd=str(ROOT),
+                        capture_output=True,
+                        text=True,
+                        timeout=45,
+                        env=os.environ,
+                    )
+                    if tradier_proc.returncode == 0:
+                        tradier_state = json.loads(tradier_proc.stdout or '{}')
+                    else:
+                        tradier_state = prior_state
+                        refresh_error = (tradier_proc.stderr or tradier_proc.stdout or 'tradier readiness refresh failed').strip()[-400:]
+                except Exception as exc:
+                    tradier_state = prior_state
+                    refresh_error = str(exc)
                 buying_power = tradier_state.get('option_buying_power') or tradier_state.get('cash_available') or tradier_state.get('total_cash') or 0.0
                 blockers = tradier_state.get('blockers') or []
-                message = f'Tradier ready={bool(tradier_state.get("ready_for_options_execution"))}, buying_power=${float(buying_power or 0.0):.2f}, blockers={blockers or ["none"]}'
-                hq_repository.append_event('operator_command', 'Tradier diagnosis run', message, 'info', {'command': command})
-                return self.json_response(200, {'ok': True, 'message': message})
+                checked_at = tradier_state.get('checked_at') or 'unknown'
+                message = f'Tradier checked_at={checked_at}, ready={bool(tradier_state.get("ready_for_options_execution"))}, buying_power=${float(buying_power or 0.0):.2f}, blockers={blockers or ["none"]}'
+                if refresh_error:
+                    message += f' | refresh_error={refresh_error}'
+                hq_repository.append_event('operator_command', 'Tradier diagnosis run', message, 'info', {'command': command, 'checked_at': checked_at, 'refresh_error': refresh_error})
+                return self.json_response(200, {'ok': refresh_error is None, 'message': message, 'checked_at': checked_at, 'refresh_error': refresh_error, 'state': tradier_state})
             elif command == 'diagnose_bloc':
                 wallet_path = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
                 wallet = json.loads(wallet_path.read_text()) if wallet_path.exists() else {}
-                message = f'Bloc status={state.get("status", "unknown")}, mode={state.get("mode", "unknown")}, daily_trades={state.get("daily_trades", 0)}, usdc={wallet.get("usdc", 0)}'
-                hq_repository.append_event('operator_command', 'Bloc diagnosis run', message, 'info', {'command': command})
-                return self.json_response(200, {'ok': True, 'message': message})
+                bot_updated_at = state.get('updated_at', 'unknown')
+                wallet_address = wallet.get('address', 'unknown')
+                usdc = wallet.get('usdc', 0)
+                eth = wallet.get('eth', 0)
+                gas = wallet.get('gas', 0)
+                message = f'Bloc status={state.get("status", "unknown")}, mode={state.get("mode", "unknown")}, daily_trades={state.get("daily_trades", 0)}, bot_updated_at={bot_updated_at}, usdc={usdc}, eth={eth}, gas={gas}, wallet={wallet_address}'
+                hq_repository.append_event('operator_command', 'Bloc diagnosis run', message, 'info', {'command': command, 'bot_updated_at': bot_updated_at, 'wallet': wallet_address})
+                return self.json_response(200, {'ok': True, 'message': message, 'bot_updated_at': bot_updated_at, 'wallet': wallet, 'bot_state': state})
             elif command == 'pause_tradier':
                 hq_repository.append_event('operator_command', 'Tradier pause requested', 'Tradier pause command recorded for operator review.', 'warning', {'command': command})
                 return self.json_response(200, {'ok': True, 'message': 'Tradier pause request recorded'})
