@@ -1396,7 +1396,9 @@ class Handler(SimpleHTTPRequestHandler):
 
         hq_lesson_copy = "Yesterday's lesson: the old dashboard kept drifting into disconnected UI, stale routes, and runtime mismatch. HQ now stays decision-first, with SQL called out explicitly and legacy UI isolated behind /legacy."
         action_banner_html = f'''<section class="card section" style="border:1px solid rgba(239,68,68,0.45); background:rgba(127,29,29,0.24);"><div class="section-head"><div><div class="section-title">Action required</div><div class="section-sub">Inactivity is now a surfaced failure state</div></div></div><div class="blocker"><strong>Both engines are stale.</strong> Tradier freshness: {esc(age_label(tradier_age))}. Bloc freshness: {esc(age_label(bloc_age))}. Realized actions today: {esc(str(scoreboard.get('realized_actions_today', 0)))}.</div></section>''' if action_required else ''
+        controls_html = '''<section class="card section"><div class="section-head"><div><div class="section-title">Operator controls</div><div class="section-sub">Buttons that do things, not just talk</div></div></div><div class="toolbar"><button class="toolbtn" onclick="runCommand(\'refresh_truth\')">Refresh truth</button><button class="toolbtn" onclick="runCommand(\'diagnose_tradier\')">Diagnose Tradier</button><button class="toolbtn" onclick="runCommand(\'diagnose_bloc\')">Diagnose Bloc</button><button class="toolbtn" onclick="runCommand(\'pause_bloc\')">Pause Bloc</button><button class="toolbtn" onclick="runCommand(\'resume_bloc\')">Resume Bloc</button><button class="toolbtn danger" onclick="runCommand(\'close_all\')">Emergency close</button></div><div id="command-status" class="positions-empty" style="margin-top:10px;">No command run yet.</div></section>'''
         scoreboard_html = f'''<section class="card section"><div class="section-head"><div><div class="section-title">Execution scoreboard</div><div class="section-sub">Today, not vibes</div></div></div><div class="ops-item"><div class="kv"><div><span>Tradier fills</span>{esc(scoreboard.get('tradier_fills_today', 0))}</div><div><span>Tradier previews</span>{esc(scoreboard.get('tradier_previews_today', 0))}</div><div><span>Bloc trades</span>{esc(scoreboard.get('bloc_trades_today', 0))}</div><div><span>Realized actions</span>{esc(scoreboard.get('realized_actions_today', 0))}</div><div><span>Tradier freshness</span>{esc(age_label(tradier_age))}</div><div><span>Bloc freshness</span>{esc(age_label(bloc_age))}</div></div></div></section>'''
+        control_script = '''<script>async function runCommand(command){const status=document.getElementById("command-status"); if(status) status.textContent=`Running ${command}...`; try { const res = await fetch('/api/command', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({command})}); const data = await res.json(); if(status) status.textContent = data.message || data.error || 'Command finished'; if(command === 'refresh_truth' && res.ok){ setTimeout(() => window.location.reload(), 1500); } } catch(err){ if(status) status.textContent = 'Command failed: ' + err.message; }}</script>'''
 
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -1446,12 +1448,14 @@ class Handler(SimpleHTTPRequestHandler):
             </div>
             <div class="stack">
                 <section class="card section"><div class="section-head"><div><div class="section-title">Next best actions</div><div class="section-sub">What to do next, in order</div></div></div><div class="next-action-list"><div class="next-action"><div class="num">0</div><div class="action-copy"><strong>Landing principle</strong>HQ is the decision-first landing page. War Room remains the live operator shell. Legacy dashboard is still available, but no longer owns first impression.</div></div>{next_actions_html}</div></section>
+                {controls_html}
                 {scoreboard_html}
                 <section class="card section"><div class="section-head"><div><div class="section-title">Recent activity</div><div class="section-sub">Latest execution and journal trail</div></div></div><div class="activity-list">{events_html}</div></section>
                 <section class="card section"><div class="section-head"><div><div class="section-title">Operator notes</div><div class="section-sub">Surface intent, not clutter</div></div></div><div class="ops-item"><div class="ops-summary">Root now serves HQ-first operator truth. Old dashboard remains available at <span class="mono">/legacy</span>.</div><div class="kv"><div><span>Build</span>{esc(payload.get('build'))}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Route</span>/</div><div><span>Legacy</span>/legacy</div></div></div><div class="ops-item" style="margin-top:10px;"><div class="ops-summary">Use this page for real decisions: capital, blockers, active inventory, and next action. If a view does not change behavior, it should probably die.</div></div></section>
             </div>
         </div>
     </div>
+    {control_script}
 </body>
 </html>'''
         return self.html_response(200, html)
@@ -1962,15 +1966,43 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             payload = json.loads(body.decode() or '{}')
             command = payload.get('command')
-            if command == 'pause_bloc':
-                # TODO: implement pause
+            state_path = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
+            state = json.loads(state_path.read_text()) if state_path.exists() else {}
+
+            if command == 'refresh_truth':
+                return self._handle_manual_refresh()
+            elif command == 'pause_bloc':
+                state['status'] = 'paused'
+                state['updated_at'] = now_iso()
+                state_path.write_text(json.dumps(state, indent=2))
+                hq_repository.append_event('operator_command', 'Bloc paused', 'Operator set Bloc status to paused.', 'warning', {'command': command})
                 return self.json_response(200, {'ok': True, 'message': 'Bloc paused'})
+            elif command == 'resume_bloc':
+                state['status'] = 'running'
+                state['updated_at'] = now_iso()
+                state_path.write_text(json.dumps(state, indent=2))
+                hq_repository.append_event('operator_command', 'Bloc resumed', 'Operator set Bloc status to running.', 'info', {'command': command})
+                return self.json_response(200, {'ok': True, 'message': 'Bloc resumed'})
+            elif command == 'diagnose_tradier':
+                tradier_state_path = ROOT / 'out' / 'tradier_account_state.json'
+                tradier_state = json.loads(tradier_state_path.read_text()) if tradier_state_path.exists() else {}
+                buying_power = tradier_state.get('option_buying_power') or tradier_state.get('cash_available') or tradier_state.get('total_cash') or 0.0
+                blockers = tradier_state.get('blockers') or []
+                message = f'Tradier ready={bool(tradier_state.get("ready_for_options_execution"))}, buying_power=${float(buying_power or 0.0):.2f}, blockers={blockers or ["none"]}'
+                hq_repository.append_event('operator_command', 'Tradier diagnosis run', message, 'info', {'command': command})
+                return self.json_response(200, {'ok': True, 'message': message})
+            elif command == 'diagnose_bloc':
+                wallet_path = ROOT / 'eth_scalper' / 'state' / 'wallet.json'
+                wallet = json.loads(wallet_path.read_text()) if wallet_path.exists() else {}
+                message = f'Bloc status={state.get("status", "unknown")}, mode={state.get("mode", "unknown")}, daily_trades={state.get("daily_trades", 0)}, usdc={wallet.get("usdc", 0)}'
+                hq_repository.append_event('operator_command', 'Bloc diagnosis run', message, 'info', {'command': command})
+                return self.json_response(200, {'ok': True, 'message': message})
             elif command == 'pause_tradier':
-                # TODO: implement pause
-                return self.json_response(200, {'ok': True, 'message': 'Tradier paused'})
+                hq_repository.append_event('operator_command', 'Tradier pause requested', 'Tradier pause command recorded for operator review.', 'warning', {'command': command})
+                return self.json_response(200, {'ok': True, 'message': 'Tradier pause request recorded'})
             elif command == 'close_all':
-                # TODO: implement emergency close
-                return self.json_response(200, {'ok': True, 'message': 'Emergency close initiated'})
+                hq_repository.append_event('operator_command', 'Emergency close requested', 'Emergency close was requested from HQ.', 'critical', {'command': command})
+                return self.json_response(200, {'ok': True, 'message': 'Emergency close request recorded'})
             else:
                 return self.json_response(400, {'ok': False, 'error': 'Unknown command'})
         except Exception as e:
