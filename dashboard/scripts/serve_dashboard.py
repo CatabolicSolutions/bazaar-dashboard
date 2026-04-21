@@ -1483,34 +1483,28 @@ class Handler(SimpleHTTPRequestHandler):
                     <div class="statusline" id="command-status">No command run yet.</div>
                 </div>
                 <div class="workspace-main">
-                    <div class="hero-grid">
-                        <div class="directive">
-                            <div class="directive-k">Operator directive</div>
-                            <div class="directive-v">{esc(primary_directive)}</div>
-                            <div class="directive-p">{esc(operator_summary)}</div>
+                    <div id="view-overview" class="view-pane active" style="display:grid;gap:10px;">
+                        <div class="hero-grid">
+                            <div class="directive">
+                                <div class="directive-k">Operator directive</div>
+                                <div class="directive-v">{esc(primary_directive)}</div>
+                                <div class="directive-p">{esc(operator_summary)}</div>
+                            </div>
+                            <div class="hero-side">
+                                {'<div class="action-banner">Both engines are stale. Tradier freshness: ' + esc(age_label(tradier_age)) + '. Bloc freshness: ' + esc(age_label(bloc_age)) + '. Realized actions today: ' + esc(str(scoreboard.get('realized_actions_today', 0))) + '.</div>' if action_required else '<div class="action-banner" style="background:linear-gradient(180deg,#13281d,#0e1813);border-color:#255f3c;color:#c7f9d6;">Systems visible. No immediate operator emergency flagged.</div>'}
+                                <div class="drawer-card"><div class="drawer-head"><strong>Action queue</strong></div><div class="drawer-body"><div class="list">{next_actions_html}</div></div></div>
+                            </div>
                         </div>
-                        <div class="hero-side">
-                            {'<div class="action-banner">Both engines are stale. Tradier freshness: ' + esc(age_label(tradier_age)) + '. Bloc freshness: ' + esc(age_label(bloc_age)) + '. Realized actions today: ' + esc(str(scoreboard.get('realized_actions_today', 0))) + '.</div>' if action_required else '<div class="action-banner" style="background:linear-gradient(180deg,#13281d,#0e1813);border-color:#255f3c;color:#c7f9d6;">Systems visible. No immediate operator emergency flagged.</div>'}
-                            <div class="drawer-card"><div class="drawer-head"><strong>Action queue</strong></div><div class="drawer-body"><div class="list">{next_actions_html}</div></div></div>
+                        <div class="mini-metrics">
+                            <div class="metric"><div class="metric-k">Tradier</div><div class="metric-v">{esc(tradier_status)}</div><div class="metric-s">{esc((money(tradier_buying_power) + ' ready') if tradier_status == 'Ready' else (tradier.get('top_blocker') or 'blocked'))}</div></div>
+                            <div class="metric"><div class="metric-k">Bloc</div><div class="metric-v">{esc('Active' if status == 'holding_active_inventory' else 'Idle')}</div><div class="metric-s">{esc(holding_asset + ' ' + str(holding_units) if status == 'holding_active_inventory' and holding_asset else money(deployable) + ' deployable')}</div></div>
+                            <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">{esc(age_label(tradier_age))}</div><div class="metric-s">{money(tradier_buying_power)}</div></div>
+                            <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">{esc(age_label(bloc_age))}</div><div class="metric-s">{esc(reality_feed)}</div></div>
                         </div>
-                    </div>
-                    <div class="mini-metrics">
-                        <div class="metric"><div class="metric-k">Tradier</div><div class="metric-v">{esc(tradier_status)}</div><div class="metric-s">{esc((money(tradier_buying_power) + ' ready') if tradier_status == 'Ready' else (tradier.get('top_blocker') or 'blocked'))}</div></div>
-                        <div class="metric"><div class="metric-k">Bloc</div><div class="metric-v">{esc('Active' if status == 'holding_active_inventory' else 'Idle')}</div><div class="metric-s">{esc(holding_asset + ' ' + str(holding_units) if status == 'holding_active_inventory' and holding_asset else money(deployable) + ' deployable')}</div></div>
-                        <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">{esc(age_label(tradier_age))}</div><div class="metric-s">{money(tradier_buying_power)}</div></div>
-                        <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">{esc(age_label(bloc_age))}</div><div class="metric-s">{esc(reality_feed)}</div></div>
-                    </div>
-                    <div class="view-tabs">
-                        <button class="tabbtn active" type="button" data-view="overview" onclick="showView('overview')">Overview</button>
-                        <button class="tabbtn" type="button" data-view="tradier" onclick="showView('tradier')">Tradier</button>
-                        <button class="tabbtn" type="button" data-view="bloc" onclick="showView('bloc')">Bloc</button>
-                        <button class="tabbtn" type="button" data-view="journal" onclick="showView('journal')">Journal</button>
-                        <button class="tabbtn" type="button" data-view="logs" onclick="showView('logs')">Logs</button>
-                        <button class="tabbtn" type="button" data-view="settings" onclick="showView('settings')">Settings</button>
-                    </div>
-                    <div id="view-overview" class="view-pane overview-grid active">
-                        <div class="subpanel"><div class="subpanel-head"><div><div class="subpanel-title">Engine truth</div><div class="subpanel-sub">Readiness and exposure</div></div></div><div class="subpanel-body"><div class="kv"><div><span>Tradier status</span>{esc(tradier_status)}</div><div><span>Buying power</span>{money(tradier_buying_power)}</div><div><span>Tradier freshness</span>{esc(age_label(tradier_age))}</div><div><span>Bloc state</span>{esc(status)}</div><div><span>Holding</span>{esc(holding_asset + (' ' + str(holding_units) if holding_units is not None and holding_asset else ''))}</div><div><span>Deployable</span>{money(deployable)}</div></div><div class="footer-note">{esc(hq_lesson_copy)}</div></div></div>
-                        {result_center_html}
+                        <div class="overview-grid">
+                            <div class="subpanel"><div class="subpanel-head"><div><div class="subpanel-title">Engine truth</div><div class="subpanel-sub">Readiness and exposure</div></div></div><div class="subpanel-body"><div class="kv"><div><span>Tradier status</span>{esc(tradier_status)}</div><div><span>Buying power</span>{money(tradier_buying_power)}</div><div><span>Tradier freshness</span>{esc(age_label(tradier_age))}</div><div><span>Bloc state</span>{esc(status)}</div><div><span>Holding</span>{esc(holding_asset + (' ' + str(holding_units) if holding_units is not None and holding_asset else ''))}</div><div><span>Deployable</span>{money(deployable)}</div></div><div class="footer-note">{esc(hq_lesson_copy)}</div></div></div>
+                            {result_center_html}
+                        </div>
                     </div>
                     <div id="view-tradier" class="view-pane overview-grid">
                         <div class="subpanel"><div class="subpanel-head"><div><div class="subpanel-title">Tradier workstation</div><div class="subpanel-sub">Readiness, blocker, and execution context</div></div></div><div class="subpanel-body"><div class="kv"><div><span>Status</span>{esc(tradier_status)}</div><div><span>Buying power</span>{money(tradier_buying_power)}</div><div><span>Freshness</span>{esc(age_label(tradier_age))}</div><div><span>Top blocker</span>{esc(tradier.get('top_blocker') or 'None visible')}</div></div><div class="footer-note">Use diagnostics to force a fresh truth pass, then wire execution here next.</div><div style="margin-top:12px;">{result_center_html}</div></div></div>
