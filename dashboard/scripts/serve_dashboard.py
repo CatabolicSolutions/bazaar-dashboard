@@ -1070,6 +1070,15 @@ class Handler(SimpleHTTPRequestHandler):
         if invested_capital <= 0:
             invested_capital = float(wallet.get('estimated_total_usd') or 0.0)
 
+        tradier_state_path = ROOT / 'out' / 'tradier_account_state.json'
+        tradier_state = json.loads(tradier_state_path.read_text()) if tradier_state_path.exists() else {}
+        tradier_balances = tradier_state.get('balances', {}) if isinstance(tradier_state, dict) else {}
+        tradier_buying_power = tradier_balances.get('total_cash') or tradier_balances.get('cash_available') or tradier_state.get('buying_power') or 0.0
+        tradier_positions = tradier_state.get('positions') or []
+        tradier_orders = tradier_state.get('orders') or []
+        tradier_ready = float(tradier_buying_power or 0.0) > 0
+        tradier_blocker = None if tradier_ready else 'No Tradier buying power detected.'
+
         cleaned_positions = []
         for pos in reconciled_positions:
             status = str(pos.get('status') or '').lower()
@@ -1104,9 +1113,33 @@ class Handler(SimpleHTTPRequestHandler):
         if not cleaned_positions:
             deployable_capital = float(state.get('available_capital') or wallet_usdc or 0.0)
         compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if deployable_capital > 0 else 'idle_unfunded')
+        primary_directive = (
+            'Manage active Bloc inventory and avoid forcing fresh exposure.'
+            if compounding_state == 'holding_active_inventory'
+            else ('Tradier is funded. Hunt only clean, high-clarity setups.' if tradier_ready else 'Stay flat. Restore readiness and wait for valid edge.')
+        )
+        next_actions = []
+        if compounding_state == 'holding_active_inventory':
+            next_actions = [
+                {'title': 'Supervise active inventory', 'detail': f'{holding_asset or "Inventory"} is deployed. Focus on recycle path, not fresh entry.'},
+                {'title': 'Verify live mark and invalidation', 'detail': 'Confirm current mark, target, and stop before adding any new risk.'},
+                {'title': 'Keep Tradier separate', 'detail': 'Do not treat Bloc inventory as permission to force an options trade.'},
+            ]
+        elif tradier_ready:
+            next_actions = [
+                {'title': 'Scan for Tradier edge', 'detail': f'Buying power available: ${float(tradier_buying_power or 0.0):.2f}.'},
+                {'title': 'Demand setup clarity', 'detail': 'Only act on contracts with clean structure, liquidity, and explicit invalidation.'},
+                {'title': 'Log the decision', 'detail': 'If no trade, record the blocker instead of filling the screen with noise.'},
+            ]
+        else:
+            next_actions = [
+                {'title': 'Restore funded readiness', 'detail': 'No deployable Tradier capital or valid funded state is visible.'},
+                {'title': 'Check runtime truth', 'detail': 'Confirm account state, balances, and position sync before trading.'},
+                {'title': 'Do not improvise', 'detail': 'A quiet dashboard is better than a lying dashboard.'},
+            ]
         return {
             'source': 'serve_dashboard',
-            'build': 'HQv8-operator-truth-2026-04-20',
+            'build': 'HQv10-ruthless-operator-product-2026-04-20',
             'persistence': 'postgresql' if hq_repository.enabled else 'memory-only',
             'updated_at': now_iso(),
             'live': {
@@ -1127,10 +1160,20 @@ class Handler(SimpleHTTPRequestHandler):
                     if compounding_state == 'holding_active_inventory'
                     else ('Wait for valid edge and funded conditions.' if deployable_capital > 0 else 'Restore funding or runtime prerequisites.')
                 ),
+                'primary_directive': primary_directive,
+                'next_actions': next_actions,
                 'wallet': wallet,
                 'active_positions': len(cleaned_positions) or (1 if compounding_state == 'holding_active_inventory' else 0),
                 'positions': cleaned_positions,
                 'reconciled_positions': cleaned_positions,
+                'tradier': {
+                    'ready': tradier_ready,
+                    'status': 'ready' if tradier_ready else 'idle',
+                    'buying_power_usd': round(float(tradier_buying_power or 0.0), 2),
+                    'positions_count': len(tradier_positions) if isinstance(tradier_positions, list) else 0,
+                    'orders_count': len(tradier_orders) if isinstance(tradier_orders, list) else 0,
+                    'top_blocker': tradier_blocker,
+                },
             }
         }
 
@@ -1168,6 +1211,8 @@ class Handler(SimpleHTTPRequestHandler):
         wallet = live.get('wallet') or {}
         positions = live.get('positions') or []
         events = payload.get('events') or []
+        tradier = live.get('tradier') or {}
+        next_actions_data = live.get('next_actions') or []
         holding_asset = live.get('holding_asset') or 'Inventory'
         holding_units = live.get('holding_units')
         invested = float(live.get('invested_capital_usd') or 0.0)
@@ -1178,11 +1223,11 @@ class Handler(SimpleHTTPRequestHandler):
         updated_at = payload.get('updated_at') or now_iso()
         operator_summary = live.get('operator_summary') or 'Waiting for live system truth.'
         operator_focus = live.get('operator_focus') or 'Pulling live system truth.'
+        primary_directive = live.get('primary_directive') or operator_focus
         wallet_eth_price = wallet.get('eth_price_usd') or wallet.get('eth_price')
         reality_feed = ('ETH ' + (f"${float(wallet_eth_price):.2f}" if wallet_eth_price not in (None, '', 'nan') else '--') + ' | Wallet ' + str(wallet.get('address') or '--'))
-        tradier_state = json.loads((ROOT / 'out' / 'tradier_account_state.json').read_text()) if (ROOT / 'out' / 'tradier_account_state.json').exists() else {}
-        tradier_buying_power = tradier_state.get('balances', {}).get('total_cash') or tradier_state.get('balances', {}).get('cash_available') or tradier_state.get('buying_power')
-        tradier_status = 'Ready' if tradier_buying_power not in (None, '', 0, 0.0, '0') else 'Idle'
+        tradier_buying_power = tradier.get('buying_power_usd') or 0.0
+        tradier_status = 'Ready' if tradier.get('ready') else 'Idle'
         sql_status = 'PostgreSQL live' if persistence == 'postgresql' else 'Memory only'
         sql_detail = 'HQ snapshots and events are being persisted.' if persistence == 'postgresql' else 'DATABASE_URL/SQLAlchemy path not live, so HQ history is transient.'
 
@@ -1212,15 +1257,21 @@ class Handler(SimpleHTTPRequestHandler):
             for row in merged_events
         ]) or '<div class="activity-empty">No recent HQ events available.</div>'
 
-        next_actions_html = (
-            f'''<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track {esc(holding_asset)} exposure and recycle path.</div></div>
+        if next_actions_data:
+            next_actions_html = ''.join(
+                f'<div class="next-action"><div class="num">{idx}</div><div class="action-copy"><strong>{esc(item.get("title") or "Action")}</strong>{esc(item.get("detail") or "")}</div></div>'
+                for idx, item in enumerate(next_actions_data, start=1)
+            )
+        else:
+            next_actions_html = (
+                f'''<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Supervise active hold</strong>Track {esc(holding_asset)} exposure and recycle path.</div></div>
 <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Verify mark and units</strong>Confirm {esc(holding_units if holding_units is not None else '--')} units and {money(invested)} invested.</div></div>
 <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Do not force new entry</strong>Compounding capital is deployed, not missing.</div></div>'''
-            if status == 'holding_active_inventory' else
-            '''<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Verify funded readiness</strong>Confirm deployable cash and runtime health before any new entry.</div></div>
+                if status == 'holding_active_inventory' else
+                '''<div class="next-action"><div class="num">1</div><div class="action-copy"><strong>Verify funded readiness</strong>Confirm deployable cash and runtime health before any new entry.</div></div>
 <div class="next-action"><div class="num">2</div><div class="action-copy"><strong>Wait for valid edge</strong>No forced trade until signal quality clears mandate.</div></div>
 <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Preserve capital discipline</strong>Stay flat until setup quality is real.</div></div>'''
-        )
+            )
 
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -1246,14 +1297,14 @@ class Handler(SimpleHTTPRequestHandler):
             </div>
             <div class="status-strip">
                 <div class="pill-card"><div class="pill-label">Primary Decision</div><div class="pill-value">{esc('Manage active compounding inventory' if status == 'holding_active_inventory' else 'Monitor live state')}</div><div class="pill-sub">{esc(operator_summary)}</div></div>
-                <div class="pill-card"><div class="pill-label">Tradier Readiness</div><div class="pill-value mono">{esc(tradier_status)}</div><div class="pill-sub">{esc((money(tradier_buying_power) + ' buying power') if tradier_buying_power not in (None, '', 0, 0.0, '0') else 'Separate execution path')}</div></div>
+                <div class="pill-card"><div class="pill-label">Tradier Readiness</div><div class="pill-value mono">{esc(tradier_status)}</div><div class="pill-sub">{esc((money(tradier_buying_power) + ' buying power') if tradier_status == 'Ready' else (tradier.get('top_blocker') or 'Separate execution path'))}</div></div>
                 <div class="pill-card"><div class="pill-label">Bloc Readiness</div><div class="pill-value mono">{esc('Holding active inventory' if status == 'holding_active_inventory' else 'Bloc runtime')}</div><div class="pill-sub">{esc(holding_asset + ' | ' + money(invested) + ' invested' if status == 'holding_active_inventory' else money(deployable) + ' deployable')}</div></div>
                 <div class="pill-card"><div class="pill-label">Live Exposure</div><div class="pill-value mono">{esc(str(active_positions) + (' position' if active_positions == 1 else ' positions'))}</div><div class="pill-sub">{esc('Active compounding inventory requires supervision' if status == 'holding_active_inventory' else 'No active risk detected')}</div></div>
                 <div class="pill-card"><div class="pill-label">SQL Persistence</div><div class="pill-value mono">{esc(sql_status)}</div><div class="pill-sub">{esc(sql_detail)}</div></div>
             </div>
             <div class="decision">
                 <div class="decision-head"><div><div class="eyebrow">Operator directive</div><div class="decision-title">{esc('Manage compounding hold' if status == 'holding_active_inventory' else 'Stand by')}</div></div><div class="decision-badge badge-amber">{esc('ACTIVE HOLD' if status == 'holding_active_inventory' else 'MONITORING')}</div></div>
-                <div class="decision-copy">{esc(operator_focus)}</div>
+                <div class="decision-copy">{esc(primary_directive)}</div>
                 <div class="pill-sub">{esc('Yesterday\'s lesson: the old dashboard kept drifting into disconnected UI, stale routes, and runtime mismatch. HQ now stays decision-first, with SQL called out explicitly and legacy UI isolated behind /legacy.')}</div>
                 <div class="decision-grid">
                     <div class="mini-stat"><div class="label">Tradier capital</div><div class="value mono">--</div></div>
@@ -1270,7 +1321,7 @@ class Handler(SimpleHTTPRequestHandler):
             <div class="stack">
                 <section class="card section"><div class="section-head"><div><div class="section-title">Next best actions</div><div class="section-sub">What to do next, in order</div></div></div><div class="next-action-list"><div class="next-action"><div class="num">0</div><div class="action-copy"><strong>Landing principle</strong>HQ is the decision-first landing page. War Room remains the live operator shell. Legacy dashboard is still available, but no longer owns first impression.</div></div>{next_actions_html}</div></section>
                 <section class="card section"><div class="section-head"><div><div class="section-title">Recent activity</div><div class="section-sub">Latest execution and journal trail</div></div></div><div class="activity-list">{events_html}</div></section>
-                <section class="card section"><div class="section-head"><div><div class="section-title">Operator notes</div><div class="section-sub">Surface intent, not clutter</div></div></div><div class="ops-item"><div class="ops-summary">Root now serves HQ-first operator truth. Old dashboard remains available at <span class="mono">/legacy</span>.</div><div class="kv"><div><span>Build</span>{esc(payload.get('build'))}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Route</span>/</div><div><span>Legacy</span>/legacy</div></div></div></section>
+                <section class="card section"><div class="section-head"><div><div class="section-title">Operator notes</div><div class="section-sub">Surface intent, not clutter</div></div></div><div class="ops-item"><div class="ops-summary">Root now serves HQ-first operator truth. Old dashboard remains available at <span class="mono">/legacy</span>.</div><div class="kv"><div><span>Build</span>{esc(payload.get('build'))}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Route</span>/</div><div><span>Legacy</span>/legacy</div></div></div><div class="ops-item" style="margin-top:10px;"><div class="ops-summary">Use this page for real decisions: capital, blockers, active inventory, and next action. If a view does not change behavior, it should probably die.</div></div></section>
             </div>
         </div>
     </div>
