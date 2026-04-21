@@ -350,65 +350,67 @@ class Handler(SimpleHTTPRequestHandler):
     
     def do_GET(self):
         self.refresh_snapshot()
-        if self.path in ('/', '/hq', '/war-room', '/war-room/'):
+        parsed = urlparse(self.path)
+        route_path = parsed.path or '/'
+        if route_path in ('/', '/hq', '/war-room', '/war-room/'):
             return self._handle_war_room_page()
-        elif self.path in ('/legacy', '/legacy/'):
+        elif route_path in ('/legacy', '/legacy/'):
             self.path = '/index.html'
-        elif self.path == '/api/live-positions':
+        elif route_path == '/api/live-positions':
             return self._handle_live_positions()
-        elif self.path == '/api/live-scanner':
+        elif route_path == '/api/live-scanner':
             return self._handle_live_scanner()
-        elif self.path == '/api/exit-predictor':
+        elif route_path == '/api/exit-predictor':
             return self._handle_exit_predictor()
-        elif self.path == '/api/journal':
+        elif route_path == '/api/journal':
             return self._handle_journal()
-        elif self.path == '/api/analytics':
+        elif route_path == '/api/analytics':
             return self._handle_analytics()
-        elif self.path == '/api/premarket':
+        elif route_path == '/api/premarket':
             return self._handle_premarket()
-        elif self.path == '/api/heatmap':
+        elif route_path == '/api/heatmap':
             return self._handle_heatmap()
-        elif self.path == '/api/crypto/init':
+        elif route_path == '/api/crypto/init':
             return self._handle_crypto_init()
-        elif self.path == '/api/crypto/wallet':
+        elif route_path == '/api/crypto/wallet':
             return self._handle_crypto_wallet()
-        elif self.path == '/api/crypto/pairs':
+        elif route_path == '/api/crypto/pairs':
             return self._handle_crypto_pairs()
-        elif self.path == '/api/crypto/emergency':
+        elif route_path == '/api/crypto/emergency':
             return self._handle_crypto_emergency()
-        elif self.path.startswith('/api/underlying-history'):
+        elif route_path.startswith('/api/underlying-history'):
             return self._handle_underlying_history()
-        elif self.path == '/api/refresh-status':
+        elif route_path == '/api/refresh-status':
             return self._handle_refresh_status()
-        elif self.path.startswith('/api/narrative'):
+        elif route_path.startswith('/api/narrative'):
             return self._handle_narrative()
-        elif self.path == '/api/account':
+        elif route_path == '/api/account':
             return self._handle_account()
-        elif self.path == '/api/tradier/status':
+        elif route_path == '/api/tradier/status':
             return self._handle_tradier_status()
-        elif self.path == '/api/bloc/status':
+        elif route_path == '/api/bloc/status':
             return self._handle_bloc_status()
-        elif self.path == '/api/sie/status':
+        elif route_path == '/api/sie/status':
             return self._handle_sie_status()
-        elif self.path == '/api/positions':
+        elif route_path == '/api/positions':
             return self._handle_positions()
-        elif self.path == '/api/activity':
+        elif route_path == '/api/activity':
             return self._handle_activity()
-        elif self.path == '/api/eth-scalper/status':
+        elif route_path == '/api/eth-scalper/status':
             return self._handle_eth_scalper_status()
-        elif self.path == '/api/hq/status':
+        elif route_path == '/api/hq/status':
             return self._handle_hq_status()
-        elif self.path == '/api/hq/overview':
+        elif route_path == '/api/hq/overview':
             return self._handle_hq_overview()
-        elif self.path == '/api/eth-scalper/trades':
+        elif route_path == '/api/eth-scalper/trades':
             return self._handle_eth_scalper_trades()
-        elif self.path == '/api/eth-scalper/positions':
+        elif route_path == '/api/eth-scalper/positions':
             return self._handle_eth_scalper_positions()
-        elif self.path == '/api/eth-scalper/signals':
+        elif route_path == '/api/eth-scalper/signals':
             return self._handle_eth_scalper_signals()
-        elif self.path == '/api/eth-scalper/wallet':
+        elif route_path == '/api/eth-scalper/wallet':
             return self._handle_eth_scalper_wallet()
-        elif self.path.startswith('/eth-scalper/logs'):
+        elif route_path.startswith('/eth-scalper/logs'):
             return self._serve_eth_scalper_logs()
         return super().do_GET()
     
