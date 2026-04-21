@@ -1273,6 +1273,9 @@ class Handler(SimpleHTTPRequestHandler):
 <div class="next-action"><div class="num">3</div><div class="action-copy"><strong>Preserve capital discipline</strong>Stay flat until setup quality is real.</div></div>'''
             )
 
+        war_room_html = (ROOT / 'dashboard' / 'public' / 'war-room' / 'index.html').read_text()
+        war_room_style = war_room_html.split('<style>', 1)[1].split('</style>', 1)[0]
+
         html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1282,7 +1285,7 @@ class Handler(SimpleHTTPRequestHandler):
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <style>{(ROOT / 'dashboard' / 'public' / 'war-room' / 'index.html').read_text().split('<style>',1)[1].split('</style>',1)[0]}</style>
+    <style>{war_room_style}</style>
 </head>
 <body>
     <div class="shell">
