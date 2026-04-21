@@ -1331,7 +1331,8 @@ class Handler(SimpleHTTPRequestHandler):
                     'tradier_stale': tradier_stale,
                     'bloc_last_trade_at': bloc_last_trade_ts.isoformat() if bloc_last_trade_ts else None,
                     'bloc_last_state_at': bloc_state_updated_at.isoformat() if bloc_state_updated_at else None,
-                    'bloc_age_hours': age_hours(bloc_last_trade_ts or bloc_state_updated_at),
+                    'bloc_last_wallet_at': bloc_wallet_updated_at.isoformat() if bloc_wallet_updated_at else None,
+                    'bloc_age_hours': age_hours(bloc_runtime_ts),
                     'bloc_stale': bloc_stale,
                 },
                 'tradier': {
