@@ -398,6 +398,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_eth_scalper_status()
         elif self.path == '/api/hq/status':
             return self._handle_hq_status()
+        elif self.path == '/api/hq/overview':
+            return self._handle_hq_overview()
         elif self.path == '/api/eth-scalper/trades':
             return self._handle_eth_scalper_trades()
         elif self.path == '/api/eth-scalper/positions':
@@ -740,6 +742,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_eth_scalper_command(body)
         if self.path == '/api/command':
             return self._handle_command(body)
+        if self.path == '/api/hq/notes':
+            return self._handle_hq_notes(body)
+        if self.path == '/api/hq/config':
+            return self._handle_hq_config(body)
         self.send_response(404)
         self.end_headers()
     
@@ -1397,8 +1403,11 @@ class Handler(SimpleHTTPRequestHandler):
         hq_lesson_copy = "Yesterday's lesson: the old dashboard kept drifting into disconnected UI, stale routes, and runtime mismatch. HQ now stays decision-first, with SQL called out explicitly and legacy UI isolated behind /legacy."
         action_banner_html = f'''<section class="card section" style="border:1px solid rgba(239,68,68,0.45); background:rgba(127,29,29,0.24);"><div class="section-head"><div><div class="section-title">Action required</div><div class="section-sub">Inactivity is now a surfaced failure state</div></div></div><div class="blocker"><strong>Both engines are stale.</strong> Tradier freshness: {esc(age_label(tradier_age))}. Bloc freshness: {esc(age_label(bloc_age))}. Realized actions today: {esc(str(scoreboard.get('realized_actions_today', 0)))}.</div></section>''' if action_required else ''
         controls_html = '''<section class="card section"><div class="section-head"><div><div class="section-title">Operator controls</div><div class="section-sub">Buttons that do things, not just talk</div></div></div><div class="toolbar"><button class="toolbtn" onclick="runCommand(\'refresh_truth\')">Refresh truth</button><button class="toolbtn" onclick="runCommand(\'diagnose_tradier\')">Diagnose Tradier</button><button class="toolbtn" onclick="runCommand(\'diagnose_bloc\')">Diagnose Bloc</button><button class="toolbtn" onclick="runCommand(\'pause_bloc\')">Pause Bloc</button><button class="toolbtn" onclick="runCommand(\'resume_bloc\')">Resume Bloc</button><button class="toolbtn danger" onclick="runCommand(\'close_all\')">Emergency close</button></div><div id="command-status" class="positions-empty" style="margin-top:10px;">No command run yet.</div></section>'''
+        notes_html = '''<section class="card section"><div class="section-head"><div><div class="section-title">Notes and adjustments</div><div class="section-sub">Capture operator intent and save changes</div></div></div><div class="ops-item"><textarea id="hq-note-input" style="width:100%;min-height:90px;background:#0f172a;color:#e5edf7;border:1px solid #22304a;border-radius:8px;padding:10px;"> </textarea><div class="toolbar" style="margin-top:10px;"><button class="toolbtn" onclick="saveNote()">Save note</button><button class="toolbtn" onclick="loadOverview()">Refresh desk data</button></div><div id="note-status" class="positions-empty" style="margin-top:10px;">No note saved yet.</div></div></section>'''
+        config_html = '''<section class="card section"><div class="section-head"><div><div class="section-title">Parameters and limits</div><div class="section-sub">Edit safety config directly</div></div></div><div class="ops-item"><textarea id="hq-config-input" style="width:100%;min-height:220px;background:#0f172a;color:#e5edf7;border:1px solid #22304a;border-radius:8px;padding:10px;font-family:monospace;"></textarea><div class="toolbar" style="margin-top:10px;"><button class="toolbtn" onclick="saveConfig()">Save config</button></div><div id="config-status" class="positions-empty" style="margin-top:10px;">Config not loaded yet.</div></div></section>'''
+        logs_html = '''<section class="card section"><div class="section-head"><div><div class="section-title">Logs, inference, and refresh trail</div><div class="section-sub">Read the system, don’t guess</div></div></div><div class="ops-item"><div class="kv"><div><span>Refresh status</span><div id="refresh-status-box">--</div></div><div><span>Action feedback</span><div id="action-feedback-box">--</div></div></div><div style="margin-top:12px;"><div class="section-sub">Recent notes</div><pre id="notes-log-box" style="white-space:pre-wrap;max-height:160px;overflow:auto;background:#0f172a;padding:10px;border-radius:8px;border:1px solid #22304a;"></pre></div><div style="margin-top:12px;"><div class="section-sub">Recent signals</div><pre id="signals-log-box" style="white-space:pre-wrap;max-height:180px;overflow:auto;background:#0f172a;padding:10px;border-radius:8px;border:1px solid #22304a;"></pre></div><div style="margin-top:12px;"><div class="section-sub">Recent trades/logs</div><pre id="trades-log-box" style="white-space:pre-wrap;max-height:180px;overflow:auto;background:#0f172a;padding:10px;border-radius:8px;border:1px solid #22304a;"></pre></div><div style="margin-top:12px;"><div class="section-sub">Refresh cycle log</div><pre id="refresh-log-box" style="white-space:pre-wrap;max-height:180px;overflow:auto;background:#0f172a;padding:10px;border-radius:8px;border:1px solid #22304a;"></pre></div></div></section>'''
         scoreboard_html = f'''<section class="card section"><div class="section-head"><div><div class="section-title">Execution scoreboard</div><div class="section-sub">Today, not vibes</div></div></div><div class="ops-item"><div class="kv"><div><span>Tradier fills</span>{esc(scoreboard.get('tradier_fills_today', 0))}</div><div><span>Tradier previews</span>{esc(scoreboard.get('tradier_previews_today', 0))}</div><div><span>Bloc trades</span>{esc(scoreboard.get('bloc_trades_today', 0))}</div><div><span>Realized actions</span>{esc(scoreboard.get('realized_actions_today', 0))}</div><div><span>Tradier freshness</span>{esc(age_label(tradier_age))}</div><div><span>Bloc freshness</span>{esc(age_label(bloc_age))}</div></div></div></section>'''
-        control_script = '''<script>async function runCommand(command){const status=document.getElementById("command-status"); if(status) status.textContent=`Running ${command}...`; try { const res = await fetch('/api/command', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({command})}); const data = await res.json(); if(status) status.textContent = data.message || data.error || 'Command finished'; if(command === 'refresh_truth' && res.ok){ setTimeout(() => window.location.reload(), 1500); } } catch(err){ if(status) status.textContent = 'Command failed: ' + err.message; }}</script>'''
+        control_script = '''<script>async function runCommand(command){const status=document.getElementById("command-status"); if(status) status.textContent=`Running ${command}...`; try { const res = await fetch('/api/command', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({command})}); const data = await res.json(); if(status) status.textContent = data.message || data.error || 'Command finished'; loadOverview(); if(command === 'refresh_truth' && res.ok){ setTimeout(() => window.location.reload(), 1500); } } catch(err){ if(status) status.textContent = 'Command failed: ' + err.message; }} async function loadOverview(){ try { const res = await fetch('/api/hq/overview'); const data = await res.json(); document.getElementById('hq-config-input').value = JSON.stringify(data.safety_config || {}, null, 2); document.getElementById('refresh-status-box').textContent = JSON.stringify(data.refresh_status || {}, null, 2); document.getElementById('action-feedback-box').textContent = JSON.stringify(data.action_feedback || {}, null, 2); document.getElementById('notes-log-box').textContent = (data.notes || []).join('\n'); document.getElementById('signals-log-box').textContent = (data.signals || []).join('\n'); document.getElementById('trades-log-box').textContent = (data.trades || []).join('\n'); document.getElementById('refresh-log-box').textContent = (data.refresh_log || []).join('\n'); document.getElementById('config-status').textContent = 'Config loaded'; } catch(err){ document.getElementById('config-status').textContent = 'Overview load failed: ' + err.message; }} async function saveNote(){ const note=document.getElementById('hq-note-input').value.trim(); const status=document.getElementById('note-status'); if(!note){ status.textContent='Note is empty'; return;} const res=await fetch('/api/hq/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note})}); const data=await res.json(); status.textContent=data.message || data.error || 'Note saved'; if(res.ok){ document.getElementById('hq-note-input').value=''; loadOverview(); }} async function saveConfig(){ const raw=document.getElementById('hq-config-input').value; const status=document.getElementById('config-status'); try { const parsed=JSON.parse(raw); const res=await fetch('/api/hq/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:parsed})}); const data=await res.json(); status.textContent=data.message || data.error || 'Config saved'; loadOverview(); } catch(err){ status.textContent='Config save failed: ' + err.message; }} window.addEventListener('load', loadOverview);</script>'''
 
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -1449,7 +1458,10 @@ class Handler(SimpleHTTPRequestHandler):
             <div class="stack">
                 <section class="card section"><div class="section-head"><div><div class="section-title">Next best actions</div><div class="section-sub">What to do next, in order</div></div></div><div class="next-action-list"><div class="next-action"><div class="num">0</div><div class="action-copy"><strong>Landing principle</strong>HQ is the decision-first landing page. War Room remains the live operator shell. Legacy dashboard is still available, but no longer owns first impression.</div></div>{next_actions_html}</div></section>
                 {controls_html}
+                {notes_html}
+                {config_html}
                 {scoreboard_html}
+                {logs_html}
                 <section class="card section"><div class="section-head"><div><div class="section-title">Recent activity</div><div class="section-sub">Latest execution and journal trail</div></div></div><div class="activity-list">{events_html}</div></section>
                 <section class="card section"><div class="section-head"><div><div class="section-title">Operator notes</div><div class="section-sub">Surface intent, not clutter</div></div></div><div class="ops-item"><div class="ops-summary">Root now serves HQ-first operator truth. Old dashboard remains available at <span class="mono">/legacy</span>.</div><div class="kv"><div><span>Build</span>{esc(payload.get('build'))}</div><div><span>Persistence</span>{esc(persistence)}</div><div><span>Route</span>/</div><div><span>Legacy</span>/legacy</div></div></div><div class="ops-item" style="margin-top:10px;"><div class="ops-summary">Use this page for real decisions: capital, blockers, active inventory, and next action. If a view does not change behavior, it should probably die.</div></div></section>
             </div>
@@ -2007,6 +2019,74 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json_response(400, {'ok': False, 'error': 'Unknown command'})
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_hq_notes(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+            note = str(payload.get('note') or '').strip()
+            if not note:
+                return self.json_response(400, {'ok': False, 'error': 'note required'})
+            notes_path = ROOT / 'dashboard' / 'state' / 'hq_operator_notes.jsonl'
+            notes_path.parent.mkdir(parents=True, exist_ok=True)
+            entry = {'ts': now_iso(), 'note': note}
+            with notes_path.open('a', encoding='utf-8') as f:
+                f.write(json.dumps(entry) + '\n')
+            hq_repository.append_event('operator_note', 'Operator note added', note[:200], 'info', entry)
+            return self.json_response(200, {'ok': True, 'message': 'Note saved', 'entry': entry})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_hq_config(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+            config = payload.get('config')
+            if not isinstance(config, dict):
+                return self.json_response(400, {'ok': False, 'error': 'config object required'})
+            config_path = ROOT / 'dashboard' / 'config' / 'safety_config.json'
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text(json.dumps(config, indent=2))
+            hq_repository.append_event('operator_config', 'Safety config updated', 'Operator updated HQ safety configuration.', 'warning', {'keys': list(config.keys())})
+            return self.json_response(200, {'ok': True, 'message': 'Config saved'})
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_hq_overview(self):
+        def tail_lines(path, limit=20):
+            if not path.exists():
+                return []
+            return path.read_text(errors='ignore').splitlines()[-limit:]
+
+        def read_json(path, default=None):
+            if default is None:
+                default = {}
+            if not path.exists():
+                return default
+            try:
+                return json.loads(path.read_text())
+            except Exception:
+                return default
+
+        safety_config = read_json(ROOT / 'dashboard' / 'config' / 'safety_config.json', {})
+        risk_config = read_json(ROOT / 'risk_config.json', {})
+        refresh_status = read_json(ROOT / 'dashboard' / 'state' / 'refresh_status.json', {})
+        action_feedback = read_json(ROOT / 'dashboard' / 'state' / 'action_feedback.json', {})
+
+        notes = tail_lines(ROOT / 'dashboard' / 'state' / 'hq_operator_notes.jsonl', 10)
+        signal_lines = tail_lines(ROOT / 'eth_scalper' / 'logs' / 'signals.jsonl', 20)
+        trade_lines = tail_lines(ROOT / 'eth_scalper' / 'logs' / 'trades.jsonl', 20)
+        refresh_log = tail_lines(ROOT / 'out' / 'logs' / 'bazaar_refresh_cycle.log', 30)
+
+        return self.json_response(200, {
+            'ok': True,
+            'notes': notes,
+            'signals': signal_lines,
+            'trades': trade_lines,
+            'refresh_log': refresh_log,
+            'safety_config': safety_config,
+            'risk_config': risk_config,
+            'refresh_status': refresh_status,
+            'action_feedback': action_feedback,
+        })
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Serve the Tradier local dashboard.')
