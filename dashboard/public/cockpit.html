@@ -110,6 +110,12 @@ button,input,textarea{font:inherit}
 
 This console should show multi-line command results, not single-line compressed status.</pre></div>
       </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Operator History</div><div class="panel-sub">Recent actions, notes, and event tape</div></div>
+        </div>
+        <div class="panel-body"><pre class="console-output" id="history-output">Loading history...</pre></div>
+      </div>
       <div class="console-input">
         <input type="text" id="command-input" placeholder="Type a command or use buttons above" autocomplete="off">
         <button onclick="sendCustomCommand()">Run</button>
@@ -119,7 +125,7 @@ This console should show multi-line command results, not single-line compressed 
 </div>
 
 <script>
-const state = { payload: null, view: 'overview' };
+const state = { payload: null, history: null, view: 'overview' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 const money = n => '$' + Number(n || 0).toFixed(2);
@@ -351,10 +357,15 @@ function render() {
 
 async function refreshState() {
   try {
-    const r = await fetch('/api/hq/status', { cache: 'no-store' });
-    if (!r.ok) throw new Error(`HQ status ${r.status}`);
-    state.payload = await r.json();
+    const [statusResp, historyResp] = await Promise.all([
+      fetch('/api/hq/status', { cache: 'no-store' }),
+      fetch('/api/hq/history', { cache: 'no-store' })
+    ]);
+    if (!statusResp.ok) throw new Error(`HQ status ${statusResp.status}`);
+    state.payload = await statusResp.json();
+    state.history = historyResp.ok ? await historyResp.json() : null;
     render();
+    renderHistory();
   } catch (e) {
     $('#mission').textContent = 'Failed to load HQ';
     $('#output').textContent = `Refresh failed: ${e.message}`;
@@ -405,6 +416,42 @@ function collectOrderForm() {
 function previewTradeEntry() {
   const payload = collectOrderForm();
   $('#output').textContent = JSON.stringify({ preview: true, payload, note: 'Preview assembled from cockpit form. Next step is submit via /api/order.' }, null, 2);
+}
+
+async function queueDeploy() {
+  const out = $('#output');
+  try {
+    const r = await fetch('/api/hq/deploy', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mode: 'queue' }) });
+    const data = await r.json();
+    out.textContent = JSON.stringify(data, null, 2);
+    await refreshState();
+  } catch (e) {
+    out.textContent = `Deploy queue failed: ${e.message}`;
+  }
+}
+
+function renderHistory() {
+  const h = state.history || {};
+  const events = h.events || [];
+  const notes = h.notes || [];
+  const refresh = h.refresh_status || {};
+  const feedback = h.action_feedback || {};
+  const queue = h.queue || [];
+  const lines = [];
+  if (refresh && Object.keys(refresh).length) lines.push('[refresh_status]
+' + JSON.stringify(refresh, null, 2));
+  if (feedback && Object.keys(feedback).length) lines.push('[action_feedback]
+' + JSON.stringify(feedback, null, 2));
+  if (queue.length) lines.push('[queue]
+' + JSON.stringify(queue.slice(-10), null, 2));
+  if (events.length) lines.push('[events]
+' + JSON.stringify(events.slice(0, 12), null, 2));
+  if (notes.length) lines.push('[notes]
+' + JSON.stringify(notes.slice(-10), null, 2));
+  const el = $('#history-output');
+  if (el) el.textContent = lines.length ? lines.join('
+
+') : 'No operator history yet.';
 }
 
 async function submitTradeEntry() {
