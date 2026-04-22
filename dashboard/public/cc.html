@@ -105,8 +105,9 @@ const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amb
 const chip = (text, cls='cyan') => `<span class="chip"><span class="dot ${cls}"></span>${text}</span>`;
 const cardItem = (title, body) => `<div class="carditem"><h4>${esc(title)}</h4><p>${esc(body)}</p></div>`;
 const kv = (k,v) => `<div class="kvbox"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
+const controlButton = c => `<button class="ctrlbtn ${c.kind === 'danger' ? 'danger' : ''}" onclick="runCmd('${esc(c.action)}')">${esc(c.label)}<small>${esc(c.note || '')}</small></button>`;
 
-function liveData(){ const p = appState.payload || {}; const live = p.live || {}; live.freshness = live.freshness || {}; live.scoreboard = live.scoreboard || {}; live.tradier = live.tradier || {}; return { p, live, f: live.freshness, s: live.scoreboard, t: live.tradier, wallet: live.wallet || {} }; }
+function liveData(){ const p = appState.payload || {}; const live = p.live || {}; live.freshness = live.freshness || {}; live.scoreboard = live.scoreboard || {}; live.tradier = live.tradier || {}; live.artifacts = live.artifacts || {}; live.controls = live.controls || {}; live.system = live.system || {}; return { p, live, f: live.freshness, s: live.scoreboard, t: live.tradier, wallet: live.wallet || {}, a: live.artifacts, c: live.controls, sys: live.system }; }
 
 function updateHeader(){
   const { p, live, f, t } = liveData();
@@ -122,7 +123,7 @@ function updateHeader(){
 }
 
 function renderOverview(){
-  const { live, f, s, t } = liveData();
+  const { live, f, s, t, a, c, sys } = liveData();
   $('#main').innerHTML = `
     <section class="hero grid2">
       <div>
@@ -158,8 +159,8 @@ function renderOverview(){
     <section class="panel">
       <div class="panel-head"><div><div class="panel-title">Live Truth Surfaces</div><div class="panel-sub">The artifacts you inspect before trusting automation</div></div><span class="badge">truth</span></div>
       <div class="panel-body"><div class="grid2">
-        <div><div class="panel-sub" style="margin-bottom:8px">Tradier board</div><pre class="code">${esc(live.tradier_board_text || 'No Tradier board text available.')}</pre></div>
-        <div><div class="panel-sub" style="margin-bottom:8px">Bloc wallet truth</div><pre class="code">${esc(live.bloc_wallet_text || 'No Bloc wallet text available.')}</pre></div>
+        <div><div class="panel-sub" style="margin-bottom:8px">Tradier board</div><pre class="code">${esc(a.tradier_board_text || 'No Tradier board text available.')}</pre></div>
+        <div><div class="panel-sub" style="margin-bottom:8px">Bloc wallet truth</div><pre class="code">${esc(a.bloc_wallet_text || 'No Bloc wallet text available.')}</pre></div>
       </div></div>
     </section>`;
 
@@ -181,11 +182,11 @@ function renderOverview(){
 }
 
 function renderExecution(){
-  const { live, f, s, t } = liveData();
+  const { live, f, s, t, a, c } = liveData();
   const active = appState.execTab;
   const left = active === 'tradier'
-    ? `<section class="hero" style="background:linear-gradient(135deg,rgba(77,135,255,.18),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Tradier Execution Lane</div><div class="hero-title">${esc((t.status || 'unknown').toUpperCase())}</div><div class="hero-sub">Buying power ${money(t.buying_power_usd)} · positions ${t.positions_count || 0} · orders ${t.orders_count || 0}</div><div class="minirow"><div class="statbox"><span>freshness</span><b>${esc(ageLabel(f.tradier_age_hours))}</b></div><div class="statbox"><span>fills today</span><b>${esc(s.tradier_fills_today ?? 0)}</b></div><div class="statbox"><span>previews today</span><b>${esc(s.tradier_previews_today ?? 0)}</b></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier board</div><div class="panel-sub">Current candidate surface</div></div><span class="badge">tradier</span></div><div class="panel-body"><pre class="code">${esc(live.tradier_board_text || 'No Tradier board text available.')}</pre></div></section>`
-    : `<section class="hero" style="background:linear-gradient(135deg,rgba(137,103,255,.2),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Bloc Execution Lane</div><div class="hero-title">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="hero-sub">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'}</div><div class="minirow"><div class="statbox"><span>freshness</span><b>${esc(ageLabel(f.bloc_age_hours))}</b></div><div class="statbox"><span>trades today</span><b>${esc(s.bloc_trades_today ?? 0)}</b></div><div class="statbox"><span>realized actions</span><b>${esc(s.realized_actions_today ?? 0)}</b></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc wallet truth</div><div class="panel-sub">Current wallet/runtime surface</div></div><span class="badge">bloc</span></div><div class="panel-body"><pre class="code">${esc(live.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div></section>`;
+    ? `<section class="hero" style="background:linear-gradient(135deg,rgba(77,135,255,.18),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Tradier Execution Lane</div><div class="hero-title">${esc((t.status || 'unknown').toUpperCase())}</div><div class="hero-sub">Buying power ${money(t.buying_power_usd)} · positions ${t.positions_count || 0} · orders ${t.orders_count || 0}</div><div class="minirow"><div class="statbox"><span>freshness</span><b>${esc(ageLabel(f.tradier_age_hours))}</b></div><div class="statbox"><span>fills today</span><b>${esc(s.tradier_fills_today ?? 0)}</b></div><div class="statbox"><span>previews today</span><b>${esc(s.tradier_previews_today ?? 0)}</b></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier board</div><div class="panel-sub">Current candidate surface</div></div><span class="badge">tradier</span></div><div class="panel-body"><pre class="code">${esc(a.tradier_board_text || 'No Tradier board text available.')}</pre></div></section>`
+    : `<section class="hero" style="background:linear-gradient(135deg,rgba(137,103,255,.2),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Bloc Execution Lane</div><div class="hero-title">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="hero-sub">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'}</div><div class="minirow"><div class="statbox"><span>freshness</span><b>${esc(ageLabel(f.bloc_age_hours))}</b></div><div class="statbox"><span>trades today</span><b>${esc(s.bloc_trades_today ?? 0)}</b></div><div class="statbox"><span>realized actions</span><b>${esc(s.realized_actions_today ?? 0)}</b></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc wallet truth</div><div class="panel-sub">Current wallet/runtime surface</div></div><span class="badge">bloc</span></div><div class="panel-body"><pre class="code">${esc(a.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div></section>`;
 
   $('#main').innerHTML = `
     <section class="panel"><div class="panel-head"><div><div class="panel-title">Execution Lanes</div><div class="panel-sub">Switch between Tradier and Bloc operator surfaces</div></div><div class="toolbar"><button class="segbtn ${active==='tradier'?'active':''}" onclick="setExecTab('tradier')">Tradier</button><button class="segbtn ${active==='bloc'?'active':''}" onclick="setExecTab('bloc')">Bloc</button></div></div><div class="panel-body">${left}</div></section>`;
@@ -196,7 +197,7 @@ function renderExecution(){
 }
 
 function renderBalances(){
-  const { live, t, wallet } = liveData();
+  const { live, t, wallet, a } = liveData();
   $('#main').innerHTML = `
     <section class="hero" style="background:linear-gradient(135deg,rgba(39,218,131,.16),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Balances & Capital</div><div class="hero-title">Capital posture</div><div class="hero-sub">This is the live money surface: wallet balances, deployable capital, invested capital, and Tradier buying power.</div><div class="metrics"><div class="metric"><div class="metric-k">Tradier buying power</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">options capital available</div></div><div class="metric"><div class="metric-k">Deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">cash ready to deploy</div></div><div class="metric"><div class="metric-k">Invested</div><div class="metric-v">${money(live.invested_capital_usd)}</div><div class="metric-s">capital currently at work</div></div><div class="metric"><div class="metric-k">Wallet total</div><div class="metric-v">${money(wallet.estimated_total_usd)}</div><div class="metric-s">estimated onchain value</div></div></div></section>
     <section class="panel"><div class="panel-head"><div><div class="panel-title">Wallet Breakdown</div><div class="panel-sub">Live asset and cash balances</div></div><span class="badge">capital</span></div><div class="panel-body"><div class="kv">
@@ -214,16 +215,9 @@ function renderControls(){
         ${cardItem('Execution posture', 'Pause Tradier, pause Bloc, resume Bloc, emergency close.')}
         ${cardItem('Next phase', 'Add deploy, limits, logic, trade-entry, and balance mutation surfaces directly here.')}
       </div>
-      <div class="ctrlgrid">
-        <button class="ctrlbtn" onclick="runCmd('refresh_truth')">Refresh truth<small>Rebuild live HQ state</small></button>
-        <button class="ctrlbtn" onclick="runCmd('diagnose_tradier')">Diagnose Tradier<small>Inspect options path health</small></button>
-        <button class="ctrlbtn" onclick="runCmd('diagnose_bloc')">Diagnose Bloc<small>Inspect wallet/runtime path</small></button>
-        <button class="ctrlbtn danger" onclick="runCmd('pause_tradier')">Pause Tradier<small>Stop Tradier automation</small></button>
-        <button class="ctrlbtn" onclick="runCmd('pause_bloc')">Pause Bloc<small>Stop onchain cycle</small></button>
-        <button class="ctrlbtn" onclick="runCmd('resume_bloc')">Resume Bloc<small>Resume onchain cycle</small></button>
-      </div>
+      <div class="ctrlgrid">${(c.deploy || []).concat(c.execution || []).map(controlButton).join('')}</div>
     </div></div></section>`;
-  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Control Policy</div><div class="panel-sub">What this tool is supposed to become</div></div><span class="badge">policy</span></div><div class="panel-body"><div class="list">${cardItem('HQ as the official tool', 'Anything done in Telegram around deploys, checks, balances, logic, limits, and trades should become an HQ surface.')}${cardItem('No more debug dashboard posture', 'This page should be the operator desk, not a passive status board.')}${cardItem('Telegram should delegate here', 'Chat becomes command intent and review, HQ becomes execution and inspection.')}</div></div></section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Control Policy</div><div class="panel-sub">What this tool is supposed to become</div></div><span class="badge">${esc(sys.presentation_mode || 'policy')}</span></div><div class="panel-body"><div class="list">${cardItem('HQ as the official tool', 'Anything done in Telegram around deploys, checks, balances, logic, limits, and trades should become an HQ surface.')}${cardItem('No more debug dashboard posture', 'This page should be the operator desk, not a passive status board.')}${cardItem('Telegram should delegate here', 'Chat becomes command intent and review, HQ becomes execution and inspection.')}</div></div></section>`;
 }
 
 function renderJournal(){
@@ -233,9 +227,9 @@ function renderJournal(){
 }
 
 function renderAudit(){
-  const { p, live } = liveData();
+  const { p, live, a } = liveData();
   $('#main').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Raw HQ Payload</div><div class="panel-sub">Inspection surface for debugging and verification</div></div><span class="badge">audit</span></div><div class="panel-body"><pre class="code">${esc(JSON.stringify(p, null, 2))}</pre></div></section>`;
-  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Audit Notes</div><div class="panel-sub">Interpretation of the raw truth</div></div></div><div class="panel-body"><div class="list">${cardItem('Tradier ready != trading', 'Buying power without recent fills is not a healthy execution engine.')}${cardItem('Bloc freshness must not lie', 'Runtime freshness cannot conceal zero realized actions.')}${cardItem('This is the truth layer', 'Use audit when the polished views feel suspicious.')}</div><pre class="code" style="margin-top:12px">${esc(live.tradier_audit_lines ? JSON.stringify(live.tradier_audit_lines, null, 2) : 'No tradier audit lines exposed.')}</pre></div></section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Audit Notes</div><div class="panel-sub">Interpretation of the raw truth</div></div></div><div class="panel-body"><div class="list">${cardItem('Tradier ready != trading', 'Buying power without recent fills is not a healthy execution engine.')}${cardItem('Bloc freshness must not lie', 'Runtime freshness cannot conceal zero realized actions.')}${cardItem('This is the truth layer', 'Use audit when the polished views feel suspicious.')}</div><pre class="code" style="margin-top:12px">${esc(a.tradier_audit_lines ? JSON.stringify(a.tradier_audit_lines, null, 2) : 'No tradier audit lines exposed.')}</pre></div></section>`;
 }
 
 function render(){

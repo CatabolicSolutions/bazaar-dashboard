@@ -1283,7 +1283,7 @@ class Handler(SimpleHTTPRequestHandler):
             ]
         return {
             'source': 'serve_dashboard',
-            'build': 'HQv10-ruthless-operator-product-2026-04-20',
+            'build': 'HQv11-executive-command-center-2026-04-22',
             'persistence': 'postgresql' if hq_repository.enabled else 'memory-only',
             'updated_at': now_iso(),
             'live': {
@@ -1344,6 +1344,32 @@ class Handler(SimpleHTTPRequestHandler):
                     'positions_count': len(tradier_positions) if isinstance(tradier_positions, list) else 0,
                     'orders_count': len(tradier_orders) if isinstance(tradier_orders, list) else 0,
                     'top_blocker': tradier_blocker,
+                },
+                'artifacts': {
+                    'tradier_board_text': (ROOT / 'out' / 'tradier_leaders_board.txt').read_text(errors='ignore')[:4000] if (ROOT / 'out' / 'tradier_leaders_board.txt').exists() else 'No Tradier leaders board yet.',
+                    'tradier_audit_lines': (ROOT / 'out' / 'tradier_execution_audit.jsonl').read_text(errors='ignore').splitlines()[-20:] if (ROOT / 'out' / 'tradier_execution_audit.jsonl').exists() else [],
+                    'bloc_state_text': (ROOT / 'eth_scalper' / 'state' / 'bot_state.json').read_text(errors='ignore')[:4000] if (ROOT / 'eth_scalper' / 'state' / 'bot_state.json').exists() else '{}',
+                    'bloc_wallet_text': (ROOT / 'eth_scalper' / 'state' / 'wallet.json').read_text(errors='ignore')[:4000] if (ROOT / 'eth_scalper' / 'state' / 'wallet.json').exists() else '{}',
+                    'risk_config_text': (ROOT / 'risk_config.json').read_text(errors='ignore')[:4000] if (ROOT / 'risk_config.json').exists() else '{}',
+                    'hq_safety_text': (ROOT / 'dashboard' / 'config' / 'safety_config.json').read_text(errors='ignore')[:4000] if (ROOT / 'dashboard' / 'config' / 'safety_config.json').exists() else '{}',
+                },
+                'controls': {
+                    'deploy': [
+                        {'action': 'refresh_truth', 'label': 'Refresh Truth', 'kind': 'primary', 'note': 'Rebuild live HQ state from runtime files and APIs.'},
+                        {'action': 'diagnose_tradier', 'label': 'Diagnose Tradier', 'kind': 'secondary', 'note': 'Inspect options readiness, board, and execution path.'},
+                        {'action': 'diagnose_bloc', 'label': 'Diagnose Bloc', 'kind': 'secondary', 'note': 'Inspect wallet truth and onchain runtime state.'},
+                    ],
+                    'execution': [
+                        {'action': 'pause_tradier', 'label': 'Pause Tradier', 'kind': 'danger', 'note': 'Stop automated Tradier activity.'},
+                        {'action': 'pause_bloc', 'label': 'Pause Bloc', 'kind': 'danger', 'note': 'Stop automated Bloc activity.'},
+                        {'action': 'resume_bloc', 'label': 'Resume Bloc', 'kind': 'primary', 'note': 'Resume Bloc compounding cycle.'},
+                        {'action': 'close_all', 'label': 'Emergency Close', 'kind': 'danger', 'note': 'Flatten risk immediately if supported.'},
+                    ],
+                },
+                'system': {
+                    'build_label': 'HQv11-executive-command-center-2026-04-22',
+                    'presentation_mode': 'executive-operator',
+                    'truth_status': 'stale' if action_required else 'live',
                 },
             }
         }
