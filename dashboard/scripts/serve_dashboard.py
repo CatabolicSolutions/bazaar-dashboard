@@ -1133,12 +1133,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         tradier_state_path = ROOT / 'out' / 'tradier_account_state.json'
         tradier_state = json.loads(tradier_state_path.read_text()) if tradier_state_path.exists() else {}
+        tradier_balances = tradier_state.get('balances', {}) if isinstance(tradier_state.get('balances', {}), dict) else {}
         tradier_buying_power = (
-            tradier_state.get('option_buying_power')
+            tradier_balances.get('option_buying_power')
+            or tradier_state.get('option_buying_power')
+            or tradier_balances.get('cash_available')
             or tradier_state.get('cash_available')
+            or tradier_balances.get('total_cash')
             or tradier_state.get('total_cash')
-            or (tradier_state.get('balances', {}) if isinstance(tradier_state.get('balances', {}), dict) else {}).get('total_cash')
-            or (tradier_state.get('balances', {}) if isinstance(tradier_state.get('balances', {}), dict) else {}).get('cash_available')
             or tradier_state.get('buying_power')
             or 0.0
         )
@@ -2212,13 +2214,21 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             payload = json.loads(body.decode() or '{}')
             config = payload.get('config')
+            target = str(payload.get('target') or 'safety').strip().lower()
             if not isinstance(config, dict):
                 return self.json_response(400, {'ok': False, 'error': 'config object required'})
-            config_path = ROOT / 'dashboard' / 'config' / 'safety_config.json'
+            if target == 'risk':
+                config_path = ROOT / 'risk_config.json'
+                event_title = 'Risk config updated'
+                event_detail = 'Operator updated Tradier/engine risk configuration.'
+            else:
+                config_path = ROOT / 'dashboard' / 'config' / 'safety_config.json'
+                event_title = 'Safety config updated'
+                event_detail = 'Operator updated HQ safety configuration.'
             config_path.parent.mkdir(parents=True, exist_ok=True)
             config_path.write_text(json.dumps(config, indent=2))
-            hq_repository.append_event('operator_config', 'Safety config updated', 'Operator updated HQ safety configuration.', 'warning', {'keys': list(config.keys())})
-            return self.json_response(200, {'ok': True, 'message': 'Config saved'})
+            hq_repository.append_event('operator_config', event_title, event_detail, 'warning', {'target': target, 'keys': list(config.keys())})
+            return self.json_response(200, {'ok': True, 'message': f'{target.title()} config saved', 'target': target})
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
