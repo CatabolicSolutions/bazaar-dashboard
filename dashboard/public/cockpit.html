@@ -418,15 +418,16 @@ function previewTradeEntry() {
   $('#output').textContent = JSON.stringify({ preview: true, payload, note: 'Preview assembled from cockpit form. Next step is submit via /api/order.' }, null, 2);
 }
 
-async function queueDeploy() {
+async function runDeploy() {
   const out = $('#output');
+  out.textContent = 'Starting cockpit deploy...';
   try {
-    const r = await fetch('/api/hq/deploy', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mode: 'queue' }) });
+    const r = await fetch('/api/hq/deploy', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mode: 'run' }) });
     const data = await r.json();
     out.textContent = JSON.stringify(data, null, 2);
     await refreshState();
   } catch (e) {
-    out.textContent = `Deploy queue failed: ${e.message}`;
+    out.textContent = `Deploy run failed: ${e.message}`;
   }
 }
 
