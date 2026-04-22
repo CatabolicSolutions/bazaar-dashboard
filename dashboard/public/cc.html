@@ -9,90 +9,70 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#061017;
-  --bg2:#0b1722;
-  --panel:#0e1c29;
-  --panel2:#132538;
-  --line:#1f3850;
-  --text:#eaf4ff;
-  --muted:#8ea8c3;
-  --cyan:#59d0ff;
-  --blue:#4b7cff;
-  --violet:#7a5cff;
-  --green:#2fd67b;
-  --amber:#ffbf47;
-  --red:#ff5d73;
-  --shadow:0 20px 60px rgba(0,0,0,.35);
+  --bg:#071019;--bg2:#0b1723;--panel:#0f1e2b;--panel2:#132636;--line:#1d3549;--line2:#2c4d6a;
+  --text:#ebf5ff;--muted:#8fa8c2;--muted2:#6e89a6;--cyan:#63dbff;--blue:#4d87ff;--violet:#8967ff;--green:#27da83;--amber:#ffc24d;--red:#ff5f78;
+  --shadow:0 24px 60px rgba(0,0,0,.34);
 }
-*{box-sizing:border-box} html,body{margin:0;height:100%;background:linear-gradient(180deg,#08131d,#050b11 45%,#04080d);color:var(--text);font-family:Inter,sans-serif}
-body{overflow:hidden}
-button{font:inherit}
-.app{height:100vh;display:grid;grid-template-rows:72px 1fr;background:
-  radial-gradient(circle at 20% 0%, rgba(89,208,255,.18), transparent 28%),
-  radial-gradient(circle at 80% 0%, rgba(122,92,255,.14), transparent 30%),
-  linear-gradient(180deg,#08131d,#050b11 45%,#04080d)}
-.top{display:grid;grid-template-columns:360px 1fr 360px;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(111,156,201,.16);background:rgba(4,9,15,.7);backdrop-filter:blur(8px)}
-.brand,.headline,.meta{border:1px solid rgba(111,156,201,.14);border-radius:18px;background:linear-gradient(180deg,rgba(14,28,41,.96),rgba(10,19,30,.96));box-shadow:var(--shadow);display:flex;align-items:center}
-.brand{padding:0 18px;justify-content:space-between}.brand-tag{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:800}.brand-name{font-size:26px;font-weight:800;line-height:1}.brand-sub{font-size:12px;color:var(--muted);margin-top:3px}
-.headline{padding:0 18px;justify-content:space-between}.headline-k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#87c6ff;font-weight:800}.headline-v{font-size:16px;font-weight:800;max-width:42ch;line-height:1.15}.headline-s{font-size:11px;color:var(--muted);margin-top:4px}
-.meta{padding:0 16px;justify-content:space-between;gap:10px}.chiprow{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.chip{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;border:1px solid rgba(111,156,201,.18);background:#0d1824;color:#cfe6ff;font-size:11px;font-weight:700}.dot{width:8px;height:8px;border-radius:999px}.green{background:var(--green);box-shadow:0 0 12px rgba(47,214,123,.45)}.amber{background:var(--amber);box-shadow:0 0 12px rgba(255,191,71,.35)}.red{background:var(--red);box-shadow:0 0 12px rgba(255,93,115,.42)}.cyan{background:var(--cyan);box-shadow:0 0 12px rgba(89,208,255,.42)}
-.shell{display:grid;grid-template-columns:92px 1.3fr .95fr 360px;gap:12px;padding:12px;min-height:0}
-.rail,.center,.focus,.console{min-height:0}.rail{border:1px solid rgba(111,156,201,.14);border-radius:22px;background:linear-gradient(180deg,rgba(12,22,33,.98),rgba(8,15,24,.98));box-shadow:var(--shadow);padding:10px;display:grid;grid-template-rows:auto 1fr auto;gap:10px}.rail-stack{display:grid;gap:8px}.navbtn,.quickbtn{border:1px solid rgba(111,156,201,.16);background:linear-gradient(180deg,#0f1e2d,#0b1621);color:#d4e9ff;border-radius:16px;cursor:pointer;transition:.15s ease all;font-weight:700}.navbtn{height:62px;font-size:10px;letter-spacing:.12em;text-transform:uppercase}.navbtn.active,.quickbtn:hover{border-color:rgba(89,208,255,.55);background:linear-gradient(180deg,#17324a,#102234);box-shadow:0 12px 24px rgba(0,0,0,.24)}.quickbtn{padding:10px 8px;font-size:10px;line-height:1.15}.quickbtn.danger{border-color:rgba(255,93,115,.35);background:linear-gradient(180deg,#2a141b,#180f14);color:#ffd6dc}
-.center,.focus,.console{display:grid;gap:12px;align-content:start}
-.hero,.stack,.panel,.tape{border:1px solid rgba(111,156,201,.14);border-radius:22px;background:linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98));box-shadow:var(--shadow)}
-.hero{padding:22px;display:grid;gap:18px;background:
- linear-gradient(135deg,rgba(89,208,255,.14),rgba(11,18,27,.96) 40%),
- linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98))}
-.hero-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#8bd5ff;font-weight:800}.hero-title{font-size:40px;line-height:1.02;font-weight:800;max-width:14ch}.hero-sub{font-size:14px;color:#a7bfd8;max-width:68ch;margin-top:8px}.priority{min-width:220px;padding:14px;border-radius:18px;border:1px solid rgba(255,93,115,.22);background:linear-gradient(180deg,rgba(53,20,29,.96),rgba(23,15,20,.96))}.priority.ok{border-color:rgba(47,214,123,.24);background:linear-gradient(180deg,rgba(21,49,35,.96),rgba(13,23,18,.96))}.priority-k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#ffd5db}.priority.ok .priority-k{color:#d8ffe7}.priority-v{font-size:13px;font-weight:700;line-height:1.35;margin-top:8px}.actionbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.act{border:none;border-radius:16px;padding:14px 16px;cursor:pointer;font-weight:800;font-size:12px;letter-spacing:.01em;color:white;background:linear-gradient(180deg,#1a6fa3,#0f4263);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}.act.secondary{background:linear-gradient(180deg,#364866,#1d2a3d)}.act.alt{background:linear-gradient(180deg,#6146f2,#342986)}.act.danger{background:linear-gradient(180deg,#b83a54,#6d2132)}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{padding:14px 16px;border-radius:18px;background:linear-gradient(180deg,#102030,#0c1722);border:1px solid rgba(111,156,201,.12)}.metric-k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#82a0bf}.metric-v{font-size:24px;font-weight:800;margin-top:6px}.metric-s{font-size:11px;color:#a1bad3;margin-top:4px}
-.panel{display:flex;flex-direction:column;min-height:0}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(111,156,201,.12)}.panel-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#d5e8fb}.panel-sub{font-size:10px;color:#7e9bbc;margin-top:3px}.panel-body{padding:16px;min-height:0;overflow:auto}.list{display:grid;gap:10px}.item{padding:14px;border-radius:16px;background:linear-gradient(180deg,#102030,#0c1722);border:1px solid rgba(111,156,201,.12)}.item strong{display:block;font-size:13px}.item p{margin:6px 0 0;color:#98b0cb;font-size:11px;line-height:1.45}
-.board{display:grid;grid-template-columns:1fr 1fr;gap:12px}.code{white-space:pre-wrap;overflow:auto;background:#07111a;border:1px solid rgba(111,156,201,.14);border-radius:16px;padding:14px;font:11px/1.55 'JetBrains Mono',monospace;color:#cae1fb;max-height:280px}
-.focus{grid-template-rows:300px 1fr}.command-card{padding:18px;border-radius:22px;background:linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98));border:1px solid rgba(111,156,201,.14);box-shadow:var(--shadow);display:grid;grid-template-rows:auto auto 1fr;gap:12px}.command-k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8bd5ff;font-weight:800}.command-v{font-size:30px;line-height:1.05;font-weight:800}.command-s{font-size:12px;color:#9eb7d0}.tape{padding:0;overflow:hidden}.tape-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(111,156,201,.12)}.tape-body{padding:14px;overflow:auto;min-height:0;background:#07111a;font:11px/1.55 'JetBrains Mono',monospace;color:#c9dff8}
-.console{grid-template-rows:1fr 220px}.console .panel,.console .tape{min-height:0}
-.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}.kvbox{padding:12px;border-radius:15px;background:linear-gradient(180deg,#102030,#0c1722);border:1px solid rgba(111,156,201,.12)}.kvbox span{display:block;font-size:10px;color:#7e9bbc;margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em}.kvbox b{font-size:18px}
-.badge{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#0d1824;border:1px solid rgba(111,156,201,.18);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#cfe6ff}
-.hidden{display:none!important}
-@media (max-width:1500px){.shell{grid-template-columns:92px 1fr 340px}.console{display:none}}
-@media (max-width:1280px){body{overflow:auto}.app{height:auto}.top,.shell,.actionbar,.metrics,.board,.kv{grid-template-columns:1fr}.shell{padding:10px}.rail{grid-template-columns:repeat(3,1fr);grid-template-rows:auto}.navbtn{height:52px}.focus,.console{grid-template-rows:auto}}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#061018;color:var(--text);font-family:Inter,sans-serif}body{overflow:hidden}
+button,input,textarea{font:inherit}
+body::before{content:'';position:fixed;inset:0;background:
+ radial-gradient(circle at 14% -8%, rgba(99,219,255,.18), transparent 30%),
+ radial-gradient(circle at 84% -12%, rgba(137,103,255,.14), transparent 32%),
+ linear-gradient(180deg,#0b1823,#061018 40%,#040b12);pointer-events:none}
+.app{position:relative;height:100vh;display:grid;grid-template-rows:76px 1fr;padding:12px;gap:12px}
+.top{display:grid;grid-template-columns:360px 1fr 420px;gap:12px;min-height:0}.glass{border:1px solid rgba(110,152,194,.14);border-radius:22px;background:linear-gradient(180deg,rgba(15,30,43,.94),rgba(10,19,30,.96));box-shadow:var(--shadow);backdrop-filter:blur(10px)}
+.brand,.mission,.statusbar{display:flex;align-items:center;min-height:0}.brand{padding:0 18px;justify-content:space-between}.brand-tag{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:800}.brand-name{font-size:28px;font-weight:800;line-height:1}.brand-sub{font-size:12px;color:var(--muted);margin-top:3px}.mission{padding:0 20px}.mission-k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8dd8ff;font-weight:800}.mission-v{font-size:17px;font-weight:800;line-height:1.15;margin-top:3px}.mission-s{font-size:11px;color:var(--muted);margin-top:5px}.statusbar{padding:0 16px;justify-content:flex-end}.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.chip{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;border:1px solid rgba(110,152,194,.16);background:#0d1824;color:#d6e9ff;font-size:11px;font-weight:700}.dot{width:8px;height:8px;border-radius:999px}.green{background:var(--green);box-shadow:0 0 12px rgba(39,218,131,.44)}.amber{background:var(--amber);box-shadow:0 0 12px rgba(255,194,77,.38)}.red{background:var(--red);box-shadow:0 0 12px rgba(255,95,120,.42)}.cyan{background:var(--cyan);box-shadow:0 0 12px rgba(99,219,255,.42)}.blue{background:var(--blue);box-shadow:0 0 12px rgba(77,135,255,.42)}.violet{background:var(--violet);box-shadow:0 0 12px rgba(137,103,255,.4)}
+.shell{display:grid;grid-template-columns:96px minmax(0,1.25fr) minmax(340px,.95fr) minmax(340px,.95fr);gap:12px;min-height:0}.rail,.main,.ops,.console{min-height:0}
+.rail{padding:10px;display:grid;grid-template-rows:auto 1fr auto;gap:10px}.stack{display:grid;gap:8px}.navbtn,.quickbtn,.ctrlbtn,.segbtn{border:1px solid rgba(110,152,194,.16);background:linear-gradient(180deg,#112131,#0b1620);color:#d8ebff;border-radius:16px;cursor:pointer;transition:all .15s ease;font-weight:700}.navbtn{height:62px;font-size:10px;letter-spacing:.13em;text-transform:uppercase}.navbtn.active,.segbtn.active,.quickbtn:hover,.ctrlbtn:hover{border-color:rgba(99,219,255,.55);background:linear-gradient(180deg,#17354d,#102234);box-shadow:0 12px 28px rgba(0,0,0,.24)}.quickbtn{padding:10px 8px;font-size:10px;line-height:1.15}.quickbtn.danger,.ctrlbtn.danger{border-color:rgba(255,95,120,.34);background:linear-gradient(180deg,#2c131a,#170d12);color:#ffd7de}.main,.ops,.console{display:grid;gap:12px;align-content:start}
+.hero,.panel,.commanddeck,.consolecard{border:1px solid rgba(110,152,194,.14);border-radius:24px;background:linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98));box-shadow:var(--shadow)}
+.hero{padding:22px;display:grid;gap:18px;background:linear-gradient(135deg,rgba(99,219,255,.16),rgba(11,18,27,.96) 44%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))}.hero.grid2{grid-template-columns:1.2fr .8fr;align-items:stretch}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#90ddff;font-weight:800}.hero-title{font-size:42px;line-height:1.02;font-weight:800;max-width:14ch}.hero-sub{font-size:14px;color:#a6c0db;line-height:1.45;max-width:72ch;margin-top:8px}.callout{padding:16px;border-radius:20px;border:1px solid rgba(255,95,120,.24);background:linear-gradient(180deg,rgba(58,22,31,.96),rgba(22,14,19,.96));display:flex;flex-direction:column;justify-content:space-between}.callout.ok{border-color:rgba(39,218,131,.24);background:linear-gradient(180deg,rgba(20,52,37,.96),rgba(13,22,18,.96))}.callout-k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#ffd6dd}.callout.ok .callout-k{color:#d8ffe8}.callout-v{font-size:14px;font-weight:700;line-height:1.4;margin-top:10px}.actiongrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.act{border:none;border-radius:16px;padding:14px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#fff;background:linear-gradient(180deg,#156d9f,#0d425f)}.act.alt{background:linear-gradient(180deg,#6b55f0,#392984)}.act.neutral{background:linear-gradient(180deg,#415571,#202d41)}.act.danger{background:linear-gradient(180deg,#bf3957,#701f33)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{padding:14px 16px;border-radius:18px;background:linear-gradient(180deg,#102130,#0c1722);border:1px solid rgba(110,152,194,.12)}.metric-k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7f9dbc}.metric-v{font-size:24px;font-weight:800;margin-top:6px}.metric-s{font-size:11px;color:#9eb8d4;margin-top:4px;line-height:1.35}
+.panel{display:flex;flex-direction:column;min-height:0}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(110,152,194,.12)}.panel-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#dcedff}.panel-sub{font-size:10px;color:#7d9abd;margin-top:3px}.badge{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#0e1a26;border:1px solid rgba(110,152,194,.16);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#d7ebff}.panel-body{padding:16px;min-height:0;overflow:auto}
+.list{display:grid;gap:10px}.carditem{padding:14px;border-radius:16px;background:linear-gradient(180deg,#102130,#0b1722);border:1px solid rgba(110,152,194,.12)}.carditem h4{margin:0;font-size:13px}.carditem p{margin:6px 0 0;font-size:11px;line-height:1.45;color:#9db7d2}.minirow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.statbox{padding:12px;border-radius:16px;background:linear-gradient(180deg,#102130,#0c1722);border:1px solid rgba(110,152,194,.12)}.statbox span{display:block;font-size:10px;color:#809dbc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}.statbox b{font-size:18px}
+.commanddeck{padding:18px;display:grid;grid-template-rows:auto auto auto 1fr;gap:12px}.command-k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8edbff;font-weight:800}.command-v{font-size:30px;line-height:1.05;font-weight:800}.command-s{font-size:12px;color:#9fb9d4}.deck-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ctrlgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ctrlbtn{padding:14px 12px;border-radius:16px;font-size:12px;text-align:left}.ctrlbtn small{display:block;color:#90abca;font-size:10px;margin-top:4px;font-weight:500}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.code,.log{white-space:pre-wrap;overflow:auto;background:#07111a;border:1px solid rgba(110,152,194,.14);border-radius:16px;padding:14px;font:11px/1.55 'JetBrains Mono',monospace;color:#cae1fb}.code{max-height:320px}.log{max-height:520px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}.kvbox{padding:12px;border-radius:16px;background:linear-gradient(180deg,#102130,#0c1722);border:1px solid rgba(110,152,194,.12)}.kvbox span{display:block;font-size:10px;color:#7e9bbc;margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em}.kvbox b{font-size:18px}
+.console{grid-template-rows:1fr 1fr}.consolecard{display:flex;flex-direction:column;min-height:0}.consolebody{padding:14px;min-height:0;overflow:auto}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.segbtn{padding:9px 12px;border-radius:14px;font-size:11px}.hidden{display:none!important}
+@media (max-width:1550px){.shell{grid-template-columns:96px 1.2fr .95fr}.console{display:none}}
+@media (max-width:1280px){body{overflow:auto}.app{height:auto}.top,.shell,.hero.grid2,.grid2,.grid3,.kv,.metrics,.minirow,.actiongrid,.ctrlgrid,.deck-actions{grid-template-columns:1fr}.shell{padding:0}.rail{grid-template-columns:repeat(3,1fr);grid-template-rows:auto}.navbtn{height:54px}}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top">
-    <div class="brand">
+    <section class="glass brand">
       <div>
         <div class="brand-tag">Bazaar of Fortunes</div>
         <div class="brand-name">HQ Command Center</div>
-        <div class="brand-sub">Official operator surface for execution, balances, logic, limits, deploys, and intervention.</div>
+        <div class="brand-sub">Official Alfred operator surface — execution, balances, controls, limits, deploys, and audit.</div>
       </div>
-    </div>
-    <div class="headline">
+    </section>
+    <section class="glass mission">
       <div>
-        <div class="headline-k">Primary directive</div>
-        <div class="headline-v" id="headline-v">Loading HQ truth…</div>
-        <div class="headline-s" id="headline-s">Connecting to live operator state.</div>
+        <div class="mission-k">Mission</div>
+        <div class="mission-v" id="mission-v">Loading operator directive…</div>
+        <div class="mission-s" id="mission-s">Connecting to live HQ state.</div>
       </div>
-    </div>
-    <div class="meta">
-      <div class="chiprow" id="status-chips"></div>
-    </div>
+    </section>
+    <section class="glass statusbar"><div class="chips" id="chips"></div></section>
   </div>
 
   <div class="shell">
-    <aside class="rail">
-      <div class="rail-stack" id="nav-stack">
+    <aside class="glass rail">
+      <div class="stack">
         <button class="navbtn active" data-view="overview">Overview</button>
-        <button class="navbtn" data-view="tradier">Tradier</button>
-        <button class="navbtn" data-view="bloc">Bloc</button>
+        <button class="navbtn" data-view="execution">Execution</button>
         <button class="navbtn" data-view="balances">Balances</button>
         <button class="navbtn" data-view="controls">Controls</button>
+        <button class="navbtn" data-view="journal">Journal</button>
         <button class="navbtn" data-view="audit">Audit</button>
       </div>
       <div></div>
-      <div class="rail-stack">
+      <div class="stack">
+        <button class="quickbtn" onclick="runCmd('refresh_truth')">Refresh Truth</button>
         <button class="quickbtn" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
         <button class="quickbtn" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
-        <button class="quickbtn" onclick="runCmd('refresh_truth')">Refresh Truth</button>
         <button class="quickbtn" onclick="runCmd('pause_tradier')">Pause Tradier</button>
         <button class="quickbtn" onclick="runCmd('pause_bloc')">Pause Bloc</button>
         <button class="quickbtn" onclick="runCmd('resume_bloc')">Resume Bloc</button>
@@ -100,219 +80,176 @@ button{font:inherit}
       </div>
     </aside>
 
-    <main class="center" id="center"></main>
-    <section class="focus" id="focus"></section>
+    <main class="main" id="main"></main>
+    <section class="ops" id="ops"></section>
     <aside class="console">
-      <div class="panel">
+      <section class="consolecard">
         <div class="panel-head"><div><div class="panel-title">Command Output</div><div class="panel-sub">What the system just did</div></div><span class="badge">live</span></div>
-        <div class="panel-body"><pre class="code" id="command-output">Awaiting operator command.</pre></div>
-      </div>
-      <div class="tape">
-        <div class="tape-head"><div><div class="panel-title">Event Tape</div><div class="panel-sub">System pulses and recent context</div></div><span class="badge">events</span></div>
-        <div class="tape-body" id="event-tape">No events yet.</div>
-      </div>
+        <div class="consolebody"><pre class="log" id="command-output">Awaiting operator command.</pre></div>
+      </section>
+      <section class="consolecard">
+        <div class="panel-head"><div><div class="panel-title">Event Tape</div><div class="panel-sub">Recent HQ pulses and actions</div></div><span class="badge">events</span></div>
+        <div class="consolebody"><pre class="log" id="event-tape">No events yet.</pre></div>
+      </section>
     </aside>
   </div>
 </div>
 
 <script>
-const state = { payload:null, view:'overview' };
+const appState = { payload:null, view:'overview', execTab:'tradier' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 const money = n => '$' + Number(n || 0).toFixed(2);
-const ageLabel = hrs => hrs == null ? 'unknown' : (hrs < 1 ? Math.round(hrs * 60) + 'm' : (hrs < 24 ? hrs.toFixed(1) + 'h' : (hrs / 24).toFixed(1) + 'd'));
+const ageLabel = hrs => hrs == null ? 'unknown' : (hrs < 1 ? Math.round(hrs * 60) + 'm' : (hrs < 24 ? Number(hrs).toFixed(1) + 'h' : (Number(hrs)/24).toFixed(1) + 'd'));
 const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amber' : 'red'));
+const chip = (text, cls='cyan') => `<span class="chip"><span class="dot ${cls}"></span>${text}</span>`;
+const cardItem = (title, body) => `<div class="carditem"><h4>${esc(title)}</h4><p>${esc(body)}</p></div>`;
+const kv = (k,v) => `<div class="kvbox"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
 
-function chip(text, cls='cyan'){ return `<span class="chip"><span class="dot ${cls}"></span>${text}</span>`; }
-function item(title, detail){ return `<div class="item"><strong>${esc(title)}</strong><p>${esc(detail)}</p></div>`; }
-function kv(k,v){ return `<div class="kvbox"><span>${esc(k)}</span><b>${esc(v)}</b></div>`; }
+function liveData(){ const p = appState.payload || {}; const live = p.live || {}; live.freshness = live.freshness || {}; live.scoreboard = live.scoreboard || {}; live.tradier = live.tradier || {}; return { p, live, f: live.freshness, s: live.scoreboard, t: live.tradier, wallet: live.wallet || {} }; }
 
-function renderOverview(p){
-  const live = p.live || {}, f = live.freshness || {}, t = live.tradier || {}, score = live.scoreboard || {};
-  $('#center').innerHTML = `
-    <section class="hero">
-      <div class="hero-top">
+function updateHeader(){
+  const { p, live, f, t } = liveData();
+  $('#mission-v').textContent = live.primary_directive || 'No directive';
+  $('#mission-s').textContent = live.operator_summary || 'No summary';
+  $('#chips').innerHTML = [
+    chip(`Tradier ${t.status || 'unknown'}`, dot(f.tradier_age_hours)),
+    chip(`Bloc ${(live.compounding_state || 'unknown').replaceAll('_',' ')}`, dot(f.bloc_age_hours)),
+    chip(`Buying power ${money(t.buying_power_usd)}`, 'blue'),
+    chip(`Invested ${money(live.invested_capital_usd)}`, 'violet'),
+    chip(`Updated ${new Date(p.updated_at || Date.now()).toLocaleTimeString()}`, 'amber')
+  ].join('');
+}
+
+function renderOverview(){
+  const { live, f, s, t } = liveData();
+  $('#main').innerHTML = `
+    <section class="hero grid2">
+      <div>
+        <div class="eyebrow">Situation</div>
+        <div class="hero-title">${esc(live.primary_directive || 'No directive')}</div>
+        <div class="hero-sub">${esc(live.operator_summary || '')}</div>
+        <div class="metrics" style="margin-top:18px">
+          <div class="metric"><div class="metric-k">Tradier</div><div class="metric-v">${esc((t.status || 'unknown').toUpperCase())}</div><div class="metric-s">${money(t.buying_power_usd)} buying power</div></div>
+          <div class="metric"><div class="metric-k">Bloc</div><div class="metric-v">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="metric-s">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'}</div></div>
+          <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">fills today ${esc(s.tradier_fills_today ?? 0)}</div></div>
+          <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">${esc(ageLabel(f.bloc_age_hours))}</div><div class="metric-s">trades today ${esc(s.bloc_trades_today ?? 0)}</div></div>
+        </div>
+      </div>
+      <div class="callout ${live.action_required ? '' : 'ok'}">
         <div>
-          <div class="eyebrow">Operator Directive</div>
-          <div class="hero-title">${esc(live.primary_directive || 'No directive')}</div>
-          <div class="hero-sub">${esc(live.operator_summary || '')}</div>
+          <div class="callout-k">${live.action_required ? 'Action required' : 'Current posture'}</div>
+          <div class="callout-v">${live.action_required ? 'Dead execution is the failure state. Use this desk to intervene until real trading resumes.' : 'No immediate emergency. Stay disciplined and keep the truth surface clean.'}</div>
         </div>
-        <div class="priority ${live.action_required ? '' : 'ok'}">
-          <div class="priority-k">${live.action_required ? 'Action required' : 'System posture'}</div>
-          <div class="priority-v">${live.action_required ? 'Dead execution is the failure state. Intervene directly.' : 'No immediate emergency flagged.'}</div>
+        <div class="actiongrid">
+          <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
+          <button class="act alt" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
+          <button class="act neutral" onclick="runCmd('refresh_truth')">Refresh Truth</button>
+          <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
         </div>
-      </div>
-      <div class="actionbar">
-        <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
-        <button class="act secondary" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
-        <button class="act alt" onclick="runCmd('refresh_truth')">Refresh Truth</button>
-        <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
-      </div>
-      <div class="metrics">
-        <div class="metric"><div class="metric-k">Tradier</div><div class="metric-v">${esc((t.status || 'unknown').toUpperCase())}</div><div class="metric-s">${money(t.buying_power_usd)} buying power</div></div>
-        <div class="metric"><div class="metric-k">Bloc</div><div class="metric-v">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="metric-s">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'}</div></div>
-        <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">fills today: ${esc(score.tradier_fills_today ?? 0)}</div></div>
-        <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">${esc(ageLabel(f.bloc_age_hours))}</div><div class="metric-s">trades today: ${esc(score.bloc_trades_today ?? 0)}</div></div>
       </div>
     </section>
 
     <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">What Needs Attention</div><div class="panel-sub">Actionable blockers, not passive status</div></div><span class="badge">focus</span></div>
-      <div class="panel-body"><div class="list">${(live.next_actions || []).map(a => item(a.title, a.detail)).join('')}</div></div>
+      <div class="panel-head"><div><div class="panel-title">Operator Queue</div><div class="panel-sub">What to do next, in order</div></div><span class="badge">queue</span></div>
+      <div class="panel-body"><div class="list">${(live.next_actions || []).map(a => cardItem(a.title, a.detail)).join('')}</div></div>
     </section>
 
     <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Quick Audit Surfaces</div><div class="panel-sub">Live artifacts you should inspect before trusting automation</div></div><span class="badge">truth</span></div>
-      <div class="panel-body">
-        <div class="board">
-          <div><div class="panel-sub" style="margin-bottom:8px">Tradier board</div><pre class="code">${esc(live.tradier_board_text || 'No Tradier board text available.')}</pre></div>
-          <div><div class="panel-sub" style="margin-bottom:8px">Bloc wallet truth</div><pre class="code">${esc(live.bloc_wallet_text || 'No Bloc wallet text available.')}</pre></div>
-        </div>
-      </div>
-    </section>`;
-
-  $('#focus').innerHTML = `
-    <section class="command-card">
-      <div class="command-k">Primary Next Action</div>
-      <div class="command-v">${esc((live.next_actions && live.next_actions[0] && live.next_actions[0].title) || 'Stabilize operator truth')}</div>
-      <div class="command-s">${esc((live.next_actions && live.next_actions[0] && live.next_actions[0].detail) || 'Force a fresh systems read, then act on the blocker.')}</div>
-      <div class="actionbar" style="grid-template-columns:1fr 1fr;margin-top:0">
-        <button class="act alt" onclick="runCmd('refresh_truth')">Run Primary Action</button>
-        <button class="act secondary" onclick="setView('controls')">Open Controls</button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Truth Grid</div><div class="panel-sub">Capital, exposure, status, and operating state</div></div><span class="badge">state</span></div>
-      <div class="panel-body"><div class="kv">
-        ${kv('Tradier buying power', money(t.buying_power_usd))}
-        ${kv('Deployable capital', money(live.deployable_capital_usd))}
-        ${kv('Invested capital', money(live.invested_capital_usd))}
-        ${kv('Holding asset', live.holding_asset ? `${live.holding_asset} ${live.holding_units}` : 'none')}
-        ${kv('Tradier orders', t.orders_count ?? 0)}
-        ${kv('Active positions', live.active_positions ?? 0)}
+      <div class="panel-head"><div><div class="panel-title">Live Truth Surfaces</div><div class="panel-sub">The artifacts you inspect before trusting automation</div></div><span class="badge">truth</span></div>
+      <div class="panel-body"><div class="grid2">
+        <div><div class="panel-sub" style="margin-bottom:8px">Tradier board</div><pre class="code">${esc(live.tradier_board_text || 'No Tradier board text available.')}</pre></div>
+        <div><div class="panel-sub" style="margin-bottom:8px">Bloc wallet truth</div><pre class="code">${esc(live.bloc_wallet_text || 'No Bloc wallet text available.')}</pre></div>
       </div></div>
     </section>`;
-}
 
-function renderTradier(p){
-  const live = p.live || {}, f = live.freshness || {}, t = live.tradier || {};
-  $('#center').innerHTML = `
-    <section class="hero" style="background:linear-gradient(135deg,rgba(75,124,255,.18),rgba(11,18,27,.96) 40%),linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98))">
-      <div class="hero-top"><div><div class="eyebrow">Tradier Lane</div><div class="hero-title">${esc((t.status || 'unknown').toUpperCase())}</div><div class="hero-sub">Buying power ${money(t.buying_power_usd)} · positions ${t.positions_count || 0} · orders ${t.orders_count || 0}</div></div><div class="priority ${t.ready ? 'ok' : ''}"><div class="priority-k">${t.ready ? 'Funded ready state' : 'Blocked state'}</div><div class="priority-v">${esc(t.top_blocker || 'Tradier account has buying power. Real execution still needs proof.')}</div></div></div>
-      <div class="actionbar"><button class="act" onclick="runCmd('diagnose_tradier')">Diagnose</button><button class="act alt" onclick="runCmd('refresh_truth')">Refresh</button><button class="act secondary" onclick="runCmd('pause_tradier')">Pause Tradier</button><button class="act danger" onclick="runCmd('close_all')">Close All</button></div>
-      <div class="metrics"><div class="metric"><div class="metric-k">Last fill</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">stale=${String(f.tradier_stale)}</div></div><div class="metric"><div class="metric-k">Fills today</div><div class="metric-v">${esc((live.scoreboard || {}).tradier_fills_today ?? 0)}</div><div class="metric-s">previews ${(live.scoreboard || {}).tradier_previews_today ?? 0}</div></div><div class="metric"><div class="metric-k">Positions</div><div class="metric-v">${esc(t.positions_count ?? 0)}</div><div class="metric-s">orders ${esc(t.orders_count ?? 0)}</div></div><div class="metric"><div class="metric-k">Blocker</div><div class="metric-v">${esc(t.top_blocker ? 'YES' : 'NO')}</div><div class="metric-s">${esc(t.top_blocker || 'none')}</div></div></div>
+  $('#ops').innerHTML = `
+    <section class="commanddeck">
+      <div class="command-k">Primary command</div>
+      <div class="command-v">${esc((live.next_actions && live.next_actions[0] && live.next_actions[0].title) || 'Stabilize operator truth')}</div>
+      <div class="command-s">${esc((live.next_actions && live.next_actions[0] && live.next_actions[0].detail) || 'Force a fresh systems read, then act on the blocker.')}</div>
+      <div class="deck-actions"><button class="act alt" onclick="runCmd('refresh_truth')">Run primary action</button><button class="act neutral" onclick="setView('controls')">Open controls</button></div>
     </section>
-
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier Audit</div><div class="panel-sub">Board, execution truth, and readiness context</div></div><span class="badge">tradier</span></div><div class="panel-body"><pre class="code">${esc(live.tradier_board_text || 'No Tradier board text available.')}</pre></div></section>`;
-
-  $('#focus').innerHTML = `
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier Controls</div><div class="panel-sub">The actions you actually need</div></div><span class="badge">actions</span></div><div class="panel-body"><div class="list">
-      ${item('Diagnose execution path', 'Run the account and audit checks, then inspect whether any real fill path exists.')}
-      ${item('Refresh account truth', 'Re-pull balances and readiness before taking any option action.')}
-      ${item('Do not confuse ready with trading', 'Buying power alone is not a live execution engine.')}
-    </div></div></section>
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier Truth Grid</div><div class="panel-sub">Key account surfaces</div></div></div><div class="panel-body"><div class="kv">
-      ${kv('Buying power', money(t.buying_power_usd))}
-      ${kv('Ready', String(!!t.ready))}
-      ${kv('Orders', t.orders_count ?? 0)}
-      ${kv('Positions', t.positions_count ?? 0)}
-    </div></div></section>`;
-}
-
-function renderBloc(p){
-  const live = p.live || {}, f = live.freshness || {};
-  $('#center').innerHTML = `
-    <section class="hero" style="background:linear-gradient(135deg,rgba(122,92,255,.18),rgba(11,18,27,.96) 40%),linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98))">
-      <div class="hero-top"><div><div class="eyebrow">Bloc Lane</div><div class="hero-title">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="hero-sub">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable cash'}</div></div><div class="priority ${live.compounding_state === 'holding_active_inventory' ? 'ok' : ''}"><div class="priority-k">Inventory posture</div><div class="priority-v">${live.holding_asset ? 'Inventory is live. Focus on recycle, exits, and execution logic.' : 'No active inventory. Focus on deployable state and clean setup selection.'}</div></div></div>
-      <div class="actionbar"><button class="act" onclick="runCmd('diagnose_bloc')">Diagnose</button><button class="act secondary" onclick="runCmd('pause_bloc')">Pause Bloc</button><button class="act alt" onclick="runCmd('resume_bloc')">Resume Bloc</button><button class="act danger" onclick="runCmd('close_all')">Emergency Close</button></div>
-      <div class="metrics"><div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">${esc(ageLabel(f.bloc_age_hours))}</div><div class="metric-s">stale=${String(f.bloc_stale)}</div></div><div class="metric"><div class="metric-k">Trades today</div><div class="metric-v">${esc((live.scoreboard || {}).bloc_trades_today ?? 0)}</div><div class="metric-s">realized ${(live.scoreboard || {}).realized_actions_today ?? 0}</div></div><div class="metric"><div class="metric-k">Holding</div><div class="metric-v">${esc(live.holding_asset || 'NONE')}</div><div class="metric-s">${esc(live.holding_units ?? '')}</div></div><div class="metric"><div class="metric-k">Deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">invested ${money(live.invested_capital_usd)}</div></div></div>
-    </section>
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Wallet Truth</div><div class="panel-sub">Live wallet surface</div></div><span class="badge">bloc</span></div><div class="panel-body"><pre class="code">${esc(live.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div></section>`;
-
-  $('#focus').innerHTML = `
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Controls</div><div class="panel-sub">Supervise the recycle path directly</div></div></div><div class="panel-body"><div class="list">
-      ${item('Verify live inventory logic', 'Holding BTC while the engine claims to be active is not enough. Validate why recycle is not occurring.')}
-      ${item('Inspect wallet and runtime state', 'Use wallet truth before trusting summarized status.')}
-      ${item('Pause or resume deliberately', 'Treat pause/resume as live capital controls, not debug buttons.')}
-    </div></div></section>
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Truth Grid</div><div class="panel-sub">Capital and state</div></div></div><div class="panel-body"><div class="kv">
-      ${kv('Holding asset', live.holding_asset || 'none')}
-      ${kv('Holding units', live.holding_units ?? 0)}
-      ${kv('Deployable capital', money(live.deployable_capital_usd))}
-      ${kv('Invested capital', money(live.invested_capital_usd))}
-    </div></div></section>`;
-}
-
-function renderBalances(p){
-  const live = p.live || {}, wallet = live.wallet || {}, t = live.tradier || {};
-  $('#center').innerHTML = `
-    <section class="hero" style="background:linear-gradient(135deg,rgba(47,214,123,.15),rgba(11,18,27,.96) 40%),linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98))"><div class="hero-top"><div><div class="eyebrow">Balances</div><div class="hero-title">Capital & Inventory</div><div class="hero-sub">Cash, wallet balances, deployable capital, and current holdings.</div></div><div class="priority ok"><div class="priority-k">Capital posture</div><div class="priority-v">Use balances as execution truth, not uptime theater.</div></div></div></section>
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Capital Grid</div><div class="panel-sub">Tradier + Bloc balances</div></div><span class="badge">balances</span></div><div class="panel-body"><div class="kv">
+    <section class="panel"><div class="panel-head"><div><div class="panel-title">Truth Grid</div><div class="panel-sub">Capital, exposure, and live operating state</div></div><span class="badge">state</span></div><div class="panel-body"><div class="kv">
       ${kv('Tradier buying power', money(t.buying_power_usd))}
       ${kv('Deployable capital', money(live.deployable_capital_usd))}
       ${kv('Invested capital', money(live.invested_capital_usd))}
-      ${kv('Estimated wallet total', money(wallet.estimated_total_usd))}
-      ${kv('USDC', wallet.usdc ?? 0)}
-      ${kv('CBBTC', wallet.cbbtc ?? 0)}
-      ${kv('ETH', wallet.eth ?? 0)}
-      ${kv('Gas', wallet.gas ?? 0)}
+      ${kv('Holding asset', live.holding_asset ? `${live.holding_asset} ${live.holding_units}` : 'none')}
+      ${kv('Orders', t.orders_count ?? 0)}
+      ${kv('Active positions', live.active_positions ?? 0)}
     </div></div></section>`;
-  $('#focus').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Wallet JSON</div><div class="panel-sub">Raw truth for debugging and review</div></div></div><div class="panel-body"><pre class="code">${esc(JSON.stringify(wallet, null, 2))}</pre></div></section>`;
 }
 
-function renderControls(p){
-  const live = p.live || {};
-  $('#center').innerHTML = `
-    <section class="hero" style="background:linear-gradient(135deg,rgba(255,191,71,.16),rgba(11,18,27,.96) 40%),linear-gradient(180deg,rgba(14,28,41,.96),rgba(9,18,28,.98))"><div class="hero-top"><div><div class="eyebrow">Controls</div><div class="hero-title">Operator Actions</div><div class="hero-sub">The actions you use in Telegram should live here as explicit system controls.</div></div><div class="priority"><div class="priority-k">Control posture</div><div class="priority-v">Every control should mutate visible state in HQ, not disappear into chat-only history.</div></div></div><div class="actionbar"><button class="act" onclick="runCmd('refresh_truth')">Refresh Truth</button><button class="act secondary" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button><button class="act alt" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button><button class="act danger" onclick="runCmd('close_all')">Emergency Close</button></div></section>
-    <section class="panel"><div class="panel-head"><div><div class="panel-title">Current Action Set</div><div class="panel-sub">Official quick controls</div></div><span class="badge">controls</span></div><div class="panel-body"><div class="list">
-      ${item('Deploy / health checks', 'These should become first-class HQ actions rather than Telegram-only routines.')}
-      ${item('Trade / balances / limits / logic', 'All of these need explicit control panels and state mutation surfaces in HQ.')}
-      ${item('This page is the future default', 'The old server-rendered war-room should be retired once parity is reached.')}
-    </div></div></section>`;
-  $('#focus').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Immediate Command Deck</div><div class="panel-sub">High-value interventions</div></div></div><div class="panel-body"><div class="actionbar" style="grid-template-columns:1fr 1fr;">
-    <button class="act" onclick="runCmd('pause_tradier')">Pause Tradier</button>
-    <button class="act" onclick="runCmd('pause_bloc')">Pause Bloc</button>
-    <button class="act alt" onclick="runCmd('resume_bloc')">Resume Bloc</button>
-    <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
-  </div></div></section>`;
+function renderExecution(){
+  const { live, f, s, t } = liveData();
+  const active = appState.execTab;
+  const left = active === 'tradier'
+    ? `<section class="hero" style="background:linear-gradient(135deg,rgba(77,135,255,.18),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Tradier Execution Lane</div><div class="hero-title">${esc((t.status || 'unknown').toUpperCase())}</div><div class="hero-sub">Buying power ${money(t.buying_power_usd)} · positions ${t.positions_count || 0} · orders ${t.orders_count || 0}</div><div class="minirow"><div class="statbox"><span>freshness</span><b>${esc(ageLabel(f.tradier_age_hours))}</b></div><div class="statbox"><span>fills today</span><b>${esc(s.tradier_fills_today ?? 0)}</b></div><div class="statbox"><span>previews today</span><b>${esc(s.tradier_previews_today ?? 0)}</b></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier board</div><div class="panel-sub">Current candidate surface</div></div><span class="badge">tradier</span></div><div class="panel-body"><pre class="code">${esc(live.tradier_board_text || 'No Tradier board text available.')}</pre></div></section>`
+    : `<section class="hero" style="background:linear-gradient(135deg,rgba(137,103,255,.2),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Bloc Execution Lane</div><div class="hero-title">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="hero-sub">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'}</div><div class="minirow"><div class="statbox"><span>freshness</span><b>${esc(ageLabel(f.bloc_age_hours))}</b></div><div class="statbox"><span>trades today</span><b>${esc(s.bloc_trades_today ?? 0)}</b></div><div class="statbox"><span>realized actions</span><b>${esc(s.realized_actions_today ?? 0)}</b></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc wallet truth</div><div class="panel-sub">Current wallet/runtime surface</div></div><span class="badge">bloc</span></div><div class="panel-body"><pre class="code">${esc(live.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div></section>`;
+
+  $('#main').innerHTML = `
+    <section class="panel"><div class="panel-head"><div><div class="panel-title">Execution Lanes</div><div class="panel-sub">Switch between Tradier and Bloc operator surfaces</div></div><div class="toolbar"><button class="segbtn ${active==='tradier'?'active':''}" onclick="setExecTab('tradier')">Tradier</button><button class="segbtn ${active==='bloc'?'active':''}" onclick="setExecTab('bloc')">Bloc</button></div></div><div class="panel-body">${left}</div></section>`;
+
+  $('#ops').innerHTML = active === 'tradier'
+    ? `<section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier Controls</div><div class="panel-sub">Actions for the options lane</div></div><span class="badge">actions</span></div><div class="panel-body"><div class="ctrlgrid"><button class="ctrlbtn" onclick="runCmd('diagnose_tradier')">Diagnose Tradier<small>Run readiness and execution checks</small></button><button class="ctrlbtn" onclick="runCmd('refresh_truth')">Refresh account truth<small>Re-pull balances and account state</small></button><button class="ctrlbtn danger" onclick="runCmd('pause_tradier')">Pause Tradier<small>Stop automated options actions</small></button><button class="ctrlbtn danger" onclick="runCmd('close_all')">Close all<small>Emergency flattening path</small></button></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier Notes</div><div class="panel-sub">Interpretation, not noise</div></div></div><div class="panel-body"><div class="list">${cardItem('Ready is not enough', 'Buying power without fills is not a working Tradier engine.')} ${cardItem('Focus on live proof', 'This lane is healthy only when it produces real fills at the expected cadence.')}</div></div></section>`
+    : `<section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Controls</div><div class="panel-sub">Actions for the onchain lane</div></div><span class="badge">actions</span></div><div class="panel-body"><div class="ctrlgrid"><button class="ctrlbtn" onclick="runCmd('diagnose_bloc')">Diagnose Bloc<small>Check wallet truth and runtime state</small></button><button class="ctrlbtn" onclick="runCmd('pause_bloc')">Pause Bloc<small>Stop cycle activity immediately</small></button><button class="ctrlbtn" onclick="runCmd('resume_bloc')">Resume Bloc<small>Resume cycle logic</small></button><button class="ctrlbtn danger" onclick="runCmd('close_all')">Emergency close<small>Flatten if supported</small></button></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Notes</div><div class="panel-sub">Interpretation, not noise</div></div></div><div class="panel-body"><div class="list">${cardItem('Inventory is not success', 'Holding BTC while the engine is silent is still a broken recycle path.')} ${cardItem('Use wallet truth first', 'Wallet data beats summarized status when there is any conflict.')}</div></div></section>`;
 }
 
-function renderAudit(p){
-  const live = p.live || {};
-  $('#center').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Raw HQ Payload</div><div class="panel-sub">Inspection and debugging surface</div></div><span class="badge">audit</span></div><div class="panel-body"><pre class="code">${esc(JSON.stringify(p, null, 2))}</pre></div></section>`;
-  $('#focus').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">What Matters</div><div class="panel-sub">Operational interpretation</div></div></div><div class="panel-body"><div class="list">
-    ${item('Tradier ready does not mean trading', 'Buying power without fills is not a working engine.')}
-    ${item('Bloc freshness must not lie', 'Runtime freshness should not hide the fact that there are zero realized actions.')}
-    ${item('HQ must become the action surface', 'Telegram should delegate to HQ, not substitute for it.')}
-  </div></div></section>`;
+function renderBalances(){
+  const { live, t, wallet } = liveData();
+  $('#main').innerHTML = `
+    <section class="hero" style="background:linear-gradient(135deg,rgba(39,218,131,.16),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Balances & Capital</div><div class="hero-title">Capital posture</div><div class="hero-sub">This is the live money surface: wallet balances, deployable capital, invested capital, and Tradier buying power.</div><div class="metrics"><div class="metric"><div class="metric-k">Tradier buying power</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">options capital available</div></div><div class="metric"><div class="metric-k">Deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">cash ready to deploy</div></div><div class="metric"><div class="metric-k">Invested</div><div class="metric-v">${money(live.invested_capital_usd)}</div><div class="metric-s">capital currently at work</div></div><div class="metric"><div class="metric-k">Wallet total</div><div class="metric-v">${money(wallet.estimated_total_usd)}</div><div class="metric-s">estimated onchain value</div></div></div></section>
+    <section class="panel"><div class="panel-head"><div><div class="panel-title">Wallet Breakdown</div><div class="panel-sub">Live asset and cash balances</div></div><span class="badge">capital</span></div><div class="panel-body"><div class="kv">
+      ${kv('USDC', wallet.usdc ?? 0)} ${kv('CBBTC', wallet.cbbtc ?? 0)} ${kv('ETH', wallet.eth ?? 0)} ${kv('WETH', wallet.weth ?? 0)} ${kv('Gas', wallet.gas ?? 0)} ${kv('Wallet address', wallet.address || '--')}
+    </div></div></section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Balance Truth</div><div class="panel-sub">Raw wallet JSON and key capital controls</div></div><span class="badge">wallet</span></div><div class="panel-body"><pre class="code">${esc(JSON.stringify(wallet, null, 2))}</pre></div></section>`;
+}
+
+function renderControls(){
+  $('#main').innerHTML = `
+    <section class="hero" style="background:linear-gradient(135deg,rgba(255,194,77,.16),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))"><div class="eyebrow">Controls & Interventions</div><div class="hero-title">Operator control deck</div><div class="hero-sub">This is where Telegram-grade actions should end up: deploy checks, truth refresh, pause/resume, close, risk/logic surfaces, and eventually trade entry.</div><div class="actiongrid"><button class="act" onclick="runCmd('refresh_truth')">Refresh Truth</button><button class="act alt" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button><button class="act neutral" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button><button class="act danger" onclick="runCmd('close_all')">Emergency Close</button></div></section>
+    <section class="panel"><div class="panel-head"><div><div class="panel-title">Current Control Sets</div><div class="panel-sub">Real actions, grouped by purpose</div></div><span class="badge">controls</span></div><div class="panel-body"><div class="grid2">
+      <div class="list">
+        ${cardItem('Truth & health', 'Refresh truth, diagnose Tradier, diagnose Bloc, surface stale execution immediately.')}
+        ${cardItem('Execution posture', 'Pause Tradier, pause Bloc, resume Bloc, emergency close.')}
+        ${cardItem('Next phase', 'Add deploy, limits, logic, trade-entry, and balance mutation surfaces directly here.')}
+      </div>
+      <div class="ctrlgrid">
+        <button class="ctrlbtn" onclick="runCmd('refresh_truth')">Refresh truth<small>Rebuild live HQ state</small></button>
+        <button class="ctrlbtn" onclick="runCmd('diagnose_tradier')">Diagnose Tradier<small>Inspect options path health</small></button>
+        <button class="ctrlbtn" onclick="runCmd('diagnose_bloc')">Diagnose Bloc<small>Inspect wallet/runtime path</small></button>
+        <button class="ctrlbtn danger" onclick="runCmd('pause_tradier')">Pause Tradier<small>Stop Tradier automation</small></button>
+        <button class="ctrlbtn" onclick="runCmd('pause_bloc')">Pause Bloc<small>Stop onchain cycle</small></button>
+        <button class="ctrlbtn" onclick="runCmd('resume_bloc')">Resume Bloc<small>Resume onchain cycle</small></button>
+      </div>
+    </div></div></section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Control Policy</div><div class="panel-sub">What this tool is supposed to become</div></div><span class="badge">policy</span></div><div class="panel-body"><div class="list">${cardItem('HQ as the official tool', 'Anything done in Telegram around deploys, checks, balances, logic, limits, and trades should become an HQ surface.')}${cardItem('No more debug dashboard posture', 'This page should be the operator desk, not a passive status board.')}${cardItem('Telegram should delegate here', 'Chat becomes command intent and review, HQ becomes execution and inspection.')}</div></div></section>`;
+}
+
+function renderJournal(){
+  const { live } = liveData();
+  $('#main').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Narrative & Journal</div><div class="panel-sub">Working interpretation of current state</div></div><span class="badge">journal</span></div><div class="panel-body"><div class="list">${cardItem('Primary directive', live.primary_directive || 'No directive')}${cardItem('Operator summary', live.operator_summary || 'No summary')}${cardItem('Operator focus', live.operator_focus || 'No focus')}${(live.next_actions || []).map(a => cardItem(a.title, a.detail)).join('')}</div></div></section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Journal Use</div><div class="panel-sub">How to use this lane</div></div></div><div class="panel-body"><div class="list">${cardItem('Document no-trade decisions', 'If there is no action, say why plainly instead of filling the screen with noise.')}${cardItem('Track live position narrative', 'When inventory exists, use this space to capture the exit/recycle story.')}</div></div></section>`;
+}
+
+function renderAudit(){
+  const { p, live } = liveData();
+  $('#main').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Raw HQ Payload</div><div class="panel-sub">Inspection surface for debugging and verification</div></div><span class="badge">audit</span></div><div class="panel-body"><pre class="code">${esc(JSON.stringify(p, null, 2))}</pre></div></section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Audit Notes</div><div class="panel-sub">Interpretation of the raw truth</div></div></div><div class="panel-body"><div class="list">${cardItem('Tradier ready != trading', 'Buying power without recent fills is not a healthy execution engine.')}${cardItem('Bloc freshness must not lie', 'Runtime freshness cannot conceal zero realized actions.')}${cardItem('This is the truth layer', 'Use audit when the polished views feel suspicious.')}</div><pre class="code" style="margin-top:12px">${esc(live.tradier_audit_lines ? JSON.stringify(live.tradier_audit_lines, null, 2) : 'No tradier audit lines exposed.')}</pre></div></section>`;
 }
 
 function render(){
-  const p = state.payload; if(!p) return;
-  const live = p.live || {}; const f = live.freshness || {}; const t = live.tradier || {};
-  $('#headline-v').textContent = live.primary_directive || 'No directive';
-  $('#headline-s').textContent = live.operator_summary || 'No summary';
-  $('#status-chips').innerHTML = [
-    chip(`Tradier ${t.status || 'unknown'}`, dot(f.tradier_age_hours)),
-    chip(`Bloc ${(live.compounding_state || 'unknown').replaceAll('_',' ')}`, dot(f.bloc_age_hours)),
-    chip(`Buying power ${money(t.buying_power_usd)}`, 'cyan'),
-    chip(`Updated ${new Date(p.updated_at || Date.now()).toLocaleTimeString()}`, 'amber')
-  ].join('');
-
-  ({overview:renderOverview, tradier:renderTradier, bloc:renderBloc, balances:renderBalances, controls:renderControls, audit:renderAudit}[state.view] || renderOverview)(p);
-  renderConsole(p);
-}
-
-function renderConsole(p){
-  const events = p.events || [];
+  updateHeader();
+  const renderers = { overview:renderOverview, execution:renderExecution, balances:renderBalances, controls:renderControls, journal:renderJournal, audit:renderAudit };
+  (renderers[appState.view] || renderOverview)();
+  const events = (appState.payload && appState.payload.events) || [];
   $('#event-tape').textContent = events.length ? events.map(e => `${e.created_at || ''}  ${e.event_type || 'event'}  ${e.summary || JSON.stringify(e)}`).join('\n\n') : 'No recorded events yet.';
 }
 
 async function refreshState(){
   const r = await fetch('/api/hq/status', { cache:'no-store' });
   if(!r.ok) throw new Error(`HQ status ${r.status}`);
-  state.payload = await r.json();
+  appState.payload = await r.json();
   render();
 }
 
@@ -329,9 +266,10 @@ async function runCmd(action){
   }
 }
 
-function setView(view){ state.view = view; document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view)); render(); }
+function setView(view){ appState.view = view; document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view)); render(); }
+function setExecTab(tab){ appState.execTab = tab; renderExecution(); }
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
-refreshState().catch(e => { $('#headline-v').textContent = 'Failed to load HQ'; $('#headline-s').textContent = e.message; $('#command-output').textContent = e.stack || e.message; });
+refreshState().catch(e => { $('#mission-v').textContent = 'Failed to load HQ'; $('#mission-s').textContent = e.message; $('#command-output').textContent = e.stack || e.message; });
 setInterval(() => refreshState().catch(() => {}), 30000);
 </script>
 </body>
