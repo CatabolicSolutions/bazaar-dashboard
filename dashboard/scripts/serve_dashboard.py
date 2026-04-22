@@ -1245,21 +1245,25 @@ class Handler(SimpleHTTPRequestHandler):
         if not cleaned_positions:
             deployable_capital = float(state.get('available_capital') or wallet_usdc or 0.0)
         compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if deployable_capital > 0 else 'idle_unfunded')
+        tradier_stale = bool(freshness.get('tradier_stale'))
+        bloc_stale = bool(freshness.get('bloc_stale'))
+        realized_actions_today = int(scoreboard.get('realized_actions_today') or 0)
+        trade_dead = tradier_stale and bloc_stale and realized_actions_today == 0
         primary_directive = (
-            'Action required, both engines are stale and no realized behavior is visible.'
-            if action_required
+            'Action required: both engines are economically stale. Restore real trading behavior, not just process uptime.'
+            if trade_dead
             else (
-                'Manage active Bloc inventory and avoid forcing fresh exposure.'
+                'Bloc inventory is live. Manage recycle path and stop treating this as a dead engine.'
                 if compounding_state == 'holding_active_inventory'
                 else ('Tradier is funded. Hunt only clean, high-clarity setups.' if tradier_ready else 'Stay flat. Restore readiness and wait for valid edge.')
             )
         )
         next_actions = []
-        if action_required:
+        if trade_dead:
             next_actions = [
-                {'title': 'Acknowledge zero-action state', 'detail': 'Both engines are stale. Treat inactivity itself as the operational failure.'},
+                {'title': 'Acknowledge economic staleness', 'detail': 'No real fills are happening. Treat dead execution as the failure state, not silent uptime.'},
                 {'title': 'Force Tradier diagnosis', 'detail': f'Last Tradier fill/attempt is stale. Buying power currently shows ${float(tradier_buying_power or 0.0):.2f}.'},
-                {'title': 'Force Bloc diagnosis', 'detail': 'Bloc has not produced a recent trade. Verify trigger logic, runtime freshness, and execution path.'},
+                {'title': 'Force Bloc diagnosis', 'detail': 'Bloc is alive but not cycling capital. Verify wallet truth, execution path, and stale inventory logic.'},
             ]
         elif compounding_state == 'holding_active_inventory':
             next_actions = [
