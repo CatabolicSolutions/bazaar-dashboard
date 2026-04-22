@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bazaar Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f17;--bg2:#111826;--panel:#151e2d;--panel2:#1a2538;--line:#24334d;--text:#e8f2ff;--muted:#8ba1c2;--cyan:#00d4ff;--blue:#3b82f6;--violet:#8b5cf6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;
+  --shadow:0 20px 60px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,sans-serif}body{overflow:hidden}
+button,input,textarea{font:inherit}
+.app{height:100vh;display:grid;grid-template-rows:auto 1fr;gap:16px;padding:16px;background:
+ radial-gradient(circle at 10% -10%, rgba(0,212,255,.15), transparent 30%),
+ radial-gradient(circle at 90% -5%, rgba(139,92,246,.12), transparent 30%),
+ linear-gradient(180deg,#0d1522,#0a0f17 40%,#080c14);}
+.top{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:16px;border-radius:20px;background:rgba(21,30,45,.8);border:1px solid rgba(139,161,194,.15);box-shadow:var(--shadow);backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px}.brand-text{display:flex;flex-direction:column}.brand-name{font-size:24px;font-weight:800;line-height:1}.brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.mission{text-align:center}.mission-k{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#7bb9ff;font-weight:800}.mission-v{font-size:16px;font-weight:800;margin-top:4px}
+.status{display:flex;gap:12px}.chip{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(21,30,45,.9);border:1px solid rgba(139,161,194,.2);color:#d4e5ff;font-size:12px;font-weight:700}.dot{width:10px;height:10px;border-radius:999px}.green{background:var(--green);box-shadow:0 0 12px rgba(16,185,129,.5)}.amber{background:var(--amber);box-shadow:0 0 12px rgba(245,158,11,.4)}.red{background:var(--red);box-shadow:0 0 12px rgba(239,68,68,.5)}.cyan{background:var(--cyan);box-shadow:0 0 12px rgba(0,212,255,.5)}
+.shell{display:grid;grid-template-columns:280px 1fr 400px;gap:16px;min-height:0}
+.sidebar,.main,.console{min-height:0}
+.sidebar{display:grid;grid-template-rows:auto 1fr auto;gap:12px}.nav-section{margin-bottom:20px}.nav-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#7bb9ff;font-weight:800;margin-bottom:8px;padding-left:8px}.navbtn,.actionbtn{border:none;border-radius:14px;padding:14px 16px;background:rgba(21,30,45,.9);border:1px solid rgba(139,161,194,.15);color:#d4e5ff;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease;text-align:left;display:flex;align-items:center;gap:12px;margin-bottom:8px}.navbtn:hover,.actionbtn:hover,.navbtn.active{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4)}.navbtn.danger:hover,.actionbtn.danger:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}.navbtn .icon,.actionbtn .icon{width:20px;height:20px;border-radius:6px;background:rgba(139,161,194,.2);display:flex;align-items:center;justify-content:center;font-size:12px}
+.main{display:grid;gap:16px;align-content:start}
+.panel{border-radius:20px;background:rgba(21,30,45,.8);border:1px solid rgba(139,161,194,.15);box-shadow:var(--shadow);overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid rgba(139,161,194,.12)}.panel-title{font-size:12px;letter-spacing:.15em;text-transform:uppercase;font-weight:800;color:#d4e5ff}.panel-sub{font-size:11px;color:#8ba1c2;margin-top:2px}.panel-body{padding:20px}
+.hero{background:linear-gradient(135deg,rgba(0,212,255,.1),rgba(21,30,45,.9) 50%);padding:24px}.hero-title{font-size:32px;font-weight:800;line-height:1.1}.hero-sub{font-size:14px;color:#a8bfe3;margin-top:8px;line-height:1.5}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{padding:16px;border-radius:16px;background:rgba(21,30,45,.9);border:1px solid rgba(139,161,194,.12)}.metric-k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8ba1c2}.metric-v{font-size:24px;font-weight:800;margin-top:8px}.metric-s{font-size:11px;color:#a8bfe3;margin-top:4px}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.act{border:none;border-radius:14px;padding:16px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--blue),var(--cyan))}.act.secondary{background:linear-gradient(135deg,var(--violet),#a855f7)}.act.neutral{background:linear-gradient(135deg,#475569,#334155)}.act.danger{background:linear-gradient(135deg,var(--red),#f87171)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.code{white-space:pre-wrap;overflow:auto;background:rgba(10,15,23,.9);border:1px solid rgba(139,161,194,.15);border-radius:12px;padding:16px;font:12px/1.5 'JetBrains Mono',monospace;color:#c7dbf9;max-height:300px}
+.console{display:grid;grid-template-rows:1fr auto;gap:16px}.console-output{background:rgba(10,15,23,.9);border:1px solid rgba(139,161,194,.15);border-radius:12px;padding:16px;overflow:auto;font:12px/1.5 'JetBrains Mono',monospace;color:#c7dbf9}.console-input{display:flex;gap:8px}.console-input input{flex:1;border:none;border-radius:12px;padding:14px 16px;background:rgba(21,30,45,.9);border:1px solid rgba(139,161,194,.2);color:#e8f2ff;font-size:13px}.console-input button{border:none;border-radius:12px;padding:14px 20px;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;font-weight:700;cursor:pointer}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px}.kvbox{padding:14px;border-radius:14px;background:rgba(21,30,45,.9);border:1px solid rgba(139,161,194,.12)}.kvbox span{display:block;font-size:10px;color:#8ba1c2;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.kvbox b{font-size:20px}
+.hidden{display:none}
+@media (max-width:1400px){.shell{grid-template-columns:280px 1fr}.console{display:none}}
+@media (max-width:1100px){body{overflow:auto}.app{height:auto}.top,.shell,.metrics,.actions,.grid2,.grid3,.kv{grid-template-columns:1fr}.shell{padding:0}.sidebar{grid-template-columns:repeat(2,1fr);grid-template-rows:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">B</div>
+      <div class="brand-text">
+        <div class="brand-name">Bazaar Cockpit</div>
+        <div class="brand-sub">Executive operator surface</div>
+      </div>
+    </div>
+    <div class="mission">
+      <div class="mission-k">Mission</div>
+      <div class="mission-v" id="mission">Loading...</div>
+    </div>
+    <div class="status" id="status"></div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div>
+        <div class="nav-section">
+          <div class="nav-title">Navigation</div>
+          <button class="navbtn active" data-view="overview"><span class="icon">📊</span> Overview</button>
+          <button class="navbtn" data-view="tradier"><span class="icon">📈</span> Tradier</button>
+          <button class="navbtn" data-view="bloc"><span class="icon">⛓️</span> Bloc</button>
+          <button class="navbtn" data-view="balances"><span class="icon">💰</span> Balances</button>
+          <button class="navbtn" data-view="controls"><span class="icon">🎮</span> Controls</button>
+        </div>
+        <div class="nav-section">
+          <div class="nav-title">Quick Actions</div>
+          <button class="actionbtn" onclick="runCmd('refresh_truth')"><span class="icon">🔄</span> Refresh Truth</button>
+          <button class="actionbtn" onclick="runCmd('diagnose_tradier')"><span class="icon">🔍</span> Diagnose Tradier</button>
+          <button class="actionbtn" onclick="runCmd('diagnose_bloc')"><span class="icon">🔍</span> Diagnose Bloc</button>
+          <button class="actionbtn danger" onclick="runCmd('pause_tradier')"><span class="icon">⏸️</span> Pause Tradier</button>
+          <button class="actionbtn danger" onclick="runCmd('pause_bloc')"><span class="icon">⏸️</span> Pause Bloc</button>
+          <button class="actionbtn" onclick="runCmd('resume_bloc')"><span class="icon">▶️</span> Resume Bloc</button>
+          <button class="actionbtn danger" onclick="runCmd('close_all')"><span class="icon">🚨</span> Emergency Close</button>
+        </div>
+      </div>
+      <div></div>
+      <div class="nav-section">
+        <div class="nav-title">System</div>
+        <div style="padding:12px;font-size:11px;color:#8ba1c2;line-height:1.5">Cockpit v1 • Connected to HQ API • Auto‑refresh 30s</div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <!-- Dynamic content -->
+    </main>
+
+    <aside class="console">
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Command Output</div><div class="panel-sub">Live execution feedback</div></div>
+        </div>
+        <div class="panel-body"><pre class="console-output" id="output">Awaiting commands.</pre></div>
+      </div>
+      <div class="console-input">
+        <input type="text" id="command-input" placeholder="Type a command or use buttons above" autocomplete="off">
+        <button onclick="sendCustomCommand()">Run</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const state = { payload: null, view: 'overview' };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const money = n => '$' + Number(n || 0).toFixed(2);
+const ageLabel = hrs => hrs == null ? 'unknown' : (hrs < 1 ? Math.round(hrs * 60) + 'm' : (hrs < 24 ? Number(hrs).toFixed(1) + 'h' : (Number(hrs)/24).toFixed(1) + 'd'));
+const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amber' : 'red'));
+
+function updateHeader() {
+  const p = state.payload; if (!p) return;
+  const live = p.live || {};
+  const f = live.freshness || {};
+  const t = live.tradier || {};
+  $('#mission').textContent = live.primary_directive || 'No directive';
+  $('#status').innerHTML = [
+    `<span class="chip"><span class="dot ${dot(f.tradier_age_hours)}"></span>Tradier ${t.status || 'unknown'}</span>`,
+    `<span class="chip"><span class="dot ${dot(f.bloc_age_hours)}"></span>Bloc ${(live.compounding_state || 'unknown').replaceAll('_',' ')}</span>`,
+    `<span class="chip"><span class="dot cyan"></span>${money(t.buying_power_usd)} buying power</span>`,
+    `<span class="chip"><span class="dot amber"></span>Updated ${new Date(p.updated_at || Date.now()).toLocaleTimeString()}</span>`
+  ].join('');
+}
+
+function renderOverview() {
+  const p = state.payload; if (!p) return;
+  const live = p.live || {};
+  const f = live.freshness || {};
+  const t = live.tradier || {};
+  const s = live.scoreboard || {};
+  $('#main').innerHTML = `
+    <section class="panel hero">
+      <div class="hero-title">${esc(live.primary_directive || 'No directive')}</div>
+      <div class="hero-sub">${esc(live.operator_summary || '')}</div>
+      <div class="metrics" style="margin-top:20px">
+        <div class="metric"><div class="metric-k">Tradier</div><div class="metric-v">${esc((t.status || 'unknown').toUpperCase())}</div><div class="metric-s">${money(t.buying_power_usd)} buying power</div></div>
+        <div class="metric"><div class="metric-k">Bloc</div><div class="metric-v">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="metric-s">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'}</div></div>
+        <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">fills today ${esc(s.tradier_fills_today ?? 0)}</div></div>
+        <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">${esc(ageLabel(f.bloc_age_hours))}</div><div class="metric-s">trades today ${esc(s.bloc_trades_today ?? 0)}</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Operator Queue</div><div class="panel-sub">What to do next</div></div></div>
+      <div class="panel-body">
+        <div class="actions">
+          <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
+          <button class="act secondary" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
+          <button class="act neutral" onclick="runCmd('refresh_truth')">Refresh Truth</button>
+          <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+        </div>
+        <div style="margin-top:20px">
+          ${(live.next_actions || []).map(a => `<div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--cyan)"><strong>${esc(a.title)}</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">${esc(a.detail)}</div></div>`).join('')}
+        </div>
+      </div>
+    </section>
+
+    <div class="grid2">
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
+        <div class="panel-body"><pre class="code">${esc((live.artifacts || {}).tradier_board_text || 'No board')}</pre></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Bloc Wallet</div><div class="panel-sub">Live wallet truth</div></div></div>
+        <div class="panel-body"><pre class="code">${esc((live.artifacts || {}).bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div>
+      </section>
+    </div>`;
+}
+
+function renderTradier() {
+  const p = state.payload; if (!p) return;
+  const live = p.live || {};
+  const f = live.freshness || {};
+  const t = live.tradier || {};
+  const a = live.artifacts || {};
+  $('#main').innerHTML = `
+    <section class="panel hero" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(21,30,45,.9) 50%)">
+      <div class="hero-title">Tradier Execution Lane</div>
+      <div class="hero-sub">Buying power ${money(t.buying_power_usd)} • positions ${t.positions_count || 0} • orders ${t.orders_count || 0} • freshness ${esc(ageLabel(f.tradier_age_hours))}</div>
+      <div class="actions" style="margin-top:20px">
+        <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose</button>
+        <button class="act secondary" onclick="runCmd('refresh_truth')">Refresh</button>
+        <button class="act danger" onclick="runCmd('pause_tradier')">Pause</button>
+        <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
+      <div class="panel-body"><pre class="code">${esc(a.tradier_board_text || 'No board')}</pre></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Tradier Audit</div><div class="panel-sub">Recent execution lines</div></div></div>
+      <div class="panel-body"><pre class="code">${esc(JSON.stringify(a.tradier_audit_lines || [], null, 2) || 'No audit lines')}</pre></div>
+    </section>`;
+}
+
+function renderBloc() {
+  const p = state.payload; if (!p) return;
+  const live = p.live || {};
+  const f = live.freshness || {};
+  const a = live.artifacts || {};
+  $('#main').innerHTML = `
+    <section class="panel hero" style="background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(21,30,45,.9) 50%)">
+      <div class="hero-title">Bloc Execution Lane</div>
+      <div class="hero-sub">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'} • freshness ${esc(ageLabel(f.bloc_age_hours))}</div>
+      <div class="actions" style="margin-top:20px">
+        <button class="act" onclick="runCmd('diagnose_bloc')">Diagnose</button>
+        <button class="act secondary" onclick="runCmd('pause_bloc')">Pause</button>
+        <button class="act" onclick="runCmd('resume_bloc')">Resume</button>
+        <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Bloc Wallet Truth</div><div class="panel-sub">Live wallet surface</div></div></div>
+      <div class="panel-body"><pre class="code">${esc(a.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Bloc State</div><div class="panel-sub">Runtime state</div></div></div>
+      <div class="panel-body"><pre class="code">${esc(a.bloc_state_text || '{}')}</pre></div>
+    </section>`;
+}
+
+function renderBalances() {
+  const p = state.payload; if (!p) return;
+  const live = p.live || {};
+  const t = live.tradier || {};
+  const wallet = live.wallet || {};
+  $('#main').innerHTML = `
+    <section class="panel hero" style="background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(21,30,45,.9) 50%)">
+      <div class="hero-title">Capital & Balances</div>
+      <div class="hero-sub">Live money surface across Tradier and onchain wallet</div>
+      <div class="grid3" style="margin-top:20px">
+        <div class="metric"><div class="metric-k">Tradier buying power</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">options capital</div></div>
+        <div class="metric"><div class="metric-k">Deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">cash ready</div></div>
+        <div class="metric"><div class="metric-k">Invested</div><div class="metric-v">${money(live.invested_capital_usd)}</div><div class="metric-s">capital at work</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Wallet Breakdown</div><div class="panel-sub">Onchain assets</div></div></div>
+      <div class="panel-body">
+        <div class="kv">
+          <div class="kvbox"><span>USDC</span><b>${wallet.usdc ?? 0}</b></div>
+          <div class="kvbox"><span>CBBTC</span><b>${wallet.cbbtc ?? 0}</b></div>
+          <div class="kvbox"><span>ETH</span><b>${wallet.eth ?? 0}</b></div>
+          <div class="kvbox"><span>WETH</span><b>${wallet.weth ?? 0}</b></div>
+          <div class="kvbox"><span>Gas</span><b>${wallet.gas ?? 0}</b></div>
+          <div class="kvbox"><span>Total USD</span><b>${money(wallet.estimated_total_usd)}</b></div>
+        </div>
+      </div>
+    </section>`;
+}
+
+function renderControls() {
+  $('#main').innerHTML = `
+    <section class="panel hero" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(21,30,45,.9) 50%)">
+      <div class="hero-title">Operator Controls</div>
+      <div class="hero-sub">Direct intervention surfaces for deploy, health, limits, logic, and trade‑entry</div>
+      <div class="grid2" style="margin-top:20px">
+        <div class="actions">
+          <button class="act" onclick="runCmd('refresh_truth')">Refresh Truth</button>
+          <button class="act secondary" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
+          <button class="act" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
+          <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+        </div>
+        <div class="actions">
+          <button class="act neutral" onclick="runCmd('pause_tradier')">Pause Tradier</button>
+          <button class="act neutral" onclick="runCmd('pause_bloc')">Pause Bloc</button>
+          <button class="act" onclick="runCmd('resume_bloc')">Resume Bloc</button>
+          <button class="act secondary" onclick="alert('Trade‑entry panel coming soon')">Trade Entry</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid2">
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Deploy & Health</div><div class="panel-sub">System readiness checks</div></div></div>
+        <div class="panel-body">
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--green)"><strong>Deploy pipeline</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">git fetch → reset → deploy.sh</div></div>
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--amber)"><strong>Health checks</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">Dashboard, Bloc, Tradier, wallet, cron</div></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Limits & Logic</div><div class="panel-sub">Risk and execution controls</div></div></div>
+        <div class="panel-body">
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--cyan)"><strong>Risk config</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">max_notional, max_qty, max_daily_loss</div></div>
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--violet)"><strong>Logic surfaces</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">Setup filters, edge scoring, invalidation</div></div>
+        </div>
+      </section>
+    </div>`;
+}
+
+function render() {
+  updateHeader();
+  const renderers = {
+    overview: renderOverview,
+    tradier: renderTradier,
+    bloc: renderBloc,
+    balances: renderBalances,
+    controls: renderControls
+  };
+  (renderers[state.view] || renderOverview)();
+}
+
+async function refreshState() {
+  try {
+    const r = await fetch('/api/hq/status', { cache: 'no-store' });
+    if (!r.ok) throw new Error(`HQ status ${r.status}`);
+    state.payload = await r.json();
+    render();
+  } catch (e) {
+    $('#mission').textContent = 'Failed to load HQ';
+    $('#output').textContent = `Refresh failed: ${e.message}`;
+  }
+}
+
+async function runCmd(action) {
+  const out = $('#output');
+  out.textContent = `Running ${action}...`;
+  try {
+    const r = await fetch('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+    const data = await r.json();
+    if (data.ok === false) {
+      out.textContent = `❌ ${data.error || data.message || 'Unknown error'}`;
+    } else {
+      out.textContent = `✅ ${data.message || 'Command executed'}`;
+    }
+    await refreshState();
+  } catch (e) {
+    out.textContent = `❌ Command failed: ${e.message}`;
+  }
+}
+
+function sendCustomCommand() {
+  const input = $('#command-input');
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  input.value = '';
+  runCmd(cmd);
+}
+
+function setView(view) {
+  state.view = view;
+  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  render();
+}
+
+// Initialize
+document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+$('#command-input').addEventListener('keypress', e => { if (e.key === 'Enter') sendCustomCommand(); });
+refreshState().catch(e => { $('#output').textContent = `Startup error: ${e.message}`; });
+setInterval(() => refreshState().catch(() => {}), 30000);
+</script>
+</body>
+</html>
