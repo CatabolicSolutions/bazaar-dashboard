@@ -25,11 +25,11 @@ button,input,textarea{font:inherit}
 .shell{display:grid;grid-template-columns:280px minmax(0,1fr) 520px;gap:16px;min-height:0}
 .sidebar,.main,.console{min-height:0}
 .sidebar{display:grid;grid-template-rows:auto 1fr auto;gap:12px}.nav-section{margin-bottom:20px}.nav-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);font-weight:800;margin-bottom:8px;padding-left:8px}.navbtn,.actionbtn{border:none;border-radius:14px;padding:14px 16px;background:rgba(12,17,14,.94);border:1px solid rgba(124,247,182,.10);color:#eef6ef;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease;text-align:left;display:flex;align-items:center;gap:12px;margin-bottom:8px}.navbtn:hover,.actionbtn:hover,.navbtn.active{background:rgba(109,255,154,.08);border-color:rgba(109,255,154,.35);box-shadow:inset 0 0 0 1px rgba(109,255,154,.08)}.navbtn.danger:hover,.actionbtn.danger:hover{background:rgba(255,107,107,.10);border-color:rgba(255,107,107,.35)}.navbtn .icon,.actionbtn .icon{width:20px;height:20px;border-radius:6px;background:rgba(109,255,154,.08);border:1px solid rgba(109,255,154,.14);display:flex;align-items:center;justify-content:center;font-size:12px}
-.main{display:grid;gap:16px;align-content:start}
+.main{display:grid;gap:16px;align-content:start;grid-auto-rows:max-content}
 .panel{border-radius:20px;background:rgba(12,17,14,.94);border:1px solid rgba(124,247,182,.10);box-shadow:var(--shadow);overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid rgba(124,247,182,.08)}.panel-title{font-size:12px;letter-spacing:.15em;text-transform:uppercase;font-weight:800;color:#d4e5ff}.panel-sub{font-size:11px;color:#8ba1c2;margin-top:2px}.panel-body{padding:20px}
 .hero{background:linear-gradient(135deg,rgba(109,255,154,.06),rgba(12,17,14,.96) 52%);padding:24px}.hero-title{font-size:32px;font-weight:800;line-height:1.1}.hero-sub{font-size:14px;color:#b7c3b6;margin-top:8px;line-height:1.5}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{padding:16px;border-radius:16px;background:rgba(10,14,11,.96);border:1px solid rgba(124,247,182,.08)}.metric-k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8ea08f}.metric-v{font-size:24px;font-weight:800;margin-top:8px}.metric-s{font-size:11px;color:#b7c3b6;margin-top:4px}
-.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.act{border:none;border-radius:14px;padding:16px;font-size:13px;font-weight:700;cursor:pointer;color:#08100a;background:linear-gradient(135deg,var(--green),#9bffb6);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}.act.secondary{background:linear-gradient(135deg,var(--amber),#ffd87a);color:#1a1206}.act.neutral{background:linear-gradient(135deg,#3d463f,#262d28);color:#f0f5f0}.act.danger{background:linear-gradient(135deg,var(--red),#ff9a9a);color:#210909}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stack{display:grid;gap:12px}.textarea{width:100%;min-height:220px;background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:12px;padding:14px;color:#b8ffcb;font:12px/1.55 'JetBrains Mono',monospace;resize:vertical}.field{display:grid;gap:6px}.field label{font-size:11px;color:#b7c3b6;text-transform:uppercase;letter-spacing:.08em}.field input,.field select{width:100%;background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:10px;padding:12px;color:#eef6ef}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.pillnote{padding:10px 12px;border-radius:10px;background:rgba(10,14,11,.96);border-left:4px solid var(--amber);font-size:12px;color:#b7c3b6;line-height:1.45}.act{border:none;border-radius:14px;padding:16px;font-size:13px;font-weight:700;cursor:pointer;color:#08100a;background:linear-gradient(135deg,var(--green),#9bffb6);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}.act.secondary{background:linear-gradient(135deg,var(--amber),#ffd87a);color:#1a1206}.act.neutral{background:linear-gradient(135deg,#3d463f,#262d28);color:#f0f5f0}.act.danger{background:linear-gradient(135deg,var(--red),#ff9a9a);color:#210909}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .code{white-space:pre-wrap;overflow:auto;background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:12px;padding:16px;font:12px/1.55 'JetBrains Mono',monospace;color:#b8ffcb;max-height:300px}
 .console{display:grid;grid-template-rows:auto 1fr auto;gap:16px}.console-output{background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:12px;padding:16px;overflow:auto;font:12px/1.55 'JetBrains Mono',monospace;color:#b8ffcb;min-height:420px}.console-input{display:flex;gap:8px}.console-input input{flex:1;border:none;border-radius:12px;padding:14px 16px;background:rgba(12,17,14,.94);border:1px solid rgba(124,247,182,.14);color:#eff7f0;font-size:13px}.console-input button{border:none;border-radius:12px;padding:14px 20px;background:linear-gradient(135deg,var(--green),#a6ffbe);color:#09100a;font-weight:800;cursor:pointer}
@@ -106,7 +106,9 @@ button,input,textarea{font:inherit}
         <div class="panel-head">
           <div><div class="panel-title">Command Output</div><div class="panel-sub">Live execution feedback</div></div>
         </div>
-        <div class="panel-body"><pre class="console-output" id="output">Awaiting commands.</pre></div>
+        <div class="panel-body"><pre class="console-output" id="output">Awaiting commands.
+
+This console should show multi-line command results, not single-line compressed status.</pre></div>
       </div>
       <div class="console-input">
         <input type="text" id="command-input" placeholder="Type a command or use buttons above" autocomplete="off">
@@ -272,10 +274,12 @@ function renderBalances() {
 }
 
 function renderControls() {
+  const live = (state.payload || {}).live || {};
+  const artifacts = live.artifacts || {};
   $('#main').innerHTML = `
     <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,204,102,.08),rgba(12,17,14,.96) 52%)">
-      <div class="hero-title">Operator Controls</div>
-      <div class="hero-sub">Direct intervention surfaces for deploy, health, limits, logic, and trade‑entry</div>
+      <div class="hero-title">Operator Terminal</div>
+      <div class="hero-sub">This is the product path: deploy, health, config writeback, and trade-entry staging from one desk.</div>
       <div class="grid2" style="margin-top:20px">
         <div class="actions">
           <button class="act" onclick="runCmd('refresh_truth')">Refresh Truth</button>
@@ -287,27 +291,50 @@ function renderControls() {
           <button class="act neutral" onclick="runCmd('pause_tradier')">Pause Tradier</button>
           <button class="act neutral" onclick="runCmd('pause_bloc')">Pause Bloc</button>
           <button class="act" onclick="runCmd('resume_bloc')">Resume Bloc</button>
-          <button class="act secondary" onclick="queueIntent('trade_entry')">Queue Trade Entry</button>
+          <button class="act secondary" onclick="previewTradeEntry()">Preview Trade Ticket</button>
         </div>
       </div>
     </section>
 
     <div class="grid2">
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Deploy & Health</div><div class="panel-sub">System readiness checks</div></div></div>
-        <div class="panel-body">
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--green)"><strong>Deploy pipeline</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">git fetch → reset → deploy.sh</div><button class="act neutral" style="margin-top:10px;width:100%" onclick="queueIntent('deploy')">Queue Deploy Intent</button></div>
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--amber)"><strong>Health checks</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Dashboard, Bloc, Tradier, wallet, cron</div><button class="act secondary" style="margin-top:10px;width:100%" onclick="queueIntent('health_check')">Queue Health Sweep</button></div>
+        <div class="panel-head"><div><div class="panel-title">Risk Config Editor</div><div class="panel-sub">Write back risk controls from cockpit</div></div></div>
+        <div class="panel-body stack">
+          <div class="pillnote">This writes to <code>risk_config.json</code>. It is a real config writeback surface.</div>
+          <textarea class="textarea" id="risk-config-editor">${esc(artifacts.risk_config_text || '{}')}</textarea>
+          <button class="act" onclick="saveConfig('risk')">Save Risk Config</button>
         </div>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Limits & Logic</div><div class="panel-sub">Risk and execution controls</div></div></div>
-        <div class="panel-body">
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--green)"><strong>Risk config</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">max_notional, max_qty, max_daily_loss</div><button class="act neutral" style="margin-top:10px;width:100%" onclick="queueIntent('risk_edit')">Queue Risk Edit</button></div>
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--amber)"><strong>Logic surfaces</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Setup filters, edge scoring, invalidation</div><button class="act secondary" style="margin-top:10px;width:100%" onclick="queueIntent('logic_edit')">Queue Logic Edit</button></div>
+        <div class="panel-head"><div><div class="panel-title">Safety Config Editor</div><div class="panel-sub">Write back HQ safety controls</div></div></div>
+        <div class="panel-body stack">
+          <div class="pillnote">This writes to <code>dashboard/config/safety_config.json</code>.</div>
+          <textarea class="textarea" id="safety-config-editor">${esc(artifacts.hq_safety_text || '{}')}</textarea>
+          <button class="act secondary" onclick="saveConfig('safety')">Save Safety Config</button>
         </div>
       </section>
-    </div>`;
+    </div>
+
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Tradier Trade Entry</div><div class="panel-sub">Stage a real option ticket from cockpit</div></div></div>
+      <div class="panel-body stack">
+        <div class="pillnote">This uses the existing Tradier order endpoint. Start with preview-quality inputs. Live submission remains high-risk and should be treated carefully.</div>
+        <div class="formgrid">
+          <div class="field"><label>Underlying</label><input id="order-symbol" placeholder="SPY"></div>
+          <div class="field"><label>Expiration (YYYY-MM-DD)</label><input id="order-expiration" placeholder="2026-04-24"></div>
+          <div class="field"><label>Option Type</label><select id="order-option-type"><option value="call">Call</option><option value="put">Put</option></select></div>
+          <div class="field"><label>Side</label><select id="order-side"><option value="buy_to_open">Buy to Open</option><option value="sell_to_close">Sell to Close</option></select></div>
+          <div class="field"><label>Strike</label><input id="order-strike" type="number" step="0.01" placeholder="550"></div>
+          <div class="field"><label>Quantity</label><input id="order-qty" type="number" step="1" placeholder="1"></div>
+          <div class="field"><label>Order Type</label><select id="order-order-type"><option value="market">Market</option><option value="limit">Limit</option></select></div>
+          <div class="field"><label>Limit Price</label><input id="order-limit" type="number" step="0.01" placeholder="1.25"></div>
+        </div>
+        <div class="actions">
+          <button class="act secondary" onclick="previewTradeEntry()">Preview Ticket</button>
+          <button class="act danger" onclick="submitTradeEntry()">Submit Ticket</button>
+        </div>
+      </div>
+    </section>`;
 }
 
 function render() {
@@ -340,27 +367,57 @@ async function runCmd(action) {
   try {
     const r = await fetch('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
     const data = await r.json();
-    if (data.ok === false) {
-      out.textContent = `❌ ${data.error || data.message || 'Unknown error'}`;
-    } else {
-      out.textContent = `✅ ${data.message || 'Command executed'}`;
-    }
+    out.textContent = JSON.stringify(data, null, 2);
     await refreshState();
   } catch (e) {
     out.textContent = `❌ Command failed: ${e.message}`;
   }
 }
 
-function queueIntent(kind) {
+async function saveConfig(target) {
   const out = $('#output');
-  const messages = {
-    deploy: 'Deploy intent queued: this cockpit can now act as the operator staging surface, but deploy still executes through the server shell path.',
-    health_check: 'Health sweep intent queued: use Diagnose Tradier, Diagnose Bloc, and Refresh Truth now; full multi-check workflow still needs backend orchestration.',
-    risk_edit: 'Risk edit intent queued: risk config is visible, but in-place writeback/editor flow is not implemented yet.',
-    logic_edit: 'Logic edit intent queued: logic surfaces need first-class API write endpoints before this becomes a true execution IDE.',
-    trade_entry: 'Trade entry intent queued: this is the biggest missing piece. The cockpit is not yet a real order-entry terminal.'
+  const editorId = target === 'risk' ? '#risk-config-editor' : '#safety-config-editor';
+  try {
+    const config = JSON.parse($(editorId).value);
+    const r = await fetch('/api/hq/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target, config }) });
+    const data = await r.json();
+    out.textContent = JSON.stringify(data, null, 2);
+    await refreshState();
+  } catch (e) {
+    out.textContent = `Config save failed: ${e.message}`;
+  }
+}
+
+function collectOrderForm() {
+  return {
+    symbol: $('#order-symbol').value.trim(),
+    expiration: $('#order-expiration').value.trim(),
+    option_type: $('#order-option-type').value,
+    side: $('#order-side').value,
+    strike: parseFloat($('#order-strike').value || '0'),
+    quantity: parseInt($('#order-qty').value || '0', 10),
+    order_type: $('#order-order-type').value,
+    limit_price: $('#order-limit').value ? parseFloat($('#order-limit').value) : null,
+    time_in_force: 'day'
   };
-  out.textContent = '⚠️ ' + (messages[kind] || 'Intent queued.');
+}
+
+function previewTradeEntry() {
+  const payload = collectOrderForm();
+  $('#output').textContent = JSON.stringify({ preview: true, payload, note: 'Preview assembled from cockpit form. Next step is submit via /api/order.' }, null, 2);
+}
+
+async function submitTradeEntry() {
+  const out = $('#output');
+  const payload = collectOrderForm();
+  try {
+    const r = await fetch('/api/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await r.json();
+    out.textContent = JSON.stringify(data, null, 2);
+    await refreshState();
+  } catch (e) {
+    out.textContent = `Trade submit failed: ${e.message}`;
+  }
 }
 
 function sendCustomCommand() {
