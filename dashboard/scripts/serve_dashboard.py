@@ -2109,7 +2109,7 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_command(self, body):
         try:
             payload = json.loads(body.decode() or '{}')
-            command = payload.get('command')
+            command = payload.get('action') or payload.get('command')
             state_path = ROOT / 'eth_scalper' / 'state' / 'bot_state.json'
             state = json.loads(state_path.read_text()) if state_path.exists() else {}
 

@@ -253,7 +253,11 @@ async function runCmd(action){
   try {
     const r = await fetch('/api/command', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action }) });
     const data = await r.json();
-    out.textContent = JSON.stringify(data, null, 2);
+    if (data.ok === false) {
+      out.textContent = `Command failed: ${data.error || data.message || 'Unknown error'}`;
+    } else {
+      out.textContent = data.message || JSON.stringify(data, null, 2);
+    }
     await refreshState();
   } catch (e) {
     out.textContent = `Command failed: ${e.message}`;
