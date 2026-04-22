@@ -352,7 +352,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.refresh_snapshot()
         parsed = urlparse(self.path)
         route_path = parsed.path or '/'
-        if route_path in ('/', '/hq', '/war-room', '/war-room/', '/cc'):
+        if route_path == '/cockpit':
+            self.path = '/cockpit.html'
+        elif route_path in ('/', '/hq', '/war-room', '/war-room/', '/cc'):
             self.path = '/cc.html'
         elif route_path in ('/legacy', '/legacy/'):
             self.path = '/index.html'
