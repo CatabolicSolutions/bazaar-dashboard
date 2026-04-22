@@ -438,20 +438,13 @@ function renderHistory() {
   const feedback = h.action_feedback || {};
   const queue = h.queue || [];
   const lines = [];
-  if (refresh && Object.keys(refresh).length) lines.push('[refresh_status]
-' + JSON.stringify(refresh, null, 2));
-  if (feedback && Object.keys(feedback).length) lines.push('[action_feedback]
-' + JSON.stringify(feedback, null, 2));
-  if (queue.length) lines.push('[queue]
-' + JSON.stringify(queue.slice(-10), null, 2));
-  if (events.length) lines.push('[events]
-' + JSON.stringify(events.slice(0, 12), null, 2));
-  if (notes.length) lines.push('[notes]
-' + JSON.stringify(notes.slice(-10), null, 2));
+  if (refresh && Object.keys(refresh).length) lines.push('[refresh_status]\n' + JSON.stringify(refresh, null, 2));
+  if (feedback && Object.keys(feedback).length) lines.push('[action_feedback]\n' + JSON.stringify(feedback, null, 2));
+  if (queue.length) lines.push('[queue]\n' + JSON.stringify(queue.slice(-10), null, 2));
+  if (events.length) lines.push('[events]\n' + JSON.stringify(events.slice(0, 12), null, 2));
+  if (notes.length) lines.push('[notes]\n' + JSON.stringify(notes.slice(-10), null, 2));
   const el = $('#history-output');
-  if (el) el.textContent = lines.length ? lines.join('
-
-') : 'No operator history yet.';
+  if (el) el.textContent = lines.length ? lines.join('\n\n') : 'No operator history yet.';
 }
 
 async function submitTradeEntry() {
