@@ -120,6 +120,21 @@ class Handler(SimpleHTTPRequestHandler):
             payload['stderrTail'] = stderr_tail[-600:]
         return payload
 
+    def _canonical_deploy_payload(self, *, ok, stage, message, stdout_tail='', stderr_tail=''):
+        payload = {
+            'ok': ok,
+            'stage': stage,
+            'message': message,
+            'updatedAt': now_iso(),
+            'command': 'cd /var/www/bazaar && git fetch origin && git reset --hard origin/master && sudo ./deploy/deploy.sh',
+        }
+        if stdout_tail:
+            payload['stdoutTail'] = stdout_tail[-1200:]
+        if stderr_tail:
+            payload['stderrTail'] = stderr_tail[-1200:]
+        return payload
+
+
     def json_response(self, status_code, payload):
         self.send_response(status_code)
         self.send_header('Content-Type', 'application/json')
@@ -2245,30 +2260,66 @@ class Handler(SimpleHTTPRequestHandler):
             payload = json.loads(body.decode() or '{}')
         except Exception:
             payload = {}
-        mode = str(payload.get('mode') or 'queue').strip().lower()
-        deploy_entry = {
-            'ts': now_iso(),
-            'kind': 'deploy',
-            'mode': mode,
-            'command': 'cd /var/www/bazaar && git fetch origin && git reset --hard origin/master && sudo ./deploy/deploy.sh',
-            'status': 'queued' if mode != 'dry_run' else 'preview',
-        }
-        queue = self.read_json(QUEUE_STATE, [])
-        if not isinstance(queue, list):
-            queue = []
-        queue.append(deploy_entry)
-        self.write_json(QUEUE_STATE, queue[-50:])
-        feedback = {
-            'ts': now_iso(),
-            'kind': 'deploy',
-            'mode': mode,
-            'ok': True,
-            'message': 'Deploy intent queued from cockpit. Canonical execution remains: git fetch/reset + deploy.sh on the Bazaar host.',
-            'command': deploy_entry['command'],
-        }
-        self.write_json(ACTION_FEEDBACK_STATE, feedback)
-        hq_repository.append_event('operator_deploy', 'Deploy intent queued', feedback['message'], 'warning', feedback)
-        return self.json_response(200, {'ok': True, 'message': feedback['message'], 'data': feedback})
+        mode = str(payload.get('mode') or 'run').strip().lower()
+        if mode == 'queue':
+            deploy_entry = {
+                'ts': now_iso(),
+                'kind': 'deploy',
+                'mode': mode,
+                'command': 'cd /var/www/bazaar && git fetch origin && git reset --hard origin/master && sudo ./deploy/deploy.sh',
+                'status': 'queued',
+            }
+            queue = self.read_json(QUEUE_STATE, [])
+            if not isinstance(queue, list):
+                queue = []
+            queue.append(deploy_entry)
+            self.write_json(QUEUE_STATE, queue[-50:])
+            feedback = {
+                'ts': now_iso(),
+                'kind': 'deploy',
+                'mode': mode,
+                'ok': True,
+                'message': 'Deploy intent queued from cockpit.',
+                'command': deploy_entry['command'],
+            }
+            self.write_json(ACTION_FEEDBACK_STATE, feedback)
+            hq_repository.append_event('operator_deploy', 'Deploy intent queued', feedback['message'], 'warning', feedback)
+            return self.json_response(200, {'ok': True, 'message': feedback['message'], 'data': feedback})
+
+        running = self.read_json(ACTION_FEEDBACK_STATE, {})
+        if running.get('kind') == 'deploy' and running.get('stage') == 'running':
+            return self.json_response(409, {'ok': False, 'error': 'Deploy already running', 'data': running})
+
+        started = self._canonical_deploy_payload(ok=False, stage='running', message='Cockpit deploy started')
+        started['kind'] = 'deploy'
+        self.write_json(ACTION_FEEDBACK_STATE, started)
+        hq_repository.append_event('operator_deploy', 'Deploy started', started['message'], 'warning', started)
+
+        try:
+            proc = subprocess.run(
+                ['bash', '-lc', 'cd /var/www/bazaar && git fetch origin && git reset --hard origin/master && sudo ./deploy/deploy.sh'],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                env=os.environ,
+            )
+            done = self._canonical_deploy_payload(
+                ok=proc.returncode == 0,
+                stage='complete' if proc.returncode == 0 else 'failed',
+                message='Cockpit deploy completed' if proc.returncode == 0 else 'Cockpit deploy failed',
+                stdout_tail=proc.stdout or '',
+                stderr_tail=proc.stderr or '',
+            )
+            done['kind'] = 'deploy'
+            self.write_json(ACTION_FEEDBACK_STATE, done)
+            hq_repository.append_event('operator_deploy', 'Deploy completed' if proc.returncode == 0 else 'Deploy failed', done['message'], 'warning' if proc.returncode == 0 else 'critical', done)
+            return self.json_response(200 if proc.returncode == 0 else 500, {'ok': proc.returncode == 0, 'message': done['message'], 'data': done})
+        except subprocess.TimeoutExpired as err:
+            failed = self._canonical_deploy_payload(ok=False, stage='timeout', message='Cockpit deploy timed out after 300s', stdout_tail=(err.stdout or '') if isinstance(err.stdout, str) else '', stderr_tail=(err.stderr or '') if isinstance(err.stderr, str) else '')
+            failed['kind'] = 'deploy'
+            self.write_json(ACTION_FEEDBACK_STATE, failed)
+            hq_repository.append_event('operator_deploy', 'Deploy timeout', failed['message'], 'critical', failed)
+            return self.json_response(504, {'ok': False, 'error': failed['message'], 'data': failed})
 
     def _handle_hq_config(self, body):
         try:
