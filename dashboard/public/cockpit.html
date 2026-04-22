@@ -22,7 +22,7 @@ button,input,textarea{font:inherit}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#163323,#0d1f16);border:1px solid rgba(109,255,154,.35);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;box-shadow:inset 0 0 18px rgba(109,255,154,.12)}.brand-text{display:flex;flex-direction:column}.brand-name{font-size:24px;font-weight:800;line-height:1}.brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .mission{text-align:center}.mission-k{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);font-weight:800}.mission-v{font-size:16px;font-weight:800;margin-top:4px}
 .status{display:flex;gap:12px}.chip{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(12,17,14,.92);border:1px solid rgba(124,247,182,.14);color:#e9f6eb;font-size:12px;font-weight:700}.dot{width:10px;height:10px;border-radius:999px}.green{background:var(--green);box-shadow:0 0 12px rgba(16,185,129,.5)}.amber{background:var(--amber);box-shadow:0 0 12px rgba(245,158,11,.4)}.red{background:var(--red);box-shadow:0 0 12px rgba(239,68,68,.5)}.cyan{background:var(--cyan);box-shadow:0 0 12px rgba(0,212,255,.5)}
-.shell{display:grid;grid-template-columns:280px 1fr 400px;gap:16px;min-height:0}
+.shell{display:grid;grid-template-columns:280px minmax(0,1fr) 520px;gap:16px;min-height:0}
 .sidebar,.main,.console{min-height:0}
 .sidebar{display:grid;grid-template-rows:auto 1fr auto;gap:12px}.nav-section{margin-bottom:20px}.nav-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);font-weight:800;margin-bottom:8px;padding-left:8px}.navbtn,.actionbtn{border:none;border-radius:14px;padding:14px 16px;background:rgba(12,17,14,.94);border:1px solid rgba(124,247,182,.10);color:#eef6ef;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease;text-align:left;display:flex;align-items:center;gap:12px;margin-bottom:8px}.navbtn:hover,.actionbtn:hover,.navbtn.active{background:rgba(109,255,154,.08);border-color:rgba(109,255,154,.35);box-shadow:inset 0 0 0 1px rgba(109,255,154,.08)}.navbtn.danger:hover,.actionbtn.danger:hover{background:rgba(255,107,107,.10);border-color:rgba(255,107,107,.35)}.navbtn .icon,.actionbtn .icon{width:20px;height:20px;border-radius:6px;background:rgba(109,255,154,.08);border:1px solid rgba(109,255,154,.14);display:flex;align-items:center;justify-content:center;font-size:12px}
 .main{display:grid;gap:16px;align-content:start}
@@ -32,7 +32,7 @@ button,input,textarea{font:inherit}
 .actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.act{border:none;border-radius:14px;padding:16px;font-size:13px;font-weight:700;cursor:pointer;color:#08100a;background:linear-gradient(135deg,var(--green),#9bffb6);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}.act.secondary{background:linear-gradient(135deg,var(--amber),#ffd87a);color:#1a1206}.act.neutral{background:linear-gradient(135deg,#3d463f,#262d28);color:#f0f5f0}.act.danger{background:linear-gradient(135deg,var(--red),#ff9a9a);color:#210909}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .code{white-space:pre-wrap;overflow:auto;background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:12px;padding:16px;font:12px/1.55 'JetBrains Mono',monospace;color:#b8ffcb;max-height:300px}
-.console{display:grid;grid-template-rows:1fr auto;gap:16px}.console-output{background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:12px;padding:16px;overflow:auto;font:12px/1.55 'JetBrains Mono',monospace;color:#b8ffcb}.console-input{display:flex;gap:8px}.console-input input{flex:1;border:none;border-radius:12px;padding:14px 16px;background:rgba(12,17,14,.94);border:1px solid rgba(124,247,182,.14);color:#eff7f0;font-size:13px}.console-input button{border:none;border-radius:12px;padding:14px 20px;background:linear-gradient(135deg,var(--green),#a6ffbe);color:#09100a;font-weight:800;cursor:pointer}
+.console{display:grid;grid-template-rows:auto 1fr auto;gap:16px}.console-output{background:#050706;border:1px solid rgba(124,247,182,.12);border-radius:12px;padding:16px;overflow:auto;font:12px/1.55 'JetBrains Mono',monospace;color:#b8ffcb;min-height:420px}.console-input{display:flex;gap:8px}.console-input input{flex:1;border:none;border-radius:12px;padding:14px 16px;background:rgba(12,17,14,.94);border:1px solid rgba(124,247,182,.14);color:#eff7f0;font-size:13px}.console-input button{border:none;border-radius:12px;padding:14px 20px;background:linear-gradient(135deg,var(--green),#a6ffbe);color:#09100a;font-weight:800;cursor:pointer}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px}.kvbox{padding:14px;border-radius:14px;background:rgba(10,14,11,.96);border:1px solid rgba(124,247,182,.08)}.kvbox span{display:block;font-size:10px;color:#8ea08f;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.kvbox b{font-size:20px}
 .hidden{display:none}
 @media (max-width:1400px){.shell{grid-template-columns:280px 1fr}.console{display:none}}
@@ -90,6 +90,18 @@ button,input,textarea{font:inherit}
     </main>
 
     <aside class="console">
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Cockpit Value</div><div class="panel-sub">What this desk is for right now</div></div>
+        </div>
+        <div class="panel-body">
+          <div style="display:grid;gap:10px">
+            <div style="padding:12px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--green)"><strong>Push state changes</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Pause/resume engines, refresh runtime truth, trigger diagnoses, and record emergency intent from one surface.</div></div>
+            <div style="padding:12px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--amber)"><strong>See execution feedback</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Every command returns a result in the console so you can tell whether the system accepted the action or surfaced a blocker.</div></div>
+            <div style="padding:12px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--red)"><strong>Current limitation</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Full deploy, trade-entry, and risk-edit flows are not first-class yet. This cockpit is currently a real control-and-diagnosis desk, not a complete execution terminal.</div></div>
+          </div>
+        </div>
+      </div>
       <div class="panel">
         <div class="panel-head">
           <div><div class="panel-title">Command Output</div><div class="panel-sub">Live execution feedback</div></div>
@@ -275,7 +287,7 @@ function renderControls() {
           <button class="act neutral" onclick="runCmd('pause_tradier')">Pause Tradier</button>
           <button class="act neutral" onclick="runCmd('pause_bloc')">Pause Bloc</button>
           <button class="act" onclick="runCmd('resume_bloc')">Resume Bloc</button>
-          <button class="act secondary" onclick="alert('Trade‑entry panel coming soon')">Trade Entry</button>
+          <button class="act secondary" onclick="queueIntent('trade_entry')">Queue Trade Entry</button>
         </div>
       </div>
     </section>
@@ -284,15 +296,15 @@ function renderControls() {
       <section class="panel">
         <div class="panel-head"><div><div class="panel-title">Deploy & Health</div><div class="panel-sub">System readiness checks</div></div></div>
         <div class="panel-body">
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--green)"><strong>Deploy pipeline</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">git fetch → reset → deploy.sh</div></div>
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--amber)"><strong>Health checks</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">Dashboard, Bloc, Tradier, wallet, cron</div></div>
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--green)"><strong>Deploy pipeline</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">git fetch → reset → deploy.sh</div><button class="act neutral" style="margin-top:10px;width:100%" onclick="queueIntent('deploy')">Queue Deploy Intent</button></div>
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--amber)"><strong>Health checks</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Dashboard, Bloc, Tradier, wallet, cron</div><button class="act secondary" style="margin-top:10px;width:100%" onclick="queueIntent('health_check')">Queue Health Sweep</button></div>
         </div>
       </section>
       <section class="panel">
         <div class="panel-head"><div><div class="panel-title">Limits & Logic</div><div class="panel-sub">Risk and execution controls</div></div></div>
         <div class="panel-body">
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--cyan)"><strong>Risk config</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">max_notional, max_qty, max_daily_loss</div></div>
-          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(21,30,45,.7);border-left:4px solid var(--violet)"><strong>Logic surfaces</strong><div style="font-size:12px;color:#a8bfe3;margin-top:4px">Setup filters, edge scoring, invalidation</div></div>
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--green)"><strong>Risk config</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">max_notional, max_qty, max_daily_loss</div><button class="act neutral" style="margin-top:10px;width:100%" onclick="queueIntent('risk_edit')">Queue Risk Edit</button></div>
+          <div style="padding:12px;margin-bottom:8px;border-radius:12px;background:rgba(10,14,11,.96);border-left:4px solid var(--amber)"><strong>Logic surfaces</strong><div style="font-size:12px;color:#b7c3b6;margin-top:4px">Setup filters, edge scoring, invalidation</div><button class="act secondary" style="margin-top:10px;width:100%" onclick="queueIntent('logic_edit')">Queue Logic Edit</button></div>
         </div>
       </section>
     </div>`;
@@ -337,6 +349,18 @@ async function runCmd(action) {
   } catch (e) {
     out.textContent = `❌ Command failed: ${e.message}`;
   }
+}
+
+function queueIntent(kind) {
+  const out = $('#output');
+  const messages = {
+    deploy: 'Deploy intent queued: this cockpit can now act as the operator staging surface, but deploy still executes through the server shell path.',
+    health_check: 'Health sweep intent queued: use Diagnose Tradier, Diagnose Bloc, and Refresh Truth now; full multi-check workflow still needs backend orchestration.',
+    risk_edit: 'Risk edit intent queued: risk config is visible, but in-place writeback/editor flow is not implemented yet.',
+    logic_edit: 'Logic edit intent queued: logic surfaces need first-class API write endpoints before this becomes a true execution IDE.',
+    trade_entry: 'Trade entry intent queued: this is the biggest missing piece. The cockpit is not yet a real order-entry terminal.'
+  };
+  out.textContent = '⚠️ ' + (messages[kind] || 'Intent queued.');
 }
 
 function sendCustomCommand() {
