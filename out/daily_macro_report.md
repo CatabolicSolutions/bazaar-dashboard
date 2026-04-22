@@ -1,30 +1,32 @@
 **BAZAAR OF FORTUNES — DAILY MACRO MARKET ANALYSIS**
-**Generated:** 2026-04-22 06:31 MDT
+**Generated:** 2026-04-09 06:30 MDT
 
 **1. Overnight Drivers**
-- Sector & Industry Performance - Bloomberg.com
-- Asia-Pacific markets mostly decline as Iran war dents risk sentiment - CNBC
+- New Bitcoin ETF Chases Gains That Come While Wall Street Sleeps - Bloomberg.com
 - Asia-Pacific markets close mixed as oil gains and Iran war keeps investors on edge - CNBC
+- Wall Street’s Selloff Turned Into a Stampede This Week - Bloomberg.com
 
 **2. US Economic Calendar (Today / Tomorrow)**
-- Thu 12:30 PM ET — Unemployment Claims (Medium)
-- Thu 01:45 PM ET — Flash Manufacturing PMI (Medium)
-- Thu 01:45 PM ET — Flash Services PMI (Medium)
+- Thu 12:30 PM ET — Core PCE Price Index m/m (High)
+- Thu 12:30 PM ET — Final GDP q/q (High)
+- Fri 12:30 PM ET — Core CPI m/m (High)
+- Fri 12:30 PM ET — CPI m/m (High)
 
 **3. VIX Context**
-- VIX: 18.87 vs yesterday 19.50 (-3.23%)
-- 5-session average: 18.39 | recent range: 17.48–19.50
-- Read: trending down / fear compressing
+- VIX: 21.22 vs yesterday 21.04 (+0.86%)
+- 5-session average: 23.88 | recent range: 21.04–25.78
+- Read: roughly stable / mixed risk tone
 
 **4. Futures / Pre-Market Proxy**
-- SPX / S&P 500 proxy: up +0.58% vs previous close (regular)
-- NDX / Nasdaq 100 proxy: up +1.05% vs previous close (regular)
+- SPX / S&P 500 proxy: up +3.16% vs previous close (regular)
+- NDX / Nasdaq 100 proxy: up +3.68% vs previous close (regular)
 
 **5. Key Levels**
-- SPY: prev H/L/C 709.91/706.14/708.72 | pivot 708.26 | S1 706.60 | R1 710.37
-- QQQ: prev H/L/C 648.76/642.52/646.79 | pivot 646.02 | S1 643.29 | R1 649.53
+- SPY: prev H/L/C 659.61/651.06/659.22 | pivot 656.63 | S1 653.65 | R1 662.20
+- QQQ: prev H/L/C 588.98/578.40/588.59 | pivot 585.32 | S1 581.67 | R1 592.25
 
 **Desk Read / Synopsis**
-- volatility is easing; cleaner continuation setups deserve more attention if opening structure confirms
+- event risk elevated; do not overtrust early directional moves before scheduled data/speakers
+- volatility is not screaming regime change; trade the tape, but stay selective
 - premarket tone constructive; bullish leaders can earn more confidence if they hold after the open
 
