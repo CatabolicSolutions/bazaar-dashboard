@@ -404,6 +404,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_hq_status()
         elif route_path == '/api/hq/overview':
             return self._handle_hq_overview()
+        elif route_path == '/api/hq/history':
+            return self._handle_hq_history()
         elif route_path == '/api/eth-scalper/trades':
             return self._handle_eth_scalper_trades()
         elif route_path == '/api/eth-scalper/positions':
@@ -724,6 +726,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._handle_action(body)
         if self.path == '/api/manual-refresh':
             return self._handle_manual_refresh()
+        if self.path == '/api/hq/deploy':
+            return self._handle_hq_deploy(body)
         if self.path == '/api/close-position':
             return self._handle_close_position(body)
         if self.path == '/api/journal/export':
@@ -2209,6 +2213,62 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, {'ok': True, 'message': 'Note saved', 'entry': entry})
         except Exception as e:
             return self.json_response(500, {'ok': False, 'error': str(e)})
+
+
+    def _handle_hq_history(self):
+        try:
+            refresh_status = self.read_json(REFRESH_STATUS_STATE, {})
+            action_feedback = self.read_json(ACTION_FEEDBACK_STATE, {})
+            queue_state = self.read_json(QUEUE_STATE, [])
+            notes_path = ROOT / 'dashboard' / 'state' / 'hq_operator_notes.jsonl'
+            notes = []
+            if notes_path.exists():
+                for line in notes_path.read_text(errors='ignore').splitlines()[-20:]:
+                    try:
+                        notes.append(json.loads(line))
+                    except Exception:
+                        continue
+            events = hq_repository.get_recent_events(limit=25)
+            return self.json_response(200, {
+                'ok': True,
+                'refresh_status': refresh_status,
+                'action_feedback': action_feedback,
+                'queue': queue_state,
+                'notes': notes,
+                'events': events,
+            })
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e)})
+
+    def _handle_hq_deploy(self, body):
+        try:
+            payload = json.loads(body.decode() or '{}')
+        except Exception:
+            payload = {}
+        mode = str(payload.get('mode') or 'queue').strip().lower()
+        deploy_entry = {
+            'ts': now_iso(),
+            'kind': 'deploy',
+            'mode': mode,
+            'command': 'cd /var/www/bazaar && git fetch origin && git reset --hard origin/master && sudo ./deploy/deploy.sh',
+            'status': 'queued' if mode != 'dry_run' else 'preview',
+        }
+        queue = self.read_json(QUEUE_STATE, [])
+        if not isinstance(queue, list):
+            queue = []
+        queue.append(deploy_entry)
+        self.write_json(QUEUE_STATE, queue[-50:])
+        feedback = {
+            'ts': now_iso(),
+            'kind': 'deploy',
+            'mode': mode,
+            'ok': True,
+            'message': 'Deploy intent queued from cockpit. Canonical execution remains: git fetch/reset + deploy.sh on the Bazaar host.',
+            'command': deploy_entry['command'],
+        }
+        self.write_json(ACTION_FEEDBACK_STATE, feedback)
+        hq_repository.append_event('operator_deploy', 'Deploy intent queued', feedback['message'], 'warning', feedback)
+        return self.json_response(200, {'ok': True, 'message': feedback['message'], 'data': feedback})
 
     def _handle_hq_config(self, body):
         try:
