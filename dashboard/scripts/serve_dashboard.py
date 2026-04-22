@@ -1384,6 +1384,7 @@ class Handler(SimpleHTTPRequestHandler):
             latest['persistence'] = payload.get('persistence')
             latest['source'] = payload.get('source')
             latest['updated_at'] = payload.get('updated_at')
+            latest['live'] = payload.get('live', latest.get('live', {}))
             latest['events'] = hq_repository.get_recent_events(limit=12)
             return self.json_response(200, latest)
         except Exception as e:
@@ -1399,6 +1400,7 @@ class Handler(SimpleHTTPRequestHandler):
             latest['persistence'] = payload.get('persistence')
             latest['source'] = payload.get('source')
             latest['updated_at'] = payload.get('updated_at')
+            latest['live'] = payload.get('live', latest.get('live', {}))
             latest['events'] = hq_repository.get_recent_events(limit=12)
             payload = latest
         except Exception:
