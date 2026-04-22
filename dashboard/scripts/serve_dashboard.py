@@ -1245,9 +1245,7 @@ class Handler(SimpleHTTPRequestHandler):
         if not cleaned_positions:
             deployable_capital = float(state.get('available_capital') or wallet_usdc or 0.0)
         compounding_state = 'holding_active_inventory' if (holding_asset or cleaned_positions) else ('flat_deployable' if deployable_capital > 0 else 'idle_unfunded')
-        tradier_stale = bool(freshness.get('tradier_stale'))
-        bloc_stale = bool(freshness.get('bloc_stale'))
-        realized_actions_today = int(scoreboard.get('realized_actions_today') or 0)
+        realized_actions_today = (0 if tradier_last_fill_ts is None or tradier_last_fill_ts.date() != now_dt.date() else 1) + int(state.get('daily_trades') or 0)
         trade_dead = tradier_stale and bloc_stale and realized_actions_today == 0
         primary_directive = (
             'Action required: both engines are economically stale. Restore real trading behavior, not just process uptime.'
