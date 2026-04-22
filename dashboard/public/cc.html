@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bazaar Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#05080e;color:#e5edf5;font-family:Inter,sans-serif}
+.cc{height:100vh;display:grid;grid-template-rows:60px 1fr;overflow:hidden;background:radial-gradient(ellipse 70% 40% at 50% 0%,#10283d 0%,#060a10 70%)}
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid rgba(64,88,120,.4);background:rgba(8,13,20,.85)}
+.top h1{font-size:15px;letter-spacing:.15em;font-weight:800;color:#f0b752}
+.top h1 span{color:#7591b0;font-weight:500}
+.status-dots{display:flex;gap:14px;font-size:11px;color:#8ba3c0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dot.green{background:#3acf6b;box-shadow:0 0 8px #3acf6b66}
+.dot.yellow{background:#eab308;box-shadow:0 0 8px #eab30844}
+.dot.red{background:#ef4444;box-shadow:0 0 8px #ef444444}
+.dot.gray{background:#4b5a70}
+.body{display:grid;grid-template-columns:220px 1fr 300px;gap:0;min-height:0}
+.side{display:grid;grid-template-rows:auto 1fr;gap:8px;padding:10px;background:rgba(10,16,24,.6);border-right:1px solid rgba(64,88,120,.25)}
+.side h2{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#7a93b0;padding:6px 4px 2px}
+.mode-list{display:grid;gap:4px}
+.mode-btn{display:block;width:100%;padding:10px 12px;border:1px solid #253448;border-radius:12px;background:#0d1522;color:#cbd9ed;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;text-align:left}
+.mode-btn.active{border-color:#60b5f5;background:linear-gradient(135deg,#1b3c5e,#12273b);color:#fff}
+.mode-btn:hover{border-color:#5095d0}
+.quick-strip{display:grid;gap:4px;padding:4px 0}
+.qbtn{padding:7px 10px;border:1px solid #253448;border-radius:10px;background:#0c1320;color:#b5c6da;font-size:10px;font-weight:600;cursor:pointer;text-align:left}
+.qbtn.danger{border-color:#632b38;color:#fccfd6;background:#1e1117}
+.qbtn:hover{border-color:#5095d0}
+.main{display:grid;grid-template-rows:auto 1fr;min-height:0;overflow:hidden}
+.main-head{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(64,88,120,.2)}
+.main-head h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#bfd2e8}
+.main-head span{font-size:10px;color:#7e96b2}
+.workspace{padding:12px;min-height:0;overflow:auto;display:grid;gap:12px;align-content:start}
+.card{border-radius:16px;background:linear-gradient(180deg,#111a28,#0b111a);border:1px solid #1e2d42;overflow:hidden}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(64,88,120,.25)}
+.card-head strong{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#d4e1f2}
+.card-body{padding:14px}
+.big-card{background:linear-gradient(135deg,rgba(60,160,240,.15),rgba(8,14,22,.95));border:1px solid rgba(60,160,240,.3);padding:20px 24px}
+.big-card .label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8bb9f0;margin-bottom:6px}
+.big-card .val{font-size:32px;font-weight:800;line-height:1.05}
+.big-card .sub{font-size:13px;color:#a0b8d0;margin-top:6px}
+.action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.act{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:12px;border:1px solid #2a4160;background:linear-gradient(180deg,#15273d,#0f1b2b);color:#e5edf5;font-size:12px;font-weight:600;cursor:pointer;transition:all .1s}
+.act.danger{border-color:#732e3e;background:linear-gradient(180deg,#2a141b,#170f13);color:#fcd7dc}
+.act:hover{border-color:#5a90c0;background:linear-gradient(180deg,#1d3855,#14263c)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.stat{padding:12px;border-radius:12px;background:#0c1420;border:1px solid #1c2a3c}
+.stat-l{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#7a93b0;margin-bottom:4px}
+.stat-v{font-size:22px;font-weight:700;line-height:1.1}
+.stat-s{font-size:10px;color:#8da4c0;margin-top:4px}
+pre.code{background:#080e18;border:1px solid #1c2a3c;border-radius:12px;padding:12px;font:11px/1.5 'JetBrains Mono',monospace;color:#bfd2e8;overflow:auto;max-height:240px}
+.micro{font-size:10px;color:#7e96b2}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;border:1px solid #2a4160;background:#0f1828;color:#c4d6ea}
+.ops-tape{background:#080e18;border:1px solid #1c2a3c;border-radius:12px;padding:10px;font:10px/1.5 'JetBrains Mono',monospace;color:#9bb1cc;overflow:auto;max-height:160px}
+.blocker-list{display:grid;gap:8px}
+.blocker{padding:12px;border-radius:12px;background:#0c1420;border-left:3px solid #eab308}
+.blocker h4{font-size:11px;color:#d4e1f2;margin-bottom:4px}
+.blocker p{font-size:10px;color:#7e96b2}
+.empty-state{padding:30px;text-align:center;color:#4d5f78;font-size:13px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="cc">
+  <div class="top">
+    <h1>BAZAAR <span>COMMAND CENTER</span></h1>
+    <div class="status-dots" id="top-dots">
+      <span><span class="dot gray"></span>Tradier</span>
+      <span><span class="dot gray"></span>Bloc</span>
+      <span id="top-time">--</span>
+    </div>
+  </div>
+  <div class="body">
+    <aside class="side">
+      <div>
+        <h2>Mode</h2>
+        <div class="mode-list">
+          <button class="mode-btn active" data-mode="overview">Overview</button>
+          <button class="mode-btn" data-mode="tradier">Tradier</button>
+          <button class="mode-btn" data-mode="bloc">Bloc</button>
+          <button class="mode-btn" data-mode="audit">Audit</button>
+        </div>
+      </div>
+      <div>
+        <h2>Quick actions</h2>
+        <div class="quick-strip">
+          <button class="qbtn" onclick="cmd('diagnose_tradier')">Diagnose Tradier</button>
+          <button class="qbtn" onclick="cmd('diagnose_bloc')">Diagnose Bloc</button>
+          <button class="qbtn" onclick="cmd('refresh_truth')">Refresh truth</button>
+          <button class="qbtn" onclick="cmd('pause_bloc')">Pause Bloc</button>
+          <button class="qbtn" onclick="cmd('resume_bloc')">Resume Bloc</button>
+          <button class="qbtn" onclick="cmd('pause_tradier')">Pause Tradier</button>
+          <button class="qbtn danger" onclick="cmd('close_all')">Emergency close</button>
+        </div>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="main-head">
+        <h2 id="mode-title">Overview</h2>
+        <span id="mode-sub">System status and operator directives</span>
+      </div>
+      <div class="workspace" id="workspace">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </main>
+    <aside class="side" style="border-left:1px solid rgba(64,88,120,.25);border-right:none">
+      <div>
+        <h2>Command output</h2>
+        <div class="ops-tape" id="ops-tape">--</div>
+      </div>
+      <div>
+        <h2>Events</h2>
+        <div class="ops-tape" id="events-tape">--</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const API = '/api/hq/status';
+let state = null;
+const modeTitle = document.getElementById('mode-title');
+const modeSub = document.getElementById('mode-sub');
+const workspace = document.getElementById('workspace');
+const opsTape = document.getElementById('ops-tape');
+const eventsTape = document.getElementById('events-tape');
+const topTime = document.getElementById('top-time');
+const topDots = document.getElementById('top-dots');
+
+function esc(s){return String(s||'').replace(/[&<>]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]||m})}
+function age(dt){
+  if(!dt)return 'unknown';
+  const h=(Date.now()-new Date(dt+'Z').getTime())/36e5;
+  if(h<1)return Math.round(h*60)+'m';if(h<24)return h.toFixed(1)+'h';return (h/24).toFixed(1)+'d'
+}
+function money(n){const v=parseFloat(n||0);return '$'+v.toFixed(2)}
+function dotCls(hours){if(hours===null||hours===undefined)return 'gray';if(hours<2)return 'green';if(hours<12)return 'yellow';return 'red'}
+
+function renderOverview(live,fresh){
+  const a=live.action_required;
+  const d=live.primary_directive||'--';
+  const o=live.operator_summary||'';
+  const t=live.tradier||{};
+  const ta=fresh?.tradier_age_hours;
+  const ba=fresh?.bloc_age_hours;
+  return `
+    <div class="card big-card">
+      <div class="label">Operator directive</div>
+      <div class="val">${esc(d)}</div>
+      <div class="sub">${esc(o)}</div>
+      <div class="action-row">
+        <button class="act" onclick="cmd('diagnose_tradier')">Diagnose Tradier</button>
+        <button class="act" onclick="cmd('diagnose_bloc')">Diagnose Bloc</button>
+        <button class="act" onclick="cmd('refresh_truth')">Refresh truth</button>
+        <button class="act danger" onclick="cmd('close_all')">Emergency close</button>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="stat"><div class="stat-l">Tradier</div><div class="stat-v">${esc(t.status||'--')}</div><div class="stat-s">${money(t.buying_power_usd)} buying power</div></div>
+      <div class="stat"><div class="stat-l">Bloc</div><div class="stat-v">${esc(live.compounding_state||'--')}</div><div class="stat-s">${live.holding_asset?esc(live.holding_asset)+' '+esc(live.holding_units):money(live.deployable_capital_usd)+' deployable'}</div></div>
+      <div class="stat"><div class="stat-l">Freshness</div><div class="stat-v">T ${age(fresh?.tradier_last_fill_at)}</div><div class="stat-s">B ${age(fresh?.bloc_last_trade_at)}</div></div>
+    </div>
+    <div class="card"><div class="card-head"><strong>Operator blockers</strong></div><div class="card-body">
+      <div class="blocker-list">
+        <div class="blocker"><h4>Tradier blocker</h4><p>Execution is stale despite account readiness. Last real action path needs validation.</p></div>
+        <div class="blocker"><h4>Bloc blocker</h4><p>Inventory is live but not cycling. Wallet truth and recycle logic need supervision.</p></div>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-head"><strong>Quick audit surfaces</strong></div><div class="card-body">
+      <div class="grid-2">
+        <div><div class="stat-l">Tradier board</div><pre class="code" id="tradier-board-pre">Loading...</pre></div>
+        <div><div class="stat-l">Bloc wallet</div><pre class="code" id="bloc-wallet-pre">Loading...</pre></div>
+      </div>
+    </div></div>
+  `;
+}
+
+function renderTradier(live){
+  const t=live.tradier||{};
+  return `
+    <div class="grid-2">
+      <div class="card big-card" style="background:linear-gradient(135deg,rgba(60,160,240,.12),rgba(8,14,22,.95))">
+        <div class="label">Tradier</div>
+        <div class="val">${esc(t.status||'--')}</div>
+        <div class="sub">${money(t.buying_power_usd)} buying power · ${t.positions_count||0} positions · ${t.orders_count||0} orders</div>
+        <div class="action-row">
+          <button class="act" onclick="cmd('diagnose_tradier')">Diagnose</button>
+          <button class="act danger" onclick="cmd('pause_tradier')">Pause</button>
+          <button class="act" onclick="cmd('refresh_truth')">Refresh</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><strong>Tradier board</strong></div><div class="card-body"><pre class="code" id="tradier-board-pre-2">Loading...</pre></div></div>
+    </div>
+  `;
+}
+
+function renderBloc(live){
+  return `
+    <div class="grid-2">
+      <div class="card big-card" style="background:linear-gradient(135deg,rgba(60,160,240,.12),rgba(8,14,22,.95))">
+        <div class="label">Bloc</div>
+        <div class="val">${esc(live.compounding_state||'--')}</div>
+        <div class="sub">${live.holding_asset?esc(live.holding_asset)+' '+esc(live.holding_units):money(live.deployable_capital_usd)+' deployable'}</div>
+        <div class="action-row">
+          <button class="act" onclick="cmd('diagnose_bloc')">Diagnose</button>
+          <button class="act" onclick="cmd('pause_bloc')">Pause</button>
+          <button class="act" onclick="cmd('resume_bloc')">Resume</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><strong>Bloc wallet</strong></div><div class="card-body"><pre class="code" id="bloc-wallet-pre-2">Loading...</pre></div></div>
+    </div>
+  `;
+}
+
+function renderAudit(live,fresh,events){
+  return `
+    <div class="card"><div class="card-head"><strong>Engine truth</strong></div><div class="card-body">
+      <div class="grid-2">
+        <div class="stat"><div class="stat-l">Tradier status</div><div class="stat-v">${esc(live.tradier?.status||'--')}</div><div class="stat-s">BP: ${money(live.tradier?.buying_power_usd)}</div></div>
+        <div class="stat"><div class="stat-l">Bloc state</div><div class="stat-v">${esc(live.compounding_state||'--')}</div><div class="stat-s">${live.holding_asset?esc(live.holding_asset)+' '+esc(live.holding_units):'No inventory'}</div></div>
+        <div class="stat"><div class="stat-l">Tradier freshness</div><div class="stat-v">${age(fresh?.tradier_last_fill_at)}</div><div class="stat-s">Last fill: ${fresh?.tradier_last_fill_at?new Date(fresh.tradier_last_fill_at+'Z').toLocaleString():'never'}</div></div>
+        <div class="stat"><div class="stat-l">Bloc freshness</div><div class="stat-v">${age(fresh?.bloc_last_trade_at)}</div><div class="stat-s">Last trade: ${fresh?.bloc_last_trade_at?new Date(fresh.bloc_last_trade_at+'Z').toLocaleString():'never'}</div></div>
+      </div>
+    </div></div>
+    ${events?.length?`
+    <div class="card"><div class="card-head"><strong>Recent events</strong></div><div class="card-body"><div class="ops-tape">${events.map(e=>esc(e.message||'')).join('\n')}</div></div></div>
+    `:''}
+  `;
+}
+
+function setMode(mode){
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  if(!state)return;
+  const live=state.live||{};
+  const fresh=state.freshness||{};
+  const events=state.events||[];
+  let html,title,sub;
+  switch(mode){
+    case 'overview': html=renderOverview(live,fresh); title='Overview'; sub='System status and operator directives'; break;
+    case 'tradier': html=renderTradier(live); title='Tradier'; sub='Options execution lane'; break;
+    case 'bloc': html=renderBloc(live); title='Bloc'; sub='Blockchain execution lane'; break;
+    case 'audit': html=renderAudit(live,fresh,events); title='Audit'; sub='Engine truth and event trail'; break;
+    default: html='<div class="empty-state">Select a mode</div>'; title='--'; sub='';
+  }
+  workspace.innerHTML=html;
+  modeTitle.textContent=title;
+  modeSub.textContent=sub;
+  fetchSideData(mode);
+}
+
+async function fetchSideData(mode){
+  // Load board/wallet snippets
+  try{
+    let r=await fetch('/api/hq/status');
+    let d=await r.json();
+    let live=d.live||{};
+    if(mode==='overview'){
+      let b=document.getElementById('tradier-board-pre');
+      let w=document.getElementById('bloc-wallet-pre');
+      if(b)b.textContent=live.tradier_board_text?.slice(0,1200)||'No board data';
+      if(w)w.textContent=live.bloc_wallet_text?.slice(0,1200)||'No wallet data';
+    }
+    if(mode==='tradier'){
+      let b=document.getElementById('tradier-board-pre-2');
+      if(b)b.textContent=live.tradier_board_text?.slice(0,1200)||'No board data';
+    }
+    if(mode==='bloc'){
+      let b=document.getElementById('bloc-wallet-pre-2');
+      if(b)b.textContent=live.bloc_wallet_text?.slice(0,1200)||'No wallet data';
+    }
+  }catch(e){}
+}
+
+async function fetchState(){
+  try{
+    let r=await fetch(API);
+    let d=await r.json();
+    state=d;
+    updateTopbar(d);
+    let active=document.querySelector('.mode-btn.active');
+    setMode(active?.dataset?.mode||'overview');
+  }catch(e){
+    workspace.innerHTML='<div class="empty-state">Failed to load. Is the server running?</div>';
+  }
+}
+
+function updateTopbar(d){
+  let live=d.live||{};
+  let fresh=d.freshness||{};
+  let tStat=live.tradier?.status||'--';
+  let bStat=live.compounding_state||'--';
+  let tAge=fresh?.tradier_age_hours;
+  let bAge=fresh?.bloc_age_hours;
+  topDots.innerHTML=`
+    <span><span class="dot ${dotCls(tAge)}"></span>Tradier ${esc(tStat)}</span>
+    <span><span class="dot ${dotCls(bAge)}"></span>Bloc ${esc(bStat)}</span>
+    <span>${new Date().toLocaleTimeString()}</span>
+  `;
+  if(d.updated_at)topTime.textContent=new Date(d.updated_at+'Z').toLocaleTimeString();
+}
+
+async function cmd(action){
+  try{
+    opsTape.textContent='Running: '+action+'...';
+    let r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action})});
+    let d=await r.json();
+    opsTape.textContent=JSON.stringify(d,null,2);
+    fetchState();
+  }catch(e){
+    opsTape.textContent='Error: '+e.message;
+  }
+}
+
+document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',function(){setMode(this.dataset.mode)}));
+
+fetchState();
+setInterval(fetchState,30000);
+</script>
+</body>
+</html>
