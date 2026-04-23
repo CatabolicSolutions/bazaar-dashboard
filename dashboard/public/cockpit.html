@@ -570,6 +570,8 @@ document.addEventListener('click', (e) => {
   const cmdBtn = e.target.closest('[data-cmd]');
   if (cmdBtn) {
     e.preventDefault();
+    const out = $('#output');
+    if (out) out.textContent = `Dispatching ${cmdBtn.dataset.cmd}...`;
     runCmd(cmdBtn.dataset.cmd);
     return;
   }
@@ -601,8 +603,9 @@ window.prefillTradeForm = prefillTradeForm;
 
 // Initialize
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
-$('#command-input').addEventListener('keypress', e => { if (e.key === 'Enter') sendCustomCommand(); });
-refreshState().catch(e => { $('#output').textContent = `Startup error: ${e.message}`; });
+const commandInput = $('#command-input');
+if (commandInput) commandInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendCustomCommand(); });
+refreshState().catch(e => { const out = $('#output'); if (out) out.textContent = `Startup error: ${e.message}`; });
 setInterval(() => refreshState().catch(() => {}), 30000);
 </script>
 </body>
