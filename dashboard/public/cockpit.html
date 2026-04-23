@@ -493,14 +493,29 @@ async function refreshState() {
 
 async function runCmd(action) {
   const out = $('#output');
-  out.textContent = `Running ${action}...`;
+  if (out) out.textContent = `Running ${action}...`;
   try {
     const r = await fetch('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
     const data = await r.json();
-    out.textContent = JSON.stringify(data, null, 2);
-    await refreshState();
+    if (out) out.textContent = JSON.stringify(data, null, 2);
+    try {
+      const [statusResp, historyResp] = await Promise.all([
+        fetch('/api/hq/status', { cache: 'no-store' }),
+        fetch('/api/hq/history', { cache: 'no-store' })
+      ]);
+      if (statusResp.ok) state.payload = await statusResp.json();
+      if (historyResp.ok) state.history = await historyResp.json();
+      render();
+      renderHistory();
+    } catch (refreshErr) {
+      if (out) out.textContent += `
+
+[post-command refresh warning] ${refreshErr.message}`;
+    }
+    return data;
   } catch (e) {
-    out.textContent = `❌ Command failed: ${e.message}`;
+    if (out) out.textContent = `❌ Command failed: ${e.message}`;
+    throw e;
   }
 }
 
