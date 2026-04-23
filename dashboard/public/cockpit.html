@@ -69,13 +69,13 @@ button,input,textarea{font:inherit}
         </div>
         <div class="nav-section">
           <div class="nav-title">Quick Actions</div>
-          <button class="actionbtn" onclick="runCmd('refresh_truth')"><span class="icon">🔄</span> Refresh Truth</button>
-          <button class="actionbtn" onclick="runCmd('diagnose_tradier')"><span class="icon">🔍</span> Diagnose Tradier</button>
-          <button class="actionbtn" onclick="runCmd('diagnose_bloc')"><span class="icon">🔍</span> Diagnose Bloc</button>
-          <button class="actionbtn danger" onclick="runCmd('pause_tradier')"><span class="icon">⏸️</span> Pause Tradier</button>
-          <button class="actionbtn danger" onclick="runCmd('pause_bloc')"><span class="icon">⏸️</span> Pause Bloc</button>
-          <button class="actionbtn" onclick="runCmd('resume_bloc')"><span class="icon">▶️</span> Resume Bloc</button>
-          <button class="actionbtn danger" onclick="runCmd('close_all')"><span class="icon">🚨</span> Emergency Close</button>
+          <button class="actionbtn" data-cmd="refresh_truth"><span class="icon">🔄</span> Refresh Truth</button>
+          <button class="actionbtn" data-cmd="diagnose_tradier"><span class="icon">🔍</span> Diagnose Tradier</button>
+          <button class="actionbtn" data-cmd="diagnose_bloc"><span class="icon">🔍</span> Diagnose Bloc</button>
+          <button class="actionbtn danger" data-cmd="pause_tradier"><span class="icon">⏸️</span> Pause Tradier</button>
+          <button class="actionbtn danger" data-cmd="pause_bloc"><span class="icon">⏸️</span> Pause Bloc</button>
+          <button class="actionbtn" data-cmd="resume_bloc"><span class="icon">▶️</span> Resume Bloc</button>
+          <button class="actionbtn danger" data-cmd="close_all"><span class="icon">🚨</span> Emergency Close</button>
         </div>
       </div>
       <div></div>
@@ -203,10 +203,10 @@ function renderOverview() {
       <div class="panel-head"><div><div class="panel-title">Operator Queue</div><div class="panel-sub">What to do next</div></div></div>
       <div class="panel-body">
         <div class="actions">
-          <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
-          <button class="act secondary" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
-          <button class="act neutral" onclick="runCmd('refresh_truth')">Refresh Truth</button>
-          <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+          <button class="act" data-cmd="diagnose_tradier">Diagnose Tradier</button>
+          <button class="act secondary" data-cmd="diagnose_bloc">Diagnose Bloc</button>
+          <button class="act neutral" data-cmd="refresh_truth">Refresh Truth</button>
+          <button class="act danger" data-cmd="close_all">Emergency Close</button>
         </div>
         <div style="margin-top:20px">
           ${(live.next_actions || []).map(a => `<div style="padding:12px;margin-bottom:8px;border-radius:12px;background:#4b453d;border-left:4px solid #8b2e1f;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)"><strong style="color:#fff0ea;text-shadow:0 1px 0 rgba(0,0,0,.45)">${esc(a.title)}</strong><div style="font-size:12px;color:#ffd9cf;text-shadow:0 1px 0 rgba(0,0,0,.45);margin-top:4px">${esc(a.detail)}</div></div>`).join('')}
@@ -244,10 +244,10 @@ function renderTradier() {
         <div class="metric"><div class="metric-k">Top blocker</div><div class="metric-v">${esc(t.top_blocker ? 'BLOCKED' : 'CLEAR')}</div><div class="metric-s">${esc(t.top_blocker || 'No explicit Tradier blocker')}</div></div>
       </div>
       <div class="actions" style="margin-top:20px">
-        <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose</button>
-        <button class="act secondary" onclick="runCmd('refresh_truth')">Refresh</button>
-        <button class="act neutral" onclick="setView('controls')">Open Ticket Entry</button>
-        <button class="act danger" onclick="runCmd('pause_tradier')">Pause</button>
+        <button class="act" data-cmd="diagnose_tradier">Diagnose</button>
+        <button class="act secondary" data-cmd="refresh_truth">Refresh</button>
+        <button class="act neutral" data-view-jump="controls">Open Ticket Entry</button>
+        <button class="act danger" data-cmd="pause_tradier">Pause</button>
       </div>
     </section>
 
@@ -286,10 +286,10 @@ function renderBloc() {
         <div class="metric"><div class="metric-k">Engine Posture</div><div class="metric-v">${stale ? 'STALE' : 'LIVE'}</div><div class="metric-s">${stale ? 'No realized Bloc action today' : 'Recent Bloc activity detected'}</div></div>
       </div>
       <div class="actions" style="margin-top:20px">
-        <button class="act" onclick="runCmd('diagnose_bloc')">Diagnose</button>
-        <button class="act secondary" onclick="runCmd('pause_bloc')">Pause</button>
-        <button class="act" onclick="runCmd('resume_bloc')">Resume</button>
-        <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+        <button class="act" data-cmd="diagnose_bloc">Diagnose</button>
+        <button class="act secondary" data-cmd="pause_bloc">Pause</button>
+        <button class="act" data-cmd="resume_bloc">Resume</button>
+        <button class="act danger" data-cmd="close_all">Emergency Close</button>
       </div>
     </section>
 
@@ -298,10 +298,10 @@ function renderBloc() {
         <div class="panel-head"><div><div class="panel-title">Bloc Action Lane</div><div class="panel-sub">What to do from here</div></div></div>
         <div class="panel-body stack">
           <div class="pillnote">If Bloc is stale, Diagnose first, then resume only if runtime and wallet truth agree.</div>
-          <button class="act" onclick="runCmd('diagnose_bloc')">Run Bloc Diagnosis</button>
-          <button class="act secondary" onclick="runCmd('pause_bloc')">Pause Bloc Engine</button>
-          <button class="act" onclick="runCmd('resume_bloc')">Resume Bloc Engine</button>
-          <button class="act danger" onclick="runCmd('close_all')">Escalate Emergency Close</button>
+          <button class="act" data-cmd="diagnose_bloc">Run Bloc Diagnosis</button>
+          <button class="act secondary" data-cmd="pause_bloc">Pause Bloc Engine</button>
+          <button class="act" data-cmd="resume_bloc">Resume Bloc Engine</button>
+          <button class="act danger" data-cmd="close_all">Escalate Emergency Close</button>
         </div>
       </section>
       <section class="panel">
@@ -369,16 +369,16 @@ function renderControls() {
       <div class="hero-sub">This is the product path: deploy, health, config writeback, and trade-entry staging from one desk.</div>
       <div class="grid2" style="margin-top:20px">
         <div class="actions">
-          <button class="act" onclick="runCmd('refresh_truth')">Refresh Truth</button>
-          <button class="act secondary" onclick="runCmd('diagnose_tradier')">Diagnose Tradier</button>
-          <button class="act" onclick="runCmd('diagnose_bloc')">Diagnose Bloc</button>
-          <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
+          <button class="act" data-cmd="refresh_truth">Refresh Truth</button>
+          <button class="act secondary" data-cmd="diagnose_tradier">Diagnose Tradier</button>
+          <button class="act" data-cmd="diagnose_bloc">Diagnose Bloc</button>
+          <button class="act danger" data-cmd="close_all">Emergency Close</button>
         </div>
         <div class="actions">
-          <button class="act neutral" onclick="runCmd('pause_tradier')">Pause Tradier</button>
-          <button class="act neutral" onclick="runCmd('pause_bloc')">Pause Bloc</button>
-          <button class="act" onclick="runCmd('resume_bloc')">Resume Bloc</button>
-          <button class="act secondary" onclick="previewTradeEntry()">Preview Trade Ticket</button>
+          <button class="act neutral" data-cmd="pause_tradier">Pause Tradier</button>
+          <button class="act neutral" data-cmd="pause_bloc">Pause Bloc</button>
+          <button class="act" data-cmd="resume_bloc">Resume Bloc</button>
+          <button class="act secondary" data-ui="preview-trade">Preview Trade Ticket</button>
         </div>
       </div>
     </section>
@@ -417,8 +417,8 @@ function renderControls() {
           <div class="field"><label>Limit Price</label><input id="order-limit" type="number" step="0.01" placeholder="1.25"></div>
         </div>
         <div class="actions">
-          <button class="act secondary" onclick="previewTradeEntry()">Preview Ticket</button>
-          <button class="act danger" onclick="submitTradeEntry()">Submit Ticket</button>
+          <button class="act secondary" data-ui="preview-trade">Preview Ticket</button>
+          <button class="act danger" data-ui="submit-trade">Submit Ticket</button>
         </div>
       </div>
     </section>`;
@@ -564,6 +564,39 @@ function setView(view) {
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   render();
 }
+
+window.runCmd = runCmd;
+window.setView = setView;
+window.previewTradeEntry = previewTradeEntry;
+window.submitTradeEntry = submitTradeEntry;
+window.prefillTradeForm = prefillTradeForm;
+
+document.addEventListener('click', (e) => {
+  const cmdBtn = e.target.closest('[data-cmd]');
+  if (cmdBtn) {
+    e.preventDefault();
+    runCmd(cmdBtn.dataset.cmd);
+    return;
+  }
+  const jumpBtn = e.target.closest('[data-view-jump]');
+  if (jumpBtn) {
+    e.preventDefault();
+    setView(jumpBtn.dataset.viewJump);
+    return;
+  }
+  const uiBtn = e.target.closest('[data-ui]');
+  if (uiBtn) {
+    e.preventDefault();
+    if (uiBtn.dataset.ui === 'preview-trade') previewTradeEntry();
+    else if (uiBtn.dataset.ui === 'submit-trade') submitTradeEntry();
+    return;
+  }
+  const leaderBtn = e.target.closest('[data-leader]');
+  if (leaderBtn) {
+    e.preventDefault();
+    try { prefillTradeForm(JSON.parse(leaderBtn.dataset.leader)); } catch (err) { $('#output').textContent = `Leader prefill failed: ${err.message}`; }
+  }
+});
 
 // Initialize
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
