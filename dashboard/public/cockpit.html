@@ -275,10 +275,16 @@ function renderBloc() {
   const live = p.live || {};
   const f = live.freshness || {};
   const a = live.artifacts || {};
+  const stale = (f.bloc_stale === true);
   $('#main').innerHTML = `
-    <section class="panel hero" style="background:linear-gradient(135deg,rgba(109,255,154,.08),rgba(12,17,14,.96) 52%)">
+    <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,248,234,.92),rgba(245,236,216,.98) 58%)">
       <div class="hero-title">Bloc Execution Lane</div>
       <div class="hero-sub">${live.holding_asset ? esc(live.holding_asset + ' ' + live.holding_units) : money(live.deployable_capital_usd) + ' deployable'} • freshness ${esc(ageLabel(f.bloc_age_hours))}</div>
+      <div class="grid3" style="margin-top:18px">
+        <div class="metric"><div class="metric-k">Inventory State</div><div class="metric-v">${esc((live.compounding_state || 'unknown').replaceAll('_',' '))}</div><div class="metric-s">wallet + engine interpreted state</div></div>
+        <div class="metric"><div class="metric-k">Deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">wallet-side ready capital</div></div>
+        <div class="metric"><div class="metric-k">Engine Posture</div><div class="metric-v">${stale ? 'STALE' : 'LIVE'}</div><div class="metric-s">${stale ? 'No realized Bloc action today' : 'Recent Bloc activity detected'}</div></div>
+      </div>
       <div class="actions" style="margin-top:20px">
         <button class="act" onclick="runCmd('diagnose_bloc')">Diagnose</button>
         <button class="act secondary" onclick="runCmd('pause_bloc')">Pause</button>
@@ -287,13 +293,25 @@ function renderBloc() {
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Bloc Wallet Truth</div><div class="panel-sub">Live wallet surface</div></div></div>
-      <div class="panel-body"><pre class="code">${esc(a.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div>
-    </section>
+    <div class="grid2">
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Bloc Action Lane</div><div class="panel-sub">What to do from here</div></div></div>
+        <div class="panel-body stack">
+          <div class="pillnote">If Bloc is stale, Diagnose first, then resume only if runtime and wallet truth agree.</div>
+          <button class="act" onclick="runCmd('diagnose_bloc')">Run Bloc Diagnosis</button>
+          <button class="act secondary" onclick="runCmd('pause_bloc')">Pause Bloc Engine</button>
+          <button class="act" onclick="runCmd('resume_bloc')">Resume Bloc Engine</button>
+          <button class="act danger" onclick="runCmd('close_all')">Escalate Emergency Close</button>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Bloc Wallet Truth</div><div class="panel-sub">Live wallet surface</div></div></div>
+        <div class="panel-body"><pre class="code">${esc(a.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div>
+      </section>
+    </div>
 
     <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Bloc State</div><div class="panel-sub">Runtime state</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Bloc Runtime State</div><div class="panel-sub">Engine state and inventory truth</div></div></div>
       <div class="panel-body"><pre class="code">${esc(a.bloc_state_text || '{}')}</pre></div>
     </section>`;
 }
@@ -505,7 +523,16 @@ function renderHistory() {
   if (refresh && Object.keys(refresh).length) lines.push('[refresh_status]\n' + JSON.stringify(refresh, null, 2));
   if (feedback && Object.keys(feedback).length) lines.push('[action_feedback]\n' + JSON.stringify(feedback, null, 2));
   if (queue.length) lines.push('[queue]\n' + JSON.stringify(queue.slice(-10), null, 2));
-  if (events.length) lines.push('[events]\n' + JSON.stringify(events.slice(0, 12), null, 2));
+  if (events.length) {
+    const normalized = events.slice(0, 12).map(e => ({
+      ts: e.created_at || e.ts || null,
+      type: e.event_type || e.kind || 'event',
+      summary: e.summary || e.title || '',
+      detail: e.detail || e.message || '',
+      severity: e.severity || e.level || null,
+    }));
+    lines.push('[event_tape]\n' + JSON.stringify(normalized, null, 2));
+  }
   if (notes.length) lines.push('[notes]\n' + JSON.stringify(notes.slice(-10), null, 2));
   const el = $('#history-output');
   if (el) el.textContent = lines.length ? lines.join('\n\n') : 'No operator history yet.';
