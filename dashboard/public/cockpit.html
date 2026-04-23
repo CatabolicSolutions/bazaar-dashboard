@@ -134,15 +134,14 @@ const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amb
 
 function parseTradierLeaders(boardText) {
   const text = String(boardText || '');
-  const lines = text.split(/?
-/).map(s => s.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const leaders = [];
   for (const line of lines) {
-    if (!/(CALL|PUT|C |P )/i.test(line) && !/\d{4}-\d{2}-\d{2}/.test(line) && !/\d+\.?\d*/.test(line)) continue;
-    const symbolMatch = line.match(/([A-Z]{1,6})/);
-    const expMatch = line.match(/(20\d{2}-\d{2}-\d{2})/);
-    const strikeMatch = line.match(/(\d+(?:\.\d+)?)/);
-    const typeMatch = line.match(/(CALL|PUT)/i);
+    if (!/(CALL|PUT|C |P )/i.test(line) && !/\d{4}-\d{2}-\d{2}/.test(line) && !/\d+\.?\d*/.test(line)) continue;
+    const symbolMatch = line.match(/([A-Z]{1,6})/);
+    const expMatch = line.match(/(20\d{2}-\d{2}-\d{2})/);
+    const strikeMatch = line.match(/(\d+(?:\.\d+)?)/);
+    const typeMatch = line.match(/(CALL|PUT)/i);
     if (!symbolMatch) continue;
     leaders.push({
       raw: line,
@@ -197,6 +196,7 @@ function renderOverview() {
         <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">fills today ${esc(s.tradier_fills_today ?? 0)}</div></div>
         <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">${esc(ageLabel(f.bloc_age_hours))}</div><div class="metric-s">trades today ${esc(s.bloc_trades_today ?? 0)}</div></div>
       </div>
+      <div class="pillnote" style="margin-top:16px;border-left-color:#8b2e1f">If values look wrong, treat them as reconciled signals from separate systems: Tradier broker balances, wallet truth, and engine state can disagree while the engines are stale.</div>
     </section>
 
     <section class="panel">
