@@ -2203,11 +2203,40 @@ class Handler(SimpleHTTPRequestHandler):
                 hq_repository.append_event('operator_command', 'Bloc diagnosis run', message, 'info', {'command': command, 'bot_updated_at': bot_updated_at, 'wallet_updated_at': wallet_updated_at, 'last_trade_timestamp': last_trade_timestamp, 'wallet': wallet_address})
                 return self.json_response(200, {'ok': True, 'message': message, 'bot_updated_at': bot_updated_at, 'wallet_updated_at': wallet_updated_at, 'last_trade_timestamp': last_trade_timestamp, 'last_trade_message': last_trade_message, 'wallet': wallet, 'bot_state': state})
             elif command == 'pause_tradier':
-                hq_repository.append_event('operator_command', 'Tradier pause requested', 'Tradier pause command recorded for operator review.', 'warning', {'command': command})
-                return self.json_response(200, {'ok': True, 'message': 'Tradier pause request recorded'})
+                runtime_state_path = ROOT / 'out' / 'runtime_state' / 'tradier_execution_state.json'
+                runtime_state = json.loads(runtime_state_path.read_text()) if runtime_state_path.exists() else {}
+                runtime_state['paused'] = True
+                runtime_state['paused_at'] = now_iso()
+                runtime_state['pause_reason'] = 'cockpit_operator'
+                runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+                runtime_state_path.write_text(json.dumps(runtime_state, indent=2))
+                hq_repository.append_event('operator_command', 'Tradier paused', 'Tradier execution state was paused from cockpit.', 'warning', {'command': command, 'state_path': str(runtime_state_path)})
+                return self.json_response(200, {'ok': True, 'message': 'Tradier paused via runtime state', 'state': runtime_state})
             elif command == 'close_all':
-                hq_repository.append_event('operator_command', 'Emergency close requested', 'Emergency close was requested from HQ.', 'critical', {'command': command})
-                return self.json_response(200, {'ok': True, 'message': 'Emergency close request recorded'})
+                tradier_close = {'ok': False, 'message': 'Not attempted'}
+                bloc_close = {'ok': False, 'message': 'Not attempted'}
+                try:
+                    close_script = ROOT / 'close_day_trades.py'
+                    if close_script.exists():
+                        proc = subprocess.run(['python3', str(close_script), '--execute'], cwd=str(ROOT), capture_output=True, text=True, timeout=120, env=os.environ)
+                        tradier_close = {
+                            'ok': proc.returncode == 0,
+                            'message': (proc.stdout or proc.stderr or '').strip()[-800:] or ('Tradier close executed' if proc.returncode == 0 else 'Tradier close failed')
+                        }
+                    else:
+                        tradier_close = {'ok': False, 'message': 'close_day_trades.py not found'}
+                except Exception as exc:
+                    tradier_close = {'ok': False, 'message': str(exc)}
+                try:
+                    state['status'] = 'paused'
+                    state['updated_at'] = now_iso()
+                    state_path.write_text(json.dumps(state, indent=2))
+                    bloc_close = {'ok': True, 'message': 'Bloc engine paused as emergency action'}
+                except Exception as exc:
+                    bloc_close = {'ok': False, 'message': str(exc)}
+                result = {'tradier': tradier_close, 'bloc': bloc_close}
+                hq_repository.append_event('operator_command', 'Emergency close executed', 'Cockpit emergency close attempted Tradier flatten + Bloc pause.', 'critical', {'command': command, 'result': result})
+                return self.json_response(200 if (tradier_close.get('ok') or bloc_close.get('ok')) else 500, {'ok': tradier_close.get('ok') or bloc_close.get('ok'), 'message': 'Emergency close executed', 'result': result})
             else:
                 return self.json_response(400, {'ok': False, 'error': 'Unknown command'})
         except Exception as e:
