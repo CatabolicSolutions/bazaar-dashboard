@@ -125,12 +125,47 @@ This console should show multi-line command results, not single-line compressed 
 </div>
 
 <script>
-const state = { payload: null, history: null, view: 'overview' };
+const state = { payload: null, history: null, view: 'overview', tradierLeaders: [] };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 const money = n => '$' + Number(n || 0).toFixed(2);
 const ageLabel = hrs => hrs == null ? 'unknown' : (hrs < 1 ? Math.round(hrs * 60) + 'm' : (hrs < 24 ? Number(hrs).toFixed(1) + 'h' : (Number(hrs)/24).toFixed(1) + 'd'));
 const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amber' : 'red'));
+
+function parseTradierLeaders(boardText) {
+  const text = String(boardText || '');
+  const lines = text.split(/?
+/).map(s => s.trim()).filter(Boolean);
+  const leaders = [];
+  for (const line of lines) {
+    if (!/(CALL|PUT|C |P )/i.test(line) && !/\d{4}-\d{2}-\d{2}/.test(line) && !/\d+\.?\d*/.test(line)) continue;
+    const symbolMatch = line.match(/([A-Z]{1,6})/);
+    const expMatch = line.match(/(20\d{2}-\d{2}-\d{2})/);
+    const strikeMatch = line.match(/(\d+(?:\.\d+)?)/);
+    const typeMatch = line.match(/(CALL|PUT)/i);
+    if (!symbolMatch) continue;
+    leaders.push({
+      raw: line,
+      symbol: symbolMatch ? symbolMatch[1] : '',
+      expiration: expMatch ? expMatch[1] : '',
+      strike: strikeMatch ? strikeMatch[1] : '',
+      option_type: typeMatch ? typeMatch[1].toLowerCase() : 'call'
+    });
+    if (leaders.length >= 8) break;
+  }
+  return leaders;
+}
+
+function prefillTradeForm(leader) {
+  if (!leader) return;
+  const sym = $('#order-symbol'); if (sym) sym.value = leader.symbol || '';
+  const exp = $('#order-expiration'); if (exp) exp.value = leader.expiration || '';
+  const strike = $('#order-strike'); if (strike) strike.value = leader.strike || '';
+  const typ = $('#order-option-type'); if (typ) typ.value = leader.option_type || 'call';
+  const out = $('#output');
+  if (out) out.textContent = JSON.stringify({ ok: true, message: 'Trade ticket prefilled from Tradier leader', leader }, null, 2);
+}
+
 
 function updateHeader() {
   const p = state.payload; if (!p) return;
@@ -197,26 +232,41 @@ function renderTradier() {
   const f = live.freshness || {};
   const t = live.tradier || {};
   const a = live.artifacts || {};
+  const leaders = parseTradierLeaders(a.tradier_board_text || '');
+  state.tradierLeaders = leaders;
   $('#main').innerHTML = `
     <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,248,234,.92),rgba(245,236,216,.98) 58%)">
       <div class="hero-title">Tradier Execution Lane</div>
-      <div class="hero-sub">Buying power ${money(t.buying_power_usd)} • positions ${t.positions_count || 0} • orders ${t.orders_count || 0} • freshness ${esc(ageLabel(f.tradier_age_hours))}</div>
+      <div class="hero-sub">Options buying power ${money(t.buying_power_usd)} • positions ${t.positions_count || 0} • orders ${t.orders_count || 0} • freshness ${esc(ageLabel(f.tradier_age_hours))}</div>
+      <div class="grid3" style="margin-top:18px">
+        <div class="metric"><div class="metric-k">Capital Truth</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">resolved Tradier options capital</div></div>
+        <div class="metric"><div class="metric-k">Freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">last fill / preview / audit activity</div></div>
+        <div class="metric"><div class="metric-k">Top blocker</div><div class="metric-v">${esc(t.top_blocker ? 'BLOCKED' : 'CLEAR')}</div><div class="metric-s">${esc(t.top_blocker || 'No explicit Tradier blocker')}</div></div>
+      </div>
       <div class="actions" style="margin-top:20px">
         <button class="act" onclick="runCmd('diagnose_tradier')">Diagnose</button>
         <button class="act secondary" onclick="runCmd('refresh_truth')">Refresh</button>
+        <button class="act neutral" onclick="setView('controls')">Open Ticket Entry</button>
         <button class="act danger" onclick="runCmd('pause_tradier')">Pause</button>
-        <button class="act danger" onclick="runCmd('close_all')">Emergency Close</button>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
-      <div class="panel-body"><pre class="code">${esc(a.tradier_board_text || 'No board')}</pre></div>
-    </section>
+    <div class="grid2">
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Leader Tickets</div><div class="panel-sub">Turn board ideas into staged tickets</div></div></div>
+        <div class="panel-body stack">
+          ${leaders.length ? leaders.map((leader, i) => `<div class="pillnote" style="border-left-color:#8a5a22"><strong>${esc(leader.symbol)} ${esc(leader.expiration || 'no-exp')} ${esc(leader.option_type.toUpperCase())} ${esc(leader.strike || '?')}</strong><div style="margin-top:6px">${esc(leader.raw)}</div><button class="act secondary" style="margin-top:10px;width:100%" onclick='prefillTradeForm(${JSON.stringify(leader).replace(/'/g, "&#39;")})'>Prefill Ticket</button></div>`).join('') : '<div class="pillnote">No parseable leaders found yet. The board is still too flat/weak and needs stronger generation upstream.</div>'}
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Tradier Audit</div><div class="panel-sub">Recent execution lines</div></div></div>
+        <div class="panel-body"><pre class="code">${esc(JSON.stringify(a.tradier_audit_lines || [], null, 2) || 'No audit lines')}</pre></div>
+      </section>
+    </div>
 
     <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Tradier Audit</div><div class="panel-sub">Recent execution lines</div></div></div>
-      <div class="panel-body"><pre class="code">${esc(JSON.stringify(a.tradier_audit_lines || [], null, 2) || 'No audit lines')}</pre></div>
+      <div class="panel-head"><div><div class="panel-title">Raw Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
+      <div class="panel-body"><pre class="code">${esc(a.tradier_board_text || 'No board')}</pre></div>
     </section>`;
 }
 
@@ -253,30 +303,43 @@ function renderBalances() {
   const live = p.live || {};
   const t = live.tradier || {};
   const wallet = live.wallet || {};
+  const staleFlags = [];
+  if ((live.freshness || {}).tradier_stale) staleFlags.push('Tradier stale');
+  if ((live.freshness || {}).bloc_stale) staleFlags.push('Bloc stale');
   $('#main').innerHTML = `
-    <section class="panel hero" style="background:linear-gradient(135deg,rgba(109,255,154,.07),rgba(12,17,14,.96) 52%)">
+    <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,248,234,.92),rgba(245,236,216,.98) 58%)">
       <div class="hero-title">Capital & Balances</div>
-      <div class="hero-sub">Live money surface across Tradier and onchain wallet</div>
+      <div class="hero-sub">Capital truth split across Tradier options buying power and onchain wallet inventory.</div>
       <div class="grid3" style="margin-top:20px">
-        <div class="metric"><div class="metric-k">Tradier buying power</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">options capital</div></div>
-        <div class="metric"><div class="metric-k">Deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">cash ready</div></div>
-        <div class="metric"><div class="metric-k">Invested</div><div class="metric-v">${money(live.invested_capital_usd)}</div><div class="metric-s">capital at work</div></div>
+        <div class="metric"><div class="metric-k">Tradier options capital</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">broker-side available capital</div></div>
+        <div class="metric"><div class="metric-k">Bloc deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">wallet-side ready cash</div></div>
+        <div class="metric"><div class="metric-k">Invested / inventory</div><div class="metric-v">${money(live.invested_capital_usd)}</div><div class="metric-s">capital currently at work</div></div>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Wallet Breakdown</div><div class="panel-sub">Onchain assets</div></div></div>
-      <div class="panel-body">
-        <div class="kv">
-          <div class="kvbox"><span>USDC</span><b>${wallet.usdc ?? 0}</b></div>
-          <div class="kvbox"><span>CBBTC</span><b>${wallet.cbbtc ?? 0}</b></div>
-          <div class="kvbox"><span>ETH</span><b>${wallet.eth ?? 0}</b></div>
-          <div class="kvbox"><span>WETH</span><b>${wallet.weth ?? 0}</b></div>
-          <div class="kvbox"><span>Gas</span><b>${wallet.gas ?? 0}</b></div>
-          <div class="kvbox"><span>Total USD</span><b>${money(wallet.estimated_total_usd)}</b></div>
+    <div class="grid2">
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Reconciliation Notes</div><div class="panel-sub">Why the numbers may look wrong</div></div></div>
+        <div class="panel-body stack">
+          <div class="pillnote">Tradier capital comes from the broker snapshot / balances path. Bloc deployable comes from wallet truth and engine state.</div>
+          <div class="pillnote">Stale flags: ${esc(staleFlags.length ? staleFlags.join(' • ') : 'none')}</div>
+          <div class="pillnote">If both engines are stale, these balances are still informative but not sufficient evidence of working execution.</div>
         </div>
-      </div>
-    </section>`;
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Wallet Breakdown</div><div class="panel-sub">Onchain assets</div></div></div>
+        <div class="panel-body">
+          <div class="kv">
+            <div class="kvbox"><span>USDC</span><b>${wallet.usdc ?? 0}</b></div>
+            <div class="kvbox"><span>CBBTC</span><b>${wallet.cbbtc ?? 0}</b></div>
+            <div class="kvbox"><span>ETH</span><b>${wallet.eth ?? 0}</b></div>
+            <div class="kvbox"><span>WETH</span><b>${wallet.weth ?? 0}</b></div>
+            <div class="kvbox"><span>Gas</span><b>${wallet.gas ?? 0}</b></div>
+            <div class="kvbox"><span>Total USD</span><b>${money(wallet.estimated_total_usd)}</b></div>
+          </div>
+        </div>
+      </section>
+    </div>`;
 }
 
 function renderControls() {
