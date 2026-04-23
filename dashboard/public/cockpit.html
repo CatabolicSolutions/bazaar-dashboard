@@ -69,13 +69,13 @@ button,input,textarea{font:inherit}
         </div>
         <div class="nav-section">
           <div class="nav-title">Quick Actions</div>
-          <button type="button" class="actionbtn" data-cmd="refresh_truth"><span class="icon">🔄</span> Refresh Truth</button>
-          <button type="button" class="actionbtn" data-cmd="diagnose_tradier"><span class="icon">🔍</span> Diagnose Tradier</button>
-          <button type="button" class="actionbtn" data-cmd="diagnose_bloc"><span class="icon">🔍</span> Diagnose Bloc</button>
-          <button type="button" class="actionbtn danger" data-cmd="pause_tradier"><span class="icon">⏸️</span> Pause Tradier</button>
-          <button type="button" class="actionbtn danger" data-cmd="pause_bloc"><span class="icon">⏸️</span> Pause Bloc</button>
-          <button type="button" class="actionbtn" data-cmd="resume_bloc"><span class="icon">▶️</span> Resume Bloc</button>
-          <button type="button" class="actionbtn danger" data-cmd="close_all"><span class="icon">🚨</span> Emergency Close</button>
+          <button type="button" id="qa-refresh-truth" class="actionbtn"><span class="icon">🔄</span> Refresh Truth</button>
+          <button type="button" id="qa-diagnose-tradier" class="actionbtn"><span class="icon">🔍</span> Diagnose Tradier</button>
+          <button type="button" id="qa-diagnose-bloc" class="actionbtn"><span class="icon">🔍</span> Diagnose Bloc</button>
+          <button type="button" id="qa-pause-tradier" class="actionbtn danger"><span class="icon">⏸️</span> Pause Tradier</button>
+          <button type="button" id="qa-pause-bloc" class="actionbtn danger"><span class="icon">⏸️</span> Pause Bloc</button>
+          <button type="button" id="qa-resume-bloc" class="actionbtn"><span class="icon">▶️</span> Resume Bloc</button>
+          <button type="button" id="qa-close-all" class="actionbtn danger"><span class="icon">🚨</span> Emergency Close</button>
         </div>
       </div>
       <div></div>
@@ -132,6 +132,40 @@ const encodeForAttr = s => String(s ?? "").replace(/"/g, "&quot;").replace(/'/g,
 const money = n => '$' + Number(n || 0).toFixed(2);
 const ageLabel = hrs => hrs == null ? 'unknown' : (hrs < 1 ? Math.round(hrs * 60) + 'm' : (hrs < 24 ? Number(hrs).toFixed(1) + 'h' : (Number(hrs)/24).toFixed(1) + 'd'));
 const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amber' : 'red'));
+
+function cmdBtn(id, label, cls='act') { return `<button type="button" id="${id}" class="${cls}">${label}</button>`; }
+function attach(id, fn) { const el = document.getElementById(id); if (el) el.onclick = fn; }
+function wireStaticActions() {
+  attach('qa-refresh-truth', () => runCmd('refresh_truth'));
+  attach('qa-diagnose-tradier', () => runCmd('diagnose_tradier'));
+  attach('qa-diagnose-bloc', () => runCmd('diagnose_bloc'));
+  attach('qa-pause-tradier', () => runCmd('pause_tradier'));
+  attach('qa-pause-bloc', () => runCmd('pause_bloc'));
+  attach('qa-resume-bloc', () => runCmd('resume_bloc'));
+  attach('qa-close-all', () => runCmd('close_all'));
+  attach('ov-diagnose-tradier', () => runCmd('diagnose_tradier'));
+  attach('ov-diagnose-bloc', () => runCmd('diagnose_bloc'));
+  attach('ov-refresh-truth', () => runCmd('refresh_truth'));
+  attach('ov-close-all', () => runCmd('close_all'));
+  attach('tr-diagnose-tradier', () => runCmd('diagnose_tradier'));
+  attach('tr-pause-tradier', () => runCmd('pause_tradier'));
+  attach('bl-diagnose-bloc', () => runCmd('diagnose_bloc'));
+  attach('bl-pause-bloc', () => runCmd('pause_bloc'));
+  attach('bl-resume-bloc', () => runCmd('resume_bloc'));
+  attach('bl-close-all', () => runCmd('close_all'));
+  attach('bl2-diagnose-bloc', () => runCmd('diagnose_bloc'));
+  attach('bl2-pause-bloc', () => runCmd('pause_bloc'));
+  attach('bl2-resume-bloc', () => runCmd('resume_bloc'));
+  attach('bl2-close-all', () => runCmd('close_all'));
+  attach('ctl-preview-trade', () => previewTradeEntry());
+  attach('ctl-submit-trade', () => submitTradeEntry());
+  document.querySelectorAll('[data-leader-json]').forEach((el, idx) => {
+    el.onclick = () => {
+      try { prefillTradeForm(JSON.parse(el.dataset.leaderJson)); }
+      catch (err) { const out = $('#output'); if (out) out.textContent = `Leader prefill failed: ${err.message}`; }
+    };
+  });
+}
 
 
 function parseTradierLeaders(boardText) {
@@ -205,10 +239,10 @@ function renderOverview() {
       <div class="panel-head"><div><div class="panel-title">Operator Queue</div><div class="panel-sub">What to do next</div></div></div>
       <div class="panel-body">
         <div class="actions">
-          <button type="button" class="act" data-cmd="diagnose_tradier">Diagnose Tradier</button>
-          <button type="button" class="act secondary" data-cmd="diagnose_bloc">Diagnose Bloc</button>
-          <button type="button" class="act neutral" data-cmd="refresh_truth">Refresh Truth</button>
-          <button type="button" class="act danger" data-cmd="close_all">Emergency Close</button>
+          <button type="button" id="ov-diagnose-tradier" class="act">Diagnose Tradier</button>
+          <button type="button" id="ov-diagnose-bloc" class="act secondary">Diagnose Bloc</button>
+          <button type="button" id="ov-refresh-truth" class="act neutral">Refresh Truth</button>
+          <button type="button" id="bl-close-all" class="act danger">Emergency Close</button>
         </div>
         <div style="margin-top:20px">
           ${(live.next_actions || []).map(a => `<div style="padding:12px;margin-bottom:8px;border-radius:12px;background:#4b453d;border-left:4px solid #8b2e1f;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)"><strong style="color:#fff0ea;text-shadow:0 1px 0 rgba(0,0,0,.45)">${esc(a.title)}</strong><div style="font-size:12px;color:#ffd9cf;text-shadow:0 1px 0 rgba(0,0,0,.45);margin-top:4px">${esc(a.detail)}</div></div>`).join('')}
@@ -246,7 +280,7 @@ function renderTradier() {
         <div class="metric"><div class="metric-k">Top blocker</div><div class="metric-v">${esc(t.top_blocker ? 'BLOCKED' : 'CLEAR')}</div><div class="metric-s">${esc(t.top_blocker || 'No explicit Tradier blocker')}</div></div>
       </div>
       <div class="actions" style="margin-top:20px">
-        <button type="button" class="act" data-cmd="diagnose_tradier">Diagnose</button>
+        <button type="button" id="tr-diagnose-tradier" class="act">Diagnose</button>
         <button type="button" class="act secondary" data-cmd="refresh_truth">Refresh</button>
         <button class="act neutral" data-view-jump="controls">Open Ticket Entry</button>
         <button type="button" class="act danger" data-cmd="pause_tradier">Pause</button>
@@ -288,10 +322,10 @@ function renderBloc() {
         <div class="metric"><div class="metric-k">Engine Posture</div><div class="metric-v">${stale ? 'STALE' : 'LIVE'}</div><div class="metric-s">${stale ? 'No realized Bloc action today' : 'Recent Bloc activity detected'}</div></div>
       </div>
       <div class="actions" style="margin-top:20px">
-        <button type="button" class="act" data-cmd="diagnose_bloc">Diagnose</button>
-        <button type="button" class="act secondary" data-cmd="pause_bloc">Pause</button>
-        <button type="button" class="act" data-cmd="resume_bloc">Resume</button>
-        <button type="button" class="act danger" data-cmd="close_all">Emergency Close</button>
+        <button type="button" id="bl-diagnose-bloc" class="act">Diagnose</button>
+        <button type="button" id="bl-pause-bloc" class="act secondary">Pause</button>
+        <button type="button" id="bl-resume-bloc" class="act">Resume</button>
+        <button type="button" id="bl-close-all" class="act danger">Emergency Close</button>
       </div>
     </section>
 
@@ -300,10 +334,10 @@ function renderBloc() {
         <div class="panel-head"><div><div class="panel-title">Bloc Action Lane</div><div class="panel-sub">What to do from here</div></div></div>
         <div class="panel-body stack">
           <div class="pillnote">If Bloc is stale, Diagnose first, then resume only if runtime and wallet truth agree.</div>
-          <button type="button" class="act" data-cmd="diagnose_bloc">Run Bloc Diagnosis</button>
-          <button type="button" class="act secondary" data-cmd="pause_bloc">Pause Bloc Engine</button>
-          <button type="button" class="act" data-cmd="resume_bloc">Resume Bloc Engine</button>
-          <button type="button" class="act danger" data-cmd="close_all">Escalate Emergency Close</button>
+          <button type="button" id="bl2-diagnose-bloc" class="act">Run Bloc Diagnosis</button>
+          <button type="button" id="bl2-pause-bloc" class="act secondary">Pause Bloc Engine</button>
+          <button type="button" id="bl2-resume-bloc" class="act">Resume Bloc Engine</button>
+          <button type="button" id="bl2-close-all" class="act danger">Escalate Emergency Close</button>
         </div>
       </section>
       <section class="panel">
@@ -374,7 +408,7 @@ function renderControls() {
           <button type="button" class="act" data-cmd="refresh_truth">Refresh Truth</button>
           <button type="button" class="act secondary" data-cmd="diagnose_tradier">Diagnose Tradier</button>
           <button type="button" class="act" data-cmd="diagnose_bloc">Diagnose Bloc</button>
-          <button type="button" class="act danger" data-cmd="close_all">Emergency Close</button>
+          <button type="button" id="bl-close-all" class="act danger">Emergency Close</button>
         </div>
         <div class="actions">
           <button type="button" class="act neutral" data-cmd="pause_tradier">Pause Tradier</button>
@@ -426,36 +460,6 @@ function renderControls() {
     </section>`;
 }
 
-function bindActionButtons(root = document) {
-  root.querySelectorAll('[data-cmd]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const out = $('#output');
-      if (out) out.textContent = `Dispatching ${btn.dataset.cmd}...`;
-      runCmd(btn.dataset.cmd);
-    }, { once:false });
-  });
-  root.querySelectorAll('[data-view-jump]').forEach(btn => {
-    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); setView(btn.dataset.viewJump); }, { once:false });
-  });
-  root.querySelectorAll('[data-ui]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (btn.dataset.ui === 'preview-trade') previewTradeEntry();
-      else if (btn.dataset.ui === 'submit-trade') submitTradeEntry();
-    }, { once:false });
-  });
-  root.querySelectorAll('[data-leader]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      try { prefillTradeForm(JSON.parse(btn.dataset.leader)); } catch (err) { const out = $('#output'); if (out) out.textContent = `Leader prefill failed: ${err.message}`; }
-    }, { once:false });
-  });
-}
-
 function render() {
   updateHeader();
   const renderers = {
@@ -466,8 +470,7 @@ function render() {
     controls: renderControls
   };
   (renderers[state.view] || renderOverview)();
-  bindActionButtons($('#main'));
-  bindActionButtons(document.querySelector('.sidebar'));
+  wireStaticActions();
 }
 
 
