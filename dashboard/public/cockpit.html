@@ -134,8 +134,7 @@ const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amb
 
 function parseTradierLeaders(boardText) {
   const text = String(boardText || '');
-  const lines = text.split(/
-?
+  const lines = text.split(/\r?\n/?
 /).map(s => s.trim()).filter(Boolean);
   const leaders = [];
   for (const line of lines) {
