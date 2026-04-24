@@ -125,55 +125,20 @@ This console should show multi-line command results, not single-line compressed 
 </div>
 
 <script>
-const state = { payload: null, history: null, view: 'overview', tradierLeaders: [] };
+const state = { payload: null, history: null, view: 'overview' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-const encodeForAttr = s => String(s ?? "").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const money = n => '$' + Number(n || 0).toFixed(2);
 const ageLabel = hrs => hrs == null ? 'unknown' : (hrs < 1 ? Math.round(hrs * 60) + 'm' : (hrs < 24 ? Number(hrs).toFixed(1) + 'h' : (Number(hrs)/24).toFixed(1) + 'd'));
 const dot = hrs => hrs == null ? 'amber' : (hrs < 2 ? 'green' : (hrs < 24 ? 'amber' : 'red'));
 
-function cmdBtn(id, label, cls='act') { return `<button type="button" id="${id}" class="${cls}">${label}</button>`; }
-function attach(id, fn) { const el = document.getElementById(id); if (el) el.onclick = fn; }
-function wireStaticActions() {
-  attach('qa-refresh-truth', () => runCmd('refresh_truth'));
-  attach('qa-diagnose-tradier', () => runCmd('diagnose_tradier'));
-  attach('qa-diagnose-bloc', () => runCmd('diagnose_bloc'));
-  attach('qa-pause-tradier', () => runCmd('pause_tradier'));
-  attach('qa-pause-bloc', () => runCmd('pause_bloc'));
-  attach('qa-resume-bloc', () => runCmd('resume_bloc'));
-  attach('qa-close-all', () => runCmd('close_all'));
-  attach('ov-diagnose-tradier', () => runCmd('diagnose_tradier'));
-  attach('ov-diagnose-bloc', () => runCmd('diagnose_bloc'));
-  attach('ov-refresh-truth', () => runCmd('refresh_truth'));
-  attach('ov-close-all', () => runCmd('close_all'));
-  attach('tr-diagnose-tradier', () => runCmd('diagnose_tradier'));
-  attach('tr-pause-tradier', () => runCmd('pause_tradier'));
-  attach('bl-diagnose-bloc', () => runCmd('diagnose_bloc'));
-  attach('bl-pause-bloc', () => runCmd('pause_bloc'));
-  attach('bl-resume-bloc', () => runCmd('resume_bloc'));
-  attach('bl-close-all', () => runCmd('close_all'));
-  attach('bl2-diagnose-bloc', () => runCmd('diagnose_bloc'));
-  attach('bl2-pause-bloc', () => runCmd('pause_bloc'));
-  attach('bl2-resume-bloc', () => runCmd('resume_bloc'));
-  attach('bl2-close-all', () => runCmd('close_all'));
-  attach('ctl-preview-trade', () => previewTradeEntry());
-  attach('ctl-submit-trade', () => submitTradeEntry());
-  document.querySelectorAll('[data-leader-json]').forEach((el, idx) => {
-    el.onclick = () => {
-      try { prefillTradeForm(JSON.parse(el.dataset.leaderJson)); }
-      catch (err) { const out = $('#output'); if (out) out.textContent = `Leader prefill failed: ${err.message}`; }
-    };
-  });
-}
-
-
 function parseTradierLeaders(boardText) {
   const text = String(boardText || '');
-  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const lines = text.split(/?
+/).map(s => s.trim()).filter(Boolean);
   const leaders = [];
   for (const line of lines) {
-    if (!/(CALL|PUT|C |P )/i.test(line) && !/\d{4}-\d{2}-\d{2}/.test(line) && !/\d+\.?\d*/.test(line)) continue;
+    if (!/(CALL|PUT|C |P )/i.test(line) && !/\d{4}-\d{2}-\d{2}/.test(line)) continue;
     const symbolMatch = line.match(/([A-Z]{1,6})/);
     const expMatch = line.match(/(20\d{2}-\d{2}-\d{2})/);
     const strikeMatch = line.match(/(\d+(?:\.\d+)?)/);
@@ -190,17 +155,6 @@ function parseTradierLeaders(boardText) {
   }
   return leaders;
 }
-
-function prefillTradeForm(leader) {
-  if (!leader) return;
-  const sym = $('#order-symbol'); if (sym) sym.value = leader.symbol || '';
-  const exp = $('#order-expiration'); if (exp) exp.value = leader.expiration || '';
-  const strike = $('#order-strike'); if (strike) strike.value = leader.strike || '';
-  const typ = $('#order-option-type'); if (typ) typ.value = leader.option_type || 'call';
-  const out = $('#output');
-  if (out) out.textContent = JSON.stringify({ ok: true, message: 'Trade ticket prefilled from Tradier leader', leader }, null, 2);
-}
-
 
 function updateHeader() {
   const p = state.payload; if (!p) return;
@@ -232,34 +186,20 @@ function renderOverview() {
         <div class="metric"><div class="metric-k">Tradier freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">fills today ${esc(s.tradier_fills_today ?? 0)}</div></div>
         <div class="metric"><div class="metric-k">Bloc freshness</div><div class="metric-v">${esc(ageLabel(f.bloc_age_hours))}</div><div class="metric-s">trades today ${esc(s.bloc_trades_today ?? 0)}</div></div>
       </div>
-      <div class="pillnote" style="margin-top:16px;border-left-color:#8b2e1f">If values look wrong, treat them as reconciled signals from separate systems: Tradier broker balances, wallet truth, and engine state can disagree while the engines are stale.</div>
+      <div class="pillnote" style="margin-top:16px;border-left-color:#8b2e1f">Broker balances, wallet truth, and runtime state can disagree while engines are stale.</div>
     </section>
 
     <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Operator Queue</div><div class="panel-sub">What to do next</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Operator Queue</div><div class="panel-sub">Immediate operator actions</div></div></div>
       <div class="panel-body">
         <div class="actions">
-          <button type="button" id="ov-diagnose-tradier" class="act">Diagnose Tradier</button>
-          <button type="button" id="ov-diagnose-bloc" class="act secondary">Diagnose Bloc</button>
-          <button type="button" id="ov-refresh-truth" class="act neutral">Refresh Truth</button>
-          <button type="button" id="bl-close-all" class="act danger">Emergency Close</button>
-        </div>
-        <div style="margin-top:20px">
-          ${(live.next_actions || []).map(a => `<div style="padding:12px;margin-bottom:8px;border-radius:12px;background:#4b453d;border-left:4px solid #8b2e1f;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)"><strong style="color:#fff0ea;text-shadow:0 1px 0 rgba(0,0,0,.45)">${esc(a.title)}</strong><div style="font-size:12px;color:#ffd9cf;text-shadow:0 1px 0 rgba(0,0,0,.45);margin-top:4px">${esc(a.detail)}</div></div>`).join('')}
+          <button type="button" class="act" id="cmd-diagnose-tradier">Diagnose Tradier</button>
+          <button type="button" class="act secondary" id="cmd-diagnose-bloc">Diagnose Bloc</button>
+          <button type="button" class="act neutral" id="cmd-refresh-truth">Refresh Truth</button>
+          <button type="button" class="act danger" id="cmd-close-all">Emergency Close</button>
         </div>
       </div>
-    </section>
-
-    <div class="grid2">
-      <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
-        <div class="panel-body"><pre class="code">${esc((live.artifacts || {}).tradier_board_text || 'No board')}</pre></div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Bloc Wallet</div><div class="panel-sub">Live wallet truth</div></div></div>
-        <div class="panel-body"><pre class="code">${esc((live.artifacts || {}).bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div>
-      </section>
-    </div>`;
+    </section>`;
 }
 
 function renderTradier() {
@@ -269,41 +209,32 @@ function renderTradier() {
   const t = live.tradier || {};
   const a = live.artifacts || {};
   const leaders = parseTradierLeaders(a.tradier_board_text || '');
-  state.tradierLeaders = leaders;
   $('#main').innerHTML = `
     <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,248,234,.92),rgba(245,236,216,.98) 58%)">
       <div class="hero-title">Tradier Execution Lane</div>
-      <div class="hero-sub">Options buying power ${money(t.buying_power_usd)} • positions ${t.positions_count || 0} • orders ${t.orders_count || 0} • freshness ${esc(ageLabel(f.tradier_age_hours))}</div>
+      <div class="hero-sub">Buying power ${money(t.buying_power_usd)} • positions ${t.positions_count || 0} • orders ${t.orders_count || 0} • freshness ${esc(ageLabel(f.tradier_age_hours))}</div>
       <div class="grid3" style="margin-top:18px">
-        <div class="metric"><div class="metric-k">Capital Truth</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">resolved Tradier options capital</div></div>
-        <div class="metric"><div class="metric-k">Freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">last fill / preview / audit activity</div></div>
-        <div class="metric"><div class="metric-k">Top blocker</div><div class="metric-v">${esc(t.top_blocker ? 'BLOCKED' : 'CLEAR')}</div><div class="metric-s">${esc(t.top_blocker || 'No explicit Tradier blocker')}</div></div>
+        <div class="metric"><div class="metric-k">Capital Truth</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">options buying power</div></div>
+        <div class="metric"><div class="metric-k">Freshness</div><div class="metric-v">${esc(ageLabel(f.tradier_age_hours))}</div><div class="metric-s">last readiness check</div></div>
+        <div class="metric"><div class="metric-k">Top blocker</div><div class="metric-v">${esc(t.top_blocker || 'none')}</div><div class="metric-s">primary execution blocker</div></div>
       </div>
       <div class="actions" style="margin-top:20px">
-        <button type="button" id="tr-diagnose-tradier" class="act">Diagnose</button>
-        <button type="button" class="act secondary" data-cmd="refresh_truth">Refresh</button>
-        <button class="act neutral" data-view-jump="controls">Open Ticket Entry</button>
-        <button type="button" class="act danger" data-cmd="pause_tradier">Pause</button>
+        <button type="button" class="act" id="cmd-diagnose-tradier-main">Diagnose</button>
+        <button type="button" class="act secondary" id="cmd-pause-tradier">Pause</button>
       </div>
     </section>
-
     <div class="grid2">
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Leader Tickets</div><div class="panel-sub">Turn board ideas into staged tickets</div></div></div>
+        <div class="panel-head"><div><div class="panel-title">Leader Tickets</div><div class="panel-sub">Parsed from current board</div></div></div>
         <div class="panel-body stack">
-          ${leaders.length ? leaders.map((leader, i) => `<div class="pillnote" style="border-left-color:#8a5a22"><strong>${esc(leader.symbol)} ${esc(leader.expiration || 'no-exp')} ${esc(leader.option_type.toUpperCase())} ${esc(leader.strike || '?')}</strong><div style="margin-top:6px">${esc(leader.raw)}</div><button class="act secondary" style="margin-top:10px;width:100%" onclick='prefillTradeForm(${JSON.stringify(leader).replace(/'/g, "&#39;")})'>Prefill Ticket</button></div>`).join('') : '<div class="pillnote">No parseable leaders found yet. The board is still too flat/weak and needs stronger generation upstream.</div>'}
+          ${leaders.length ? leaders.map((leader, idx) => `<div style="padding:14px;border-radius:14px;background:#fffaf0;border:2px solid rgba(178,139,88,.22)"><div style="font-weight:800">${esc(leader.symbol)} ${esc((leader.option_type || '').toUpperCase())} ${esc(leader.strike)} ${esc(leader.expiration)}</div><div style="font-size:12px;color:#6e5436;margin-top:6px">${esc(leader.raw)}</div><button type="button" class="act secondary leader-prefill" data-symbol="${esc(leader.symbol)}" data-expiration="${esc(leader.expiration)}" data-strike="${esc(leader.strike)}" data-option-type="${esc(leader.option_type)}" style="margin-top:12px">Prefill Ticket</button></div>`).join('') : '<div class="pillnote">No parsable leaders from current board.</div>'}
         </div>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Tradier Audit</div><div class="panel-sub">Recent execution lines</div></div></div>
-        <div class="panel-body"><pre class="code">${esc(JSON.stringify(a.tradier_audit_lines || [], null, 2) || 'No audit lines')}</pre></div>
+        <div class="panel-head"><div><div class="panel-title">Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
+        <div class="panel-body"><pre class="code">${esc(a.tradier_board_text || 'No board')}</pre></div>
       </section>
-    </div>
-
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Raw Tradier Board</div><div class="panel-sub">Current candidate surface</div></div></div>
-      <div class="panel-body"><pre class="code">${esc(a.tradier_board_text || 'No board')}</pre></div>
-    </section>`;
+    </div>`;
 }
 
 function renderBloc() {
@@ -322,157 +253,124 @@ function renderBloc() {
         <div class="metric"><div class="metric-k">Engine Posture</div><div class="metric-v">${stale ? 'STALE' : 'LIVE'}</div><div class="metric-s">${stale ? 'No realized Bloc action today' : 'Recent Bloc activity detected'}</div></div>
       </div>
       <div class="actions" style="margin-top:20px">
-        <button type="button" id="bl-diagnose-bloc" class="act">Diagnose</button>
-        <button type="button" id="bl-pause-bloc" class="act secondary">Pause</button>
-        <button type="button" id="bl-resume-bloc" class="act">Resume</button>
-        <button type="button" id="bl-close-all" class="act danger">Emergency Close</button>
+        <button type="button" class="act" id="cmd-diagnose-bloc-main">Diagnose</button>
+        <button type="button" class="act secondary" id="cmd-pause-bloc">Pause</button>
+        <button type="button" class="act" id="cmd-resume-bloc">Resume</button>
+        <button type="button" class="act danger" id="cmd-close-all-bloc">Emergency Close</button>
       </div>
     </section>
-
     <div class="grid2">
-      <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Bloc Action Lane</div><div class="panel-sub">What to do from here</div></div></div>
-        <div class="panel-body stack">
-          <div class="pillnote">If Bloc is stale, Diagnose first, then resume only if runtime and wallet truth agree.</div>
-          <button type="button" id="bl2-diagnose-bloc" class="act">Run Bloc Diagnosis</button>
-          <button type="button" id="bl2-pause-bloc" class="act secondary">Pause Bloc Engine</button>
-          <button type="button" id="bl2-resume-bloc" class="act">Resume Bloc Engine</button>
-          <button type="button" id="bl2-close-all" class="act danger">Escalate Emergency Close</button>
-        </div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Bloc Wallet Truth</div><div class="panel-sub">Live wallet surface</div></div></div>
-        <div class="panel-body"><pre class="code">${esc(a.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div>
-      </section>
-    </div>
-
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Bloc Runtime State</div><div class="panel-sub">Engine state and inventory truth</div></div></div>
-      <div class="panel-body"><pre class="code">${esc(a.bloc_state_text || '{}')}</pre></div>
-    </section>`;
+      <section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Wallet Truth</div><div class="panel-sub">Live wallet surface</div></div></div><div class="panel-body"><pre class="code">${esc(a.bloc_wallet_text || JSON.stringify(live.wallet || {}, null, 2))}</pre></div></section>
+      <section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Runtime State</div><div class="panel-sub">Engine state and inventory truth</div></div></div><div class="panel-body"><pre class="code">${esc(a.bloc_state_text || '{}')}</pre></div></section>
+    </div>`;
 }
 
 function renderBalances() {
   const p = state.payload; if (!p) return;
   const live = p.live || {};
-  const t = live.tradier || {};
-  const wallet = live.wallet || {};
-  const staleFlags = [];
-  if ((live.freshness || {}).tradier_stale) staleFlags.push('Tradier stale');
-  if ((live.freshness || {}).bloc_stale) staleFlags.push('Bloc stale');
   $('#main').innerHTML = `
-    <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,248,234,.92),rgba(245,236,216,.98) 58%)">
-      <div class="hero-title">Capital & Balances</div>
-      <div class="hero-sub">Capital truth split across Tradier options buying power and onchain wallet inventory.</div>
-      <div class="grid3" style="margin-top:20px">
-        <div class="metric"><div class="metric-k">Tradier options capital</div><div class="metric-v">${money(t.buying_power_usd)}</div><div class="metric-s">broker-side available capital</div></div>
-        <div class="metric"><div class="metric-k">Bloc deployable</div><div class="metric-v">${money(live.deployable_capital_usd)}</div><div class="metric-s">wallet-side ready cash</div></div>
-        <div class="metric"><div class="metric-k">Invested / inventory</div><div class="metric-v">${money(live.invested_capital_usd)}</div><div class="metric-s">capital currently at work</div></div>
-      </div>
-    </section>
+    <section class="panel hero"><div class="hero-title">Capital Reconciliation</div><div class="hero-sub">Separate broker capital, wallet deployment, and invested inventory.</div></section>
+    <div class="grid3">
+      <section class="panel"><div class="panel-head"><div><div class="panel-title">Tradier options capital</div></div></div><div class="panel-body"><div class="metric-v">${money((live.tradier || {}).buying_power_usd)}</div></div></section>
+      <section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc deployable</div></div></div><div class="panel-body"><div class="metric-v">${money(live.deployable_capital_usd)}</div></div></section>
+      <section class="panel"><div class="panel-head"><div><div class="panel-title">Invested / inventory</div></div></div><div class="panel-body"><div class="metric-v">${money(live.invested_capital_usd)}</div></div></section>
+    </div>`;
+}
 
+function renderControls() {
+  const p = state.payload; if (!p) return;
+  const live = p.live || {};
+  const a = live.artifacts || {};
+  $('#main').innerHTML = `
+    <section class="panel hero"><div class="hero-title">Operator Controls</div><div class="hero-sub">Submit or preview orders and edit config.</div></section>
     <div class="grid2">
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Reconciliation Notes</div><div class="panel-sub">Why the numbers may look wrong</div></div></div>
-        <div class="panel-body stack">
-          <div class="pillnote">Tradier capital comes from the broker snapshot / balances path. Bloc deployable comes from wallet truth and engine state.</div>
-          <div class="pillnote">Stale flags: ${esc(staleFlags.length ? staleFlags.join(' • ') : 'none')}</div>
-          <div class="pillnote">If both engines are stale, these balances are still informative but not sufficient evidence of working execution.</div>
+        <div class="panel-head"><div><div class="panel-title">Trade Ticket</div><div class="panel-sub">Stage an order</div></div></div>
+        <div class="panel-body">
+          <div class="formgrid">
+            <div class="field"><label>Symbol</label><input id="order-symbol" type="text" placeholder="SPY"></div>
+            <div class="field"><label>Expiration</label><input id="order-expiration" type="text" placeholder="2026-05-07"></div>
+            <div class="field"><label>Strike</label><input id="order-strike" type="number" step="0.01" placeholder="700"></div>
+            <div class="field"><label>Option Type</label><select id="order-option-type"><option value="call">Call</option><option value="put">Put</option></select></div>
+            <div class="field"><label>Side</label><select id="order-side"><option value="buy_to_open">Buy to Open</option><option value="sell_to_open">Sell to Open</option></select></div>
+            <div class="field"><label>Quantity</label><input id="order-qty" type="number" step="1" value="1"></div>
+            <div class="field"><label>Order Type</label><select id="order-type"><option value="limit">Limit</option><option value="market">Market</option></select></div>
+            <div class="field"><label>Limit Price</label><input id="order-limit" type="number" step="0.01" placeholder="1.25"></div>
+          </div>
+          <div class="actions" style="margin-top:18px">
+            <button type="button" class="act secondary" id="cmd-preview-ticket">Preview Ticket</button>
+            <button type="button" class="act danger" id="cmd-submit-ticket">Submit Ticket</button>
+          </div>
         </div>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Wallet Breakdown</div><div class="panel-sub">Onchain assets</div></div></div>
-        <div class="panel-body">
-          <div class="kv">
-            <div class="kvbox"><span>USDC</span><b>${wallet.usdc ?? 0}</b></div>
-            <div class="kvbox"><span>CBBTC</span><b>${wallet.cbbtc ?? 0}</b></div>
-            <div class="kvbox"><span>ETH</span><b>${wallet.eth ?? 0}</b></div>
-            <div class="kvbox"><span>WETH</span><b>${wallet.weth ?? 0}</b></div>
-            <div class="kvbox"><span>Gas</span><b>${wallet.gas ?? 0}</b></div>
-            <div class="kvbox"><span>Total USD</span><b>${money(wallet.estimated_total_usd)}</b></div>
-          </div>
+        <div class="panel-head"><div><div class="panel-title">Safety Config</div><div class="panel-sub">Editable config surfaces</div></div></div>
+        <div class="panel-body stack">
+          <textarea class="textarea" id="risk-config-editor">${esc(a.risk_config_text || '{}')}</textarea>
+          <button type="button" class="act" id="cmd-save-risk">Save Risk Config</button>
+          <textarea class="textarea" id="safety-config-editor">${esc(a.hq_safety_text || '{}')}</textarea>
+          <button type="button" class="act" id="cmd-save-safety">Save Safety Config</button>
         </div>
       </section>
     </div>`;
 }
 
-function renderControls() {
-  const live = (state.payload || {}).live || {};
-  const artifacts = live.artifacts || {};
-  $('#main').innerHTML = `
-    <section class="panel hero" style="background:linear-gradient(135deg,rgba(255,248,234,.92),rgba(245,236,216,.98) 58%)">
-      <div class="hero-title">Operator Terminal</div>
-      <div class="hero-sub">This is the product path: deploy, health, config writeback, and trade-entry staging from one desk.</div>
-      <div class="grid2" style="margin-top:20px">
-        <div class="actions">
-          <button type="button" class="act" data-cmd="refresh_truth">Refresh Truth</button>
-          <button type="button" class="act secondary" data-cmd="diagnose_tradier">Diagnose Tradier</button>
-          <button type="button" class="act" data-cmd="diagnose_bloc">Diagnose Bloc</button>
-          <button type="button" id="bl-close-all" class="act danger">Emergency Close</button>
-        </div>
-        <div class="actions">
-          <button type="button" class="act neutral" data-cmd="pause_tradier">Pause Tradier</button>
-          <button type="button" class="act neutral" data-cmd="pause_bloc">Pause Bloc</button>
-          <button type="button" class="act" data-cmd="resume_bloc">Resume Bloc</button>
-          <button class="act secondary" data-ui="preview-trade">Preview Trade Ticket</button>
-        </div>
-      </div>
-    </section>
+function renderHistory() {
+  const h = state.history || {};
+  const events = h.events || [];
+  const notes = h.notes || [];
+  const refresh = h.refresh_status || {};
+  const feedback = h.action_feedback || {};
+  const queue = h.queue || [];
+  const lines = [];
+  if (refresh && Object.keys(refresh).length) lines.push('[refresh_status]
+' + JSON.stringify(refresh, null, 2));
+  if (feedback && Object.keys(feedback).length) lines.push('[action_feedback]
+' + JSON.stringify(feedback, null, 2));
+  if (queue.length) lines.push('[queue]
+' + JSON.stringify(queue.slice(-10), null, 2));
+  if (events.length) lines.push('[event_tape]
+' + JSON.stringify(events.slice(0, 12), null, 2));
+  if (notes.length) lines.push('[notes]
+' + JSON.stringify(notes.slice(-10), null, 2));
+  const el = $('#history-output');
+  if (el) el.textContent = lines.length ? lines.join('
 
-    <div class="grid2">
-      <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Risk Config Editor</div><div class="panel-sub">Write back risk controls from cockpit</div></div></div>
-        <div class="panel-body stack">
-          <div class="pillnote">This writes to <code>risk_config.json</code>. It is a real config writeback surface.</div>
-          <textarea class="textarea" id="risk-config-editor">${esc(artifacts.risk_config_text || '{}')}</textarea>
-          <button class="act" onclick="saveConfig('risk')">Save Risk Config</button>
-        </div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><div><div class="panel-title">Safety Config Editor</div><div class="panel-sub">Write back HQ safety controls</div></div></div>
-        <div class="panel-body stack">
-          <div class="pillnote">This writes to <code>dashboard/config/safety_config.json</code>.</div>
-          <textarea class="textarea" id="safety-config-editor">${esc(artifacts.hq_safety_text || '{}')}</textarea>
-          <button class="act secondary" onclick="saveConfig('safety')">Save Safety Config</button>
-        </div>
-      </section>
-    </div>
-
-    <section class="panel">
-      <div class="panel-head"><div><div class="panel-title">Tradier Trade Entry</div><div class="panel-sub">Stage a real option ticket from cockpit</div></div></div>
-      <div class="panel-body stack">
-        <div class="pillnote">This uses the existing Tradier order endpoint. Start with preview-quality inputs. Live submission remains high-risk and should be treated carefully.</div>
-        <div class="formgrid">
-          <div class="field"><label>Underlying</label><input id="order-symbol" placeholder="SPY"></div>
-          <div class="field"><label>Expiration (YYYY-MM-DD)</label><input id="order-expiration" placeholder="2026-04-24"></div>
-          <div class="field"><label>Option Type</label><select id="order-option-type"><option value="call">Call</option><option value="put">Put</option></select></div>
-          <div class="field"><label>Side</label><select id="order-side"><option value="buy_to_open">Buy to Open</option><option value="sell_to_close">Sell to Close</option></select></div>
-          <div class="field"><label>Strike</label><input id="order-strike" type="number" step="0.01" placeholder="550"></div>
-          <div class="field"><label>Quantity</label><input id="order-qty" type="number" step="1" placeholder="1"></div>
-          <div class="field"><label>Order Type</label><select id="order-order-type"><option value="market">Market</option><option value="limit">Limit</option></select></div>
-          <div class="field"><label>Limit Price</label><input id="order-limit" type="number" step="0.01" placeholder="1.25"></div>
-        </div>
-        <div class="actions">
-          <button class="act secondary" data-ui="preview-trade">Preview Ticket</button>
-          <button class="act danger" data-ui="submit-trade">Submit Ticket</button>
-        </div>
-      </div>
-    </section>`;
+') : 'No operator history yet.';
 }
 
 function render() {
   updateHeader();
-  const renderers = {
-    overview: renderOverview,
-    tradier: renderTradier,
-    bloc: renderBloc,
-    balances: renderBalances,
-    controls: renderControls
-  };
+  const renderers = { overview: renderOverview, tradier: renderTradier, bloc: renderBloc, balances: renderBalances, controls: renderControls };
   (renderers[state.view] || renderOverview)();
-  wireStaticActions();
+  wireViewActions();
 }
 
+function wireViewActions() {
+  const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+  bind('cmd-refresh-truth', () => runCmd('refresh_truth'));
+  bind('cmd-diagnose-tradier', () => runCmd('diagnose_tradier'));
+  bind('cmd-diagnose-bloc', () => runCmd('diagnose_bloc'));
+  bind('cmd-close-all', () => runCmd('close_all'));
+  bind('cmd-diagnose-tradier-main', () => runCmd('diagnose_tradier'));
+  bind('cmd-pause-tradier', () => runCmd('pause_tradier'));
+  bind('cmd-diagnose-bloc-main', () => runCmd('diagnose_bloc'));
+  bind('cmd-pause-bloc', () => runCmd('pause_bloc'));
+  bind('cmd-resume-bloc', () => runCmd('resume_bloc'));
+  bind('cmd-close-all-bloc', () => runCmd('close_all'));
+  bind('cmd-preview-ticket', () => previewTradeEntry());
+  bind('cmd-submit-ticket', () => submitTradeEntry());
+  bind('cmd-save-risk', () => saveConfig('risk'));
+  bind('cmd-save-safety', () => saveConfig('safety'));
+  document.querySelectorAll('.leader-prefill').forEach(btn => {
+    btn.onclick = () => prefillTradeForm({
+      symbol: btn.dataset.symbol || '',
+      expiration: btn.dataset.expiration || '',
+      strike: btn.dataset.strike || '',
+      option_type: btn.dataset.optionType || 'call'
+    });
+  });
+}
 
 async function refreshState() {
   try {
@@ -487,126 +385,75 @@ async function refreshState() {
     renderHistory();
   } catch (e) {
     $('#mission').textContent = 'Failed to load HQ';
-    $('#output').textContent = `Refresh failed: ${e.message}`;
+    const out = $('#output');
+    if (out) out.textContent = `Refresh failed: ${e.message}`;
   }
 }
 
 async function runCmd(action) {
   const out = $('#output');
   if (out) out.textContent = `Running ${action}...`;
-  try {
-    const r = await fetch('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
-    const data = await r.json();
-    if (out) out.textContent = JSON.stringify(data, null, 2);
-    try {
-      const [statusResp, historyResp] = await Promise.all([
-        fetch('/api/hq/status', { cache: 'no-store' }),
-        fetch('/api/hq/history', { cache: 'no-store' })
-      ]);
-      if (statusResp.ok) state.payload = await statusResp.json();
-      if (historyResp.ok) state.history = await historyResp.json();
-      render();
-      renderHistory();
-    } catch (refreshErr) {
-      if (out) out.textContent += `
-
-[post-command refresh warning] ${refreshErr.message}`;
-    }
-    return data;
-  } catch (e) {
-    if (out) out.textContent = `❌ Command failed: ${e.message}`;
-    throw e;
-  }
+  const r = await fetch('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+  const data = await r.json();
+  if (out) out.textContent = JSON.stringify(data, null, 2);
+  await refreshState();
+  return data;
 }
 
 async function saveConfig(target) {
   const out = $('#output');
   const editorId = target === 'risk' ? '#risk-config-editor' : '#safety-config-editor';
-  try {
-    const config = JSON.parse($(editorId).value);
-    const r = await fetch('/api/hq/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target, config }) });
-    const data = await r.json();
-    out.textContent = JSON.stringify(data, null, 2);
-    await refreshState();
-  } catch (e) {
-    out.textContent = `Config save failed: ${e.message}`;
-  }
+  const config = JSON.parse($(editorId).value);
+  const r = await fetch('/api/hq/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target, config }) });
+  const data = await r.json();
+  if (out) out.textContent = JSON.stringify(data, null, 2);
+  await refreshState();
 }
 
 function collectOrderForm() {
   return {
     symbol: $('#order-symbol').value.trim(),
     expiration: $('#order-expiration').value.trim(),
+    strike: $('#order-strike').value,
     option_type: $('#order-option-type').value,
     side: $('#order-side').value,
-    strike: parseFloat($('#order-strike').value || '0'),
-    quantity: parseInt($('#order-qty').value || '0', 10),
-    order_type: $('#order-order-type').value,
-    limit_price: $('#order-limit').value ? parseFloat($('#order-limit').value) : null,
-    time_in_force: 'day'
+    quantity: Number($('#order-qty').value || 1),
+    order_type: $('#order-type').value,
+    limit_price: $('#order-limit').value || null,
   };
 }
 
-function previewTradeEntry() {
-  const payload = collectOrderForm();
-  $('#output').textContent = JSON.stringify({ preview: true, payload, note: 'Preview assembled from cockpit form. Next step is submit via /api/order.' }, null, 2);
-}
-
-async function runDeploy() {
+function prefillTradeForm(leader) {
+  if ($('#order-symbol')) $('#order-symbol').value = leader.symbol || '';
+  if ($('#order-expiration')) $('#order-expiration').value = leader.expiration || '';
+  if ($('#order-strike')) $('#order-strike').value = leader.strike || '';
+  if ($('#order-option-type')) $('#order-option-type').value = leader.option_type || 'call';
+  state.view = 'controls';
+  render();
   const out = $('#output');
-  out.textContent = 'Starting cockpit deploy...';
-  try {
-    const r = await fetch('/api/hq/deploy', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mode: 'run' }) });
-    const data = await r.json();
-    out.textContent = JSON.stringify(data, null, 2);
-    await refreshState();
-  } catch (e) {
-    out.textContent = `Deploy run failed: ${e.message}`;
-  }
+  if (out) out.textContent = JSON.stringify({ ok: true, message: 'Trade ticket prefilled from Tradier leader', leader }, null, 2);
 }
 
-function renderHistory() {
-  const h = state.history || {};
-  const events = h.events || [];
-  const notes = h.notes || [];
-  const refresh = h.refresh_status || {};
-  const feedback = h.action_feedback || {};
-  const queue = h.queue || [];
-  const lines = [];
-  if (refresh && Object.keys(refresh).length) lines.push('[refresh_status]\n' + JSON.stringify(refresh, null, 2));
-  if (feedback && Object.keys(feedback).length) lines.push('[action_feedback]\n' + JSON.stringify(feedback, null, 2));
-  if (queue.length) lines.push('[queue]\n' + JSON.stringify(queue.slice(-10), null, 2));
-  if (events.length) {
-    const normalized = events.slice(0, 12).map(e => ({
-      ts: e.created_at || e.ts || null,
-      type: e.event_type || e.kind || 'event',
-      summary: e.summary || e.title || '',
-      detail: e.detail || e.message || '',
-      severity: e.severity || e.level || null,
-    }));
-    lines.push('[event_tape]\n' + JSON.stringify(normalized, null, 2));
-  }
-  if (notes.length) lines.push('[notes]\n' + JSON.stringify(notes.slice(-10), null, 2));
-  const el = $('#history-output');
-  if (el) el.textContent = lines.length ? lines.join('\n\n') : 'No operator history yet.';
+async function previewTradeEntry() {
+  const out = $('#output');
+  const payload = collectOrderForm();
+  const r = await fetch('/api/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...payload, preview: true }) });
+  const data = await r.json();
+  if (out) out.textContent = JSON.stringify(data, null, 2);
 }
 
 async function submitTradeEntry() {
   const out = $('#output');
   const payload = collectOrderForm();
-  try {
-    const r = await fetch('/api/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const data = await r.json();
-    out.textContent = JSON.stringify(data, null, 2);
-    await refreshState();
-  } catch (e) {
-    out.textContent = `Trade submit failed: ${e.message}`;
-  }
+  const r = await fetch('/api/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data = await r.json();
+  if (out) out.textContent = JSON.stringify(data, null, 2);
+  await refreshState();
 }
 
 function sendCustomCommand() {
   const input = $('#command-input');
-  const cmd = input.value.trim();
+  const cmd = input ? input.value.trim() : '';
   if (!cmd) return;
   input.value = '';
   runCmd(cmd);
@@ -618,14 +465,9 @@ function setView(view) {
   render();
 }
 
-
 window.runCmd = runCmd;
 window.setView = setView;
-window.previewTradeEntry = previewTradeEntry;
-window.submitTradeEntry = submitTradeEntry;
-window.prefillTradeForm = prefillTradeForm;
 
-// Initialize
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 const commandInput = $('#command-input');
 if (commandInput) commandInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendCustomCommand(); });
