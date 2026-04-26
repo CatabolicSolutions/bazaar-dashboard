@@ -1044,59 +1044,85 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(500, {'ok': False, 'error': str(e)})
 
     def _handle_order_submit(self, body):
-        """Submit order to Tradier"""
+        """Submit or preview order to Tradier with safe JSON fallback"""
         import json as json_mod
-        from order_entry import OrderRequest, OrderValidator, OrderManager
-        
+        try:
+            from order_entry import OrderRequest, OrderValidator, OrderManager
+        except Exception as import_error:
+            OrderRequest = OrderValidator = OrderManager = None
+            import_failure = str(import_error)
+        else:
+            import_failure = None
+
         try:
             payload = json_mod.loads(body.decode() or '{}')
         except Exception:
             return self.json_response(400, {'ok': False, 'error': 'Invalid JSON'})
-        
-        # Build order request
+
+        preview = bool(payload.get('preview'))
         try:
-            order = OrderRequest(
-                symbol=payload.get('symbol', ''),
-                option_type=payload.get('option_type', 'call'),
-                strike=float(payload.get('strike', 0)),
-                expiration=payload.get('expiration', ''),
-                side=payload.get('side', 'buy_to_open'),
-                quantity=int(payload.get('quantity', 0)),
-                order_type=payload.get('order_type', 'market'),
-                limit_price=float(payload.get('limit_price')) if payload.get('limit_price') else None,
-                stop_price=float(payload.get('stop_price')) if payload.get('stop_price') else None,
-                time_in_force=payload.get('time_in_force', 'day')
-            )
+            order = {
+                'symbol': str(payload.get('symbol', '')).strip().upper(),
+                'option_type': str(payload.get('option_type', 'call')).strip().lower(),
+                'strike': float(payload.get('strike', 0) or 0),
+                'expiration': str(payload.get('expiration', '')).strip(),
+                'side': str(payload.get('side', 'buy_to_open')).strip(),
+                'quantity': int(payload.get('quantity', 0) or 0),
+                'order_type': str(payload.get('order_type', 'market')).strip(),
+                'limit_price': float(payload.get('limit_price')) if payload.get('limit_price') not in (None, '') else None,
+                'stop_price': float(payload.get('stop_price')) if payload.get('stop_price') not in (None, '') else None,
+                'time_in_force': str(payload.get('time_in_force', 'day')).strip(),
+            }
         except Exception as e:
             return self.json_response(400, {'ok': False, 'error': f'Invalid order data: {str(e)}'})
-        
-        # Get current price for validation
-        current_price = float(payload.get('current_price', 0))
-        
-        # Validate
-        validator = OrderValidator()
-        validation = validator.validate(order, current_price)
-        
+
+        validation_errors = []
+        if not order['symbol']:
+            validation_errors.append('symbol required')
+        if not order['expiration']:
+            validation_errors.append('expiration required')
+        if order['strike'] <= 0:
+            validation_errors.append('strike must be > 0')
+        if order['quantity'] <= 0:
+            validation_errors.append('quantity must be > 0')
+        if order['order_type'] == 'limit' and order['limit_price'] in (None, 0):
+            validation_errors.append('limit_price required for limit orders')
+
+        current_price = float(payload.get('current_price', 0) or 0)
+        validation = {'valid': not validation_errors, 'errors': validation_errors, 'position_value': (order['limit_price'] or current_price or 0) * order['quantity'] * 100}
+
+        if OrderRequest and OrderValidator:
+            try:
+                req = OrderRequest(**order)
+                validator = OrderValidator()
+                validation = validator.validate(req, current_price)
+            except Exception as e:
+                validation = {'valid': False, 'errors': [f'validator failure: {str(e)}'], 'position_value': validation.get('position_value', 0)}
+
         if not validation['valid']:
-            return self.json_response(400, {
-                'ok': False,
-                'error': 'Validation failed',
-                'validation_errors': validation['errors']
-            })
-        
-        # Submit order
-        manager = OrderManager()
-        result = manager.submit_order(order)
-        
-        if result['ok']:
-            return self.json_response(200, {
-                'ok': True,
-                'order_id': result.get('order_id'),
-                'status': result.get('status'),
-                'position_value': validation['position_value']
-            })
-        else:
-            return self.json_response(500, result)
+            return self.json_response(400, {'ok': False, 'error': 'Validation failed', 'validation_errors': validation['errors'], 'preview': preview, 'order': order})
+
+        if preview:
+            result = {'ok': True, 'preview': True, 'message': 'Order preview valid', 'order': order, 'position_value': validation.get('position_value', 0), 'validation': validation, 'engine': 'tradier_preview'}
+            hq_repository.append_event('operator_order', 'Order preview', result['message'], 'info', {'preview': True, 'order': order})
+            return self.json_response(200, result)
+
+        if import_failure or not OrderManager or not OrderRequest:
+            result = {'ok': False, 'preview': False, 'error': 'Live order path unavailable', 'detail': import_failure or 'OrderManager unavailable', 'order': order}
+            return self.json_response(503, result)
+
+        try:
+            manager = OrderManager()
+            req = OrderRequest(**order)
+            result = manager.submit_order(req)
+        except Exception as e:
+            return self.json_response(500, {'ok': False, 'error': str(e), 'order': order})
+
+        if result.get('ok'):
+            payload_out = {'ok': True, 'preview': False, 'order_id': result.get('order_id'), 'status': result.get('status'), 'position_value': validation.get('position_value', 0), 'order': order}
+            hq_repository.append_event('operator_order', 'Order submitted', payload_out.get('status') or 'submitted', 'warning', payload_out)
+            return self.json_response(200, payload_out)
+        return self.json_response(500, result)
 
     # ETH Scalper API Endpoints
     def _handle_eth_scalper_status(self):
