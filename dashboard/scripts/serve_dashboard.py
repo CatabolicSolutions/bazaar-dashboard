@@ -121,6 +121,7 @@ def compute_freshness():
 
 
 def hq_history():
+    # Recovery-safe history payload; deepen with real local event/log sources.
     return {
         'ok': True,
         'refresh_status': {},
