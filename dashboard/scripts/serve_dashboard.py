@@ -5,6 +5,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+
+TRADIER_STALE_HOURS = 6
+BLOC_STALE_HOURS = 6
+
 ROOT = Path('/var/www/bazaar')
 STATE = ROOT / 'dashboard' / 'state'
 OUT = ROOT / 'out'
@@ -63,6 +67,26 @@ def file_mtime_iso(path):
         return None
 
 
+def file_mtime_dt(path):
+    try:
+        return datetime.fromtimestamp(Path(path).stat().st_mtime, tz=timezone.utc)
+    except Exception:
+        return None
+
+
+def dt_to_iso(value):
+    return value.isoformat() if value else None
+
+
+def age_hours(value):
+    if not value:
+        return None
+    try:
+        return round((datetime.now(timezone.utc) - value).total_seconds() / 3600, 3)
+    except Exception:
+        return None
+
+
 def load_state_file(path):
     data = read_json(path, {})
     if isinstance(data, dict):
@@ -75,24 +99,32 @@ def tradier_sources():
         STATE / 'tradier_state.json',
         STATE / 'tradier_execution_state.json',
         ROOT / 'logs' / 'tradier_audit.log',
+        STATE / 'tradier_audit_log.json',
         OUT / 'tradier_leaders_board.txt',
         STATE / 'tradier_board.txt',
     ]
     state = {}
     for p in candidates:
         if p.exists():
-            state[str(p)] = file_mtime_iso(p)
+            state[str(p)] = {
+                'mtime': file_mtime_iso(p),
+                'size': p.stat().st_size,
+            }
     board = ''
+    board_path = None
     for p in [OUT / 'tradier_leaders_board.txt', STATE / 'tradier_board.txt']:
         if p.exists():
             board = read_text(p)
+            board_path = p
             break
     audit_lines = []
+    audit_path = None
     for p in [ROOT / 'logs' / 'tradier_audit.log', STATE / 'tradier_audit_log.json']:
         if p.exists():
             audit_lines = read_lines(p)[-50:]
+            audit_path = p
             break
-    return board, audit_lines, state
+    return board, audit_lines, state, board_path, audit_path
 
 
 def bloc_sources():
@@ -101,22 +133,62 @@ def bloc_sources():
     state_files = {}
     for p in [ETH / 'state' / 'wallet.json', ETH / 'state' / 'bot_state.json']:
         if p.exists():
-            state_files[str(p)] = file_mtime_iso(p)
+            state_files[str(p)] = {
+                'mtime': file_mtime_iso(p),
+                'size': p.stat().st_size,
+            }
     return wallet, bot_state, state_files
 
 
 def compute_freshness():
+    tradier_state_path = STATE / 'tradier_state.json'
+    tradier_exec_path = STATE / 'tradier_execution_state.json'
+    tradier_board_path = OUT / 'tradier_leaders_board.txt' if (OUT / 'tradier_leaders_board.txt').exists() else STATE / 'tradier_board.txt'
+    tradier_audit_log_path = ROOT / 'logs' / 'tradier_audit.log'
+    tradier_audit_json_path = STATE / 'tradier_audit_log.json'
+    wallet_path = ETH / 'state' / 'wallet.json'
+    bot_state_path = ETH / 'state' / 'bot_state.json'
+
+    tradier_state = read_json(tradier_state_path, {})
+    tradier_exec = read_json(tradier_exec_path, {})
+    bot_state = read_json(bot_state_path, {})
+
+    tradier_check_dt = file_mtime_dt(tradier_state_path) or file_mtime_dt(tradier_board_path)
+    tradier_preview_dt = file_mtime_dt(tradier_exec_path) or file_mtime_dt(tradier_board_path)
+    tradier_fill_dt = file_mtime_dt(tradier_audit_log_path) or file_mtime_dt(tradier_audit_json_path)
+    bloc_wallet_dt = file_mtime_dt(wallet_path)
+    bloc_state_dt = file_mtime_dt(bot_state_path)
+
+    bloc_trade_dt = None
+    updated_at = bot_state.get('updated_at')
+    if updated_at:
+        try:
+            bloc_trade_dt = datetime.fromisoformat(str(updated_at).replace('Z', '+00:00'))
+        except Exception:
+            bloc_trade_dt = None
+    if not bloc_trade_dt:
+        bloc_trade_dt = bloc_state_dt
+
+    tradier_age = age_hours(tradier_check_dt)
+    latest_bloc_dt = max([d for d in [bloc_wallet_dt, bloc_state_dt, bloc_trade_dt] if d], default=None)
+    bloc_age = age_hours(latest_bloc_dt)
+
     return {
-        'tradier_last_checked_at': None,
-        'tradier_last_preview_at': None,
-        'tradier_last_fill_at': None,
-        'tradier_age_hours': None,
-        'tradier_stale': True,
-        'bloc_last_trade_at': None,
-        'bloc_last_state_at': None,
-        'bloc_last_wallet_at': None,
-        'bloc_age_hours': None,
-        'bloc_stale': True,
+        'tradier_last_checked_at': dt_to_iso(tradier_check_dt),
+        'tradier_last_preview_at': dt_to_iso(tradier_preview_dt),
+        'tradier_last_fill_at': dt_to_iso(tradier_fill_dt),
+        'tradier_age_hours': tradier_age,
+        'tradier_stale': tradier_age is None or tradier_age > TRADIER_STALE_HOURS,
+        'bloc_last_trade_at': dt_to_iso(bloc_trade_dt),
+        'bloc_last_state_at': dt_to_iso(bloc_state_dt),
+        'bloc_last_wallet_at': dt_to_iso(bloc_wallet_dt),
+        'bloc_age_hours': bloc_age,
+        'bloc_stale': bloc_age is None or bloc_age > BLOC_STALE_HOURS,
+        'sources': {
+            'tradier_state_status': tradier_state.get('status'),
+            'tradier_execution_status': tradier_exec.get('status'),
+            'bloc_runtime_status': bot_state.get('status'),
+        },
     }
 
 
@@ -133,8 +205,8 @@ def hq_history():
 
 
 def hq_status():
-    board_text, audit_lines, _ = tradier_sources()
-    wallet, bot_state, _ = bloc_sources()
+    board_text, audit_lines, tradier_source_state, board_path, audit_path = tradier_sources()
+    wallet, bot_state, bloc_source_state = bloc_sources()
     freshness = compute_freshness()
     tradier_state = read_json(STATE / 'tradier_state.json', {})
 
@@ -171,8 +243,8 @@ def hq_status():
         'holding_units': holding_units,
         'deployable_capital_usd': deployable,
         'invested_capital_usd': invested,
-        'operator_summary': 'State is incomplete or stale, keep trading actions conservative.',
-        'operator_focus': 'Restore real HQ state sources before trusting action data.',
+        'operator_summary': 'State is incomplete or stale, keep trading actions conservative.' if action_required else 'State sources are present; verify operator actions against live integrations.',
+        'operator_focus': 'Restore real HQ state sources before trusting action data.' if action_required else 'Maintain transport stability while deepening truth.',
         'primary_directive': 'Operate from truth, not hope.',
         'next_actions': ['Restore live integrations', 'Validate deploy'],
         'wallet': wallet,
@@ -195,6 +267,10 @@ def hq_status():
             'bloc_state_text': bloc_state_text,
             'tradier_board_text': tradier_board_text,
             'tradier_audit_lines': audit_lines,
+            'tradier_source_state': tradier_source_state,
+            'bloc_source_state': bloc_source_state,
+            'tradier_board_path': str(board_path) if board_path else None,
+            'tradier_audit_path': str(audit_path) if audit_path else None,
         },
     }
 
