@@ -2,15 +2,7 @@ BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
 VIX: 17.83
 
 Directional / Scalping Leaders
-1. SPY PUT | Underlying 711.69 | Strike 720.00 | Exp 2026-05-12 | 14DTE | Δ -0.6426 | Bid/Ask 10.25/13.57
-   Candidate ID: SPY-2026-05-12-PUT-720
-   Thesis: best near-ATM momentum leader in current pass
-   Entry: only on confirmation / momentum continuation
-   Invalidation: fail on momentum / hard stop discipline required
-   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
-   Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
-   Risk: defined-risk premium outlay; avoid size creep
-2. IWM CALL | Underlying 273.91 | Strike 270.00 | Exp 2026-05-12 | 14DTE | Δ 0.6428 | Bid/Ask 7.48/7.59
+1. IWM CALL | Underlying 273.91 | Strike 270.00 | Exp 2026-05-12 | 14DTE | Δ 0.6428 | Bid/Ask 7.48/7.59
    Candidate ID: IWM-2026-05-12-CALL-270
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -18,7 +10,15 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-3. XSP CALL | Underlying 713.88 | Strike 707.00 | Exp 2026-05-12 | 14DTE | Δ 0.6430 | Bid/Ask 12.79/14.12
+2. SPY CALL | Underlying 711.69 | Strike 705.00 | Exp 2026-05-12 | 14DTE | Δ 0.6430 | Bid/Ask 11.68/14.99
+   Candidate ID: SPY-2026-05-12-CALL-705
+   Thesis: best near-ATM momentum leader in current pass
+   Entry: only on confirmation / momentum continuation
+   Invalidation: fail on momentum / hard stop discipline required
+   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
+   Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
+   Risk: defined-risk premium outlay; avoid size creep
+3. XSP CALL | Underlying 713.88 | Strike 707.00 | Exp 2026-05-12 | 14DTE | Δ 0.6431 | Bid/Ask 12.58/14.17
    Candidate ID: XSP-2026-05-12-CALL-707
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -26,8 +26,8 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-4. QQQ CALL | Underlying 657.55 | Strike 651.00 | Exp 2026-05-05 | 7DTE | Δ 0.6502 | Bid/Ask 12.11/13.86
-   Candidate ID: QQQ-2026-05-05-CALL-651
+4. XSP CALL | Underlying 713.88 | Strike 709.00 | Exp 2026-05-05 | 7DTE | Δ 0.6432 | Bid/Ask 8.74/10.45
+   Candidate ID: XSP-2026-05-05-CALL-709
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
    Invalidation: fail on momentum / hard stop discipline required
@@ -44,41 +44,15 @@ Directional / Scalping Leaders
    Risk: defined-risk premium outlay; avoid size creep
 
 Premium / Credit Leaders
-1. QQQ PUT | Underlying 657.55 | Strike 634.00 | Exp 2026-05-05 | 7DTE | Δ -0.1402 | Bid/Ask 1.54/1.90
-   Candidate ID: QQQ-2026-05-05-PUT-634
+1. XSP PUT | Underlying 713.88 | Strike 686.00 | Exp 2026-05-12 | 14DTE | Δ -0.1399 | Bid/Ask 1.68/1.91
+   Candidate ID: XSP-2026-05-12-PUT-686
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
    Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
    Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
    Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
-2. TSLA CALL | Underlying 376.02 | Strike 410.00 | Exp 2026-05-06 | 8DTE (requested 7DTE, fallback) | Δ 0.1395 | Bid/Ask 1.30/1.34 [fallback-expiry]
-   Candidate ID: TSLA-2026-05-06-CALL-410
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-   Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-06.
-3. TSLA CALL | Underlying 376.02 | Strike 420.00 | Exp 2026-05-13 | 15DTE (requested 14DTE, fallback) | Δ 0.1395 | Bid/Ask 1.71/2.17 [fallback-expiry]
-   Candidate ID: TSLA-2026-05-13-CALL-420
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-   Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-13.
-4. SPY PUT | Underlying 711.69 | Strike 692.00 | Exp 2026-05-05 | 7DTE | Δ -0.1385 | Bid/Ask 1.14/1.16
-   Candidate ID: SPY-2026-05-05-PUT-692
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-5. XSP PUT | Underlying 713.88 | Strike 695.00 | Exp 2026-05-05 | 7DTE | Δ -0.1382 | Bid/Ask 1.12/1.27
+2. XSP PUT | Underlying 713.88 | Strike 695.00 | Exp 2026-05-05 | 7DTE | Δ -0.1403 | Bid/Ask 1.11/1.31
    Candidate ID: XSP-2026-05-05-PUT-695
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
@@ -86,6 +60,32 @@ Premium / Credit Leaders
    Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
    Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
+3. QQQ PUT | Underlying 657.55 | Strike 634.00 | Exp 2026-05-05 | 7DTE | Δ -0.1410 | Bid/Ask 1.54/1.90
+   Candidate ID: QQQ-2026-05-05-PUT-634
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+4. TSLA PUT | Underlying 376.02 | Strike 352.50 | Exp 2026-05-06 | 8DTE (requested 7DTE, fallback) | Δ -0.1431 | Bid/Ask 1.81/1.87 [fallback-expiry]
+   Candidate ID: TSLA-2026-05-06-PUT-352.5
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+   Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-06.
+5. NVDA PUT | Underlying 213.17 | Strike 195.00 | Exp 2026-05-13 | 15DTE (requested 14DTE, fallback) | Δ -0.1365 | Bid/Ask 1.21/1.48 [fallback-expiry]
+   Candidate ID: NVDA-2026-05-13-PUT-195
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+   Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-13.
 
 Run Notes
 - Leaders emitted: 21
