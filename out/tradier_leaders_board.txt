@@ -1,8 +1,8 @@
 BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
-VIX: 17.36
+VIX: 17.43
 
 Directional / Scalping Leaders
-1. QQQ CALL | Underlying 664.03 | Strike 655.00 | Exp 2026-05-14 | 14DTE | Δ 0.6331 | Bid/Ask 16.35/16.45
+1. QQQ CALL | Underlying 663.74 | Strike 655.00 | Exp 2026-05-14 | 14DTE | Δ 0.6331 | Bid/Ask 16.17/16.25
    Candidate ID: QQQ-2026-05-14-CALL-655
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -10,7 +10,15 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-2. QQQ CALL | Underlying 664.03 | Strike 656.00 | Exp 2026-05-07 | 7DTE | Δ 0.6477 | Bid/Ask 12.36/12.44
+2. XSP CALL | Underlying 717.58 | Strike 712.00 | Exp 2026-05-07 | 7DTE | Δ 0.6398 | Bid/Ask 8.73/9.69
+   Candidate ID: XSP-2026-05-07-CALL-712
+   Thesis: best near-ATM momentum leader in current pass
+   Entry: only on confirmation / momentum continuation
+   Invalidation: fail on momentum / hard stop discipline required
+   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
+   Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
+   Risk: defined-risk premium outlay; avoid size creep
+3. QQQ CALL | Underlying 663.74 | Strike 656.00 | Exp 2026-05-07 | 7DTE | Δ 0.6477 | Bid/Ask 12.19/12.24
    Candidate ID: QQQ-2026-05-07-CALL-656
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -18,23 +26,15 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-3. XSP CALL | Underlying 717.59 | Strike 708.00 | Exp 2026-05-07 | 7DTE | Δ 0.6523 | Bid/Ask 11.86/12.85
-   Candidate ID: XSP-2026-05-07-CALL-708
+4. XSP CALL | Underlying 717.58 | Strike 709.00 | Exp 2026-05-14 | 14DTE | Δ 0.6529 | Bid/Ask 13.78/14.62
+   Candidate ID: XSP-2026-05-14-CALL-709
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
    Invalidation: fail on momentum / hard stop discipline required
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-4. XSP CALL | Underlying 717.59 | Strike 706.00 | Exp 2026-05-14 | 14DTE | Δ 0.6529 | Bid/Ask 16.06/16.99
-   Candidate ID: XSP-2026-05-14-CALL-706
-   Thesis: best near-ATM momentum leader in current pass
-   Entry: only on confirmation / momentum continuation
-   Invalidation: fail on momentum / hard stop discipline required
-   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
-   Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
-   Risk: defined-risk premium outlay; avoid size creep
-5. IWM CALL | Underlying 276.12 | Strike 271.00 | Exp 2026-05-14 | 14DTE | Δ 0.6564 | Bid/Ask 8.11/8.37
+5. IWM CALL | Underlying 276.27 | Strike 271.00 | Exp 2026-05-14 | 14DTE | Δ 0.6564 | Bid/Ask 8.17/8.37
    Candidate ID: IWM-2026-05-14-CALL-271
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -44,7 +44,15 @@ Directional / Scalping Leaders
    Risk: defined-risk premium outlay; avoid size creep
 
 Premium / Credit Leaders
-1. AMD PUT | Underlying 348.88 | Strike 302.50 | Exp 2026-05-08 | 8DTE (requested 7DTE, fallback) | Δ -0.1402 | Bid/Ask 3.35/3.50 [fallback-expiry]
+1. XSP CALL | Underlying 717.58 | Strike 729.00 | Exp 2026-05-07 | 7DTE | Δ 0.1401 | Bid/Ask 0.88/0.98
+   Candidate ID: XSP-2026-05-07-CALL-729
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+2. AMD PUT | Underlying 349.67 | Strike 302.50 | Exp 2026-05-08 | 8DTE (requested 7DTE, fallback) | Δ -0.1402 | Bid/Ask 3.20/3.40 [fallback-expiry]
    Candidate ID: AMD-2026-05-08-PUT-302.5
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
@@ -53,7 +61,15 @@ Premium / Credit Leaders
    Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
    Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-08.
-2. AAPL CALL | Underlying 272.56 | Strike 292.50 | Exp 2026-05-15 | 15DTE (requested 14DTE, fallback) | Δ 0.1402 | Bid/Ask 1.25/1.34 [fallback-expiry]
+3. XSP PUT | Underlying 717.58 | Strike 690.00 | Exp 2026-05-14 | 14DTE | Δ -0.1402 | Bid/Ask 1.75/1.87
+   Candidate ID: XSP-2026-05-14-PUT-690
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+4. AAPL CALL | Underlying 273.19 | Strike 292.50 | Exp 2026-05-15 | 15DTE (requested 14DTE, fallback) | Δ 0.1402 | Bid/Ask 1.31/1.42 [fallback-expiry]
    Candidate ID: AAPL-2026-05-15-CALL-292.5
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
@@ -62,24 +78,8 @@ Premium / Credit Leaders
    Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
    Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-15.
-3. QQQ PUT | Underlying 664.03 | Strike 630.00 | Exp 2026-05-14 | 14DTE | Δ -0.1398 | Bid/Ask 2.07/2.09
+5. QQQ PUT | Underlying 663.74 | Strike 630.00 | Exp 2026-05-14 | 14DTE | Δ -0.1398 | Bid/Ask 2.11/2.14
    Candidate ID: QQQ-2026-05-14-PUT-630
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-4. IWM PUT | Underlying 276.12 | Strike 266.00 | Exp 2026-05-07 | 7DTE | Δ -0.1393 | Bid/Ask 0.56/0.59
-   Candidate ID: IWM-2026-05-07-PUT-266
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-5. XSP CALL | Underlying 717.59 | Strike 734.00 | Exp 2026-05-14 | 14DTE | Δ 0.1393 | Bid/Ask 1.48/1.61
-   Candidate ID: XSP-2026-05-14-CALL-734
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
    Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
