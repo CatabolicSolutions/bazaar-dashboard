@@ -1,5 +1,5 @@
 BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
-VIX: 17.75
+VIX: 17.7
 
 Directional / Scalping Leaders
 1. NVDA CALL | Underlying 198.45 | Strike 195.00 | Exp 2026-05-11 | 7DTE | Δ 0.6396 | Bid/Ask 6.35/6.50
@@ -18,7 +18,7 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-3. XSP PUT | Underlying 723.01 | Strike 731.00 | Exp 2026-05-18 | 14DTE | Δ -0.6434 | Bid/Ask 11.43/12.51
+3. XSP PUT | Underlying 723.01 | Strike 731.00 | Exp 2026-05-18 | 14DTE | Δ -0.6434 | Bid/Ask 11.33/14.17
    Candidate ID: XSP-2026-05-18-PUT-731
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -34,8 +34,8 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-5. XSP CALL | Underlying 723.01 | Strike 718.00 | Exp 2026-05-11 | 7DTE | Δ 0.6509 | Bid/Ask 8.28/9.05
-   Candidate ID: XSP-2026-05-11-CALL-718
+5. TSLA CALL | Underlying 390.82 | Strike 382.50 | Exp 2026-05-11 | 7DTE | Δ 0.6537 | Bid/Ask 13.70/15.15
+   Candidate ID: TSLA-2026-05-11-CALL-382.5
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
    Invalidation: fail on momentum / hard stop discipline required
@@ -60,15 +60,7 @@ Premium / Credit Leaders
    Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
    Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
-3. XSP PUT | Underlying 723.01 | Strike 696.00 | Exp 2026-05-18 | 14DTE | Δ -0.1421 | Bid/Ask 1.88/2.23
-   Candidate ID: XSP-2026-05-18-PUT-696
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-4. TSLA CALL | Underlying 390.82 | Strike 420.00 | Exp 2026-05-11 | 7DTE | Δ 0.1427 | Bid/Ask 1.81/1.86
+3. TSLA CALL | Underlying 390.82 | Strike 420.00 | Exp 2026-05-11 | 7DTE | Δ 0.1427 | Bid/Ask 1.81/1.86
    Candidate ID: TSLA-2026-05-11-CALL-420
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
@@ -76,8 +68,16 @@ Premium / Credit Leaders
    Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
    Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
-5. IWM PUT | Underlying 279.28 | Strike 269.00 | Exp 2026-05-11 | 7DTE | Δ -0.1371 | Bid/Ask 0.73/0.80
+4. IWM PUT | Underlying 279.28 | Strike 269.00 | Exp 2026-05-11 | 7DTE | Δ -0.1371 | Bid/Ask 0.73/0.80
    Candidate ID: IWM-2026-05-11-PUT-269
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+5. XSP PUT | Underlying 723.01 | Strike 705.00 | Exp 2026-05-11 | 7DTE | Δ -0.1450 | Bid/Ask 1.32/1.65
+   Candidate ID: XSP-2026-05-11-PUT-705
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
    Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
@@ -87,6 +87,6 @@ Premium / Credit Leaders
 
 Run Notes
 - Leaders emitted: 16
-- Fallback-expiry leaders: 0
-- All leaders matched requested expiry intent directly
+- Fallback-expiry leaders: 1
+- Interpret fallback-expiry leaders as second-best structural representations, not literal requested-DTE matches
 
