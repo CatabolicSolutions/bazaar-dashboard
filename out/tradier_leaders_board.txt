@@ -2,7 +2,15 @@ BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
 VIX: 17.08
 
 Directional / Scalping Leaders
-1. SPY CALL | Underlying 731.58 | Strike 725.00 | Exp 2026-05-21 | 14DTE | Δ 0.6397 | Bid/Ask 11.35/14.86
+1. QQQ CALL | Underlying 694.94 | Strike 689.00 | Exp 2026-05-14 | 7DTE | Δ 0.6455 | Bid/Ask 10.24/12.09
+   Candidate ID: QQQ-2026-05-14-CALL-689
+   Thesis: best near-ATM momentum leader in current pass
+   Entry: only on confirmation / momentum continuation
+   Invalidation: fail on momentum / hard stop discipline required
+   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
+   Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
+   Risk: defined-risk premium outlay; avoid size creep
+2. SPY CALL | Underlying 731.58 | Strike 725.00 | Exp 2026-05-21 | 14DTE | Δ 0.6498 | Bid/Ask 11.35/14.86
    Candidate ID: SPY-2026-05-21-CALL-725
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
@@ -10,24 +18,16 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-2. QQQ PUT | Underlying 694.94 | Strike 705.00 | Exp 2026-05-21 | 14DTE | Δ -0.6451 | Bid/Ask 13.00/17.58
-   Candidate ID: QQQ-2026-05-21-PUT-705
+3. XSP PUT | Underlying 733.71 | Strike 739.00 | Exp 2026-05-14 | 7DTE | Δ -0.6501 | Bid/Ask 6.56/7.71
+   Candidate ID: XSP-2026-05-14-PUT-739
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
    Invalidation: fail on momentum / hard stop discipline required
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
    Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
    Risk: defined-risk premium outlay; avoid size creep
-3. SPY PUT | Underlying 731.58 | Strike 736.00 | Exp 2026-05-14 | 7DTE | Δ -0.6465 | Bid/Ask 6.50/6.86
-   Candidate ID: SPY-2026-05-14-PUT-736
-   Thesis: best near-ATM momentum leader in current pass
-   Entry: only on confirmation / momentum continuation
-   Invalidation: fail on momentum / hard stop discipline required
-   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend persists
-   Confidence: 7/10 — liquidity/structure driven, downgraded if fallback expiry
-   Risk: defined-risk premium outlay; avoid size creep
-4. XSP PUT | Underlying 733.71 | Strike 738.00 | Exp 2026-05-14 | 7DTE | Δ -0.6477 | Bid/Ask 6.22/6.81
-   Candidate ID: XSP-2026-05-14-PUT-738
+4. XSP PUT | Underlying 733.71 | Strike 742.00 | Exp 2026-05-21 | 14DTE | Δ -0.6504 | Bid/Ask 10.70/11.89
+   Candidate ID: XSP-2026-05-21-PUT-742
    Thesis: best near-ATM momentum leader in current pass
    Entry: only on confirmation / momentum continuation
    Invalidation: fail on momentum / hard stop discipline required
@@ -44,24 +44,7 @@ Directional / Scalping Leaders
    Risk: defined-risk premium outlay; avoid size creep
 
 Premium / Credit Leaders
-1. XSP PUT | Underlying 733.71 | Strike 708.00 | Exp 2026-05-21 | 14DTE | Δ -0.1401 | Bid/Ask 1.70/1.81
-   Candidate ID: XSP-2026-05-21-PUT-708
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 8/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-2. SPX PUT | Underlying 7337.11 | Strike 7155.00 | Exp 2026-05-15 | 8DTE (requested 7DTE, fallback) | Δ -0.1402 | Bid/Ask 10.20/11.10 [fallback-expiry]
-   Candidate ID: SPX-2026-05-15-PUT-7155
-   Thesis: best OTM premium candidate in the current delta/liquidity band
-   Entry: only as a defined-risk spread, not naked premium
-   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
-   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
-   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
-   Risk: manage in R; premium collection is not a license to overstay
-   Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
-3. AMD CALL | Underlying 408.46 | Strike 477.50 | Exp 2026-05-22 | 15DTE (requested 14DTE, fallback) | Δ 0.1398 | Bid/Ask 3.55/4.00 [fallback-expiry]
+1. AMD CALL | Underlying 408.46 | Strike 477.50 | Exp 2026-05-22 | 15DTE (requested 14DTE, fallback) | Δ 0.1398 | Bid/Ask 3.55/4.00 [fallback-expiry]
    Candidate ID: AMD-2026-05-22-CALL-477.5
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
@@ -70,8 +53,8 @@ Premium / Credit Leaders
    Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
    Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
-4. NDX PUT | Underlying 28574.65 | Strike 27480.00 | Exp 2026-05-15 | 8DTE (requested 7DTE, fallback) | Δ -0.1396 | Bid/Ask 54.70/57.00 [fallback-expiry]
-   Candidate ID: NDX-2026-05-15-PUT-27480
+2. SPX CALL | Underlying 7337.11 | Strike 7470.00 | Exp 2026-05-15 | 8DTE (requested 7DTE, fallback) | Δ 0.1393 | Bid/Ask 8.50/9.50 [fallback-expiry]
+   Candidate ID: SPX-2026-05-15-CALL-7470
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
    Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
@@ -79,8 +62,26 @@ Premium / Credit Leaders
    Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
    Risk: manage in R; premium collection is not a license to overstay
    Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
-5. SPY PUT | Underlying 731.58 | Strike 714.00 | Exp 2026-05-14 | 7DTE | Δ -0.1415 | Bid/Ask 0.99/1.01
-   Candidate ID: SPY-2026-05-14-PUT-714
+3. NDX PUT | Underlying 28611.67 | Strike 27580.00 | Exp 2026-05-15 | 8DTE (requested 7DTE, fallback) | Δ -0.1408 | Bid/Ask 64.20/66.70 [fallback-expiry]
+   Candidate ID: NDX-2026-05-15-PUT-27580
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+   Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
+4. TSLA CALL | Underlying 411.79 | Strike 445.00 | Exp 2026-05-15 | 8DTE (requested 7DTE, fallback) | Δ 0.1391 | Bid/Ask 2.18/2.24 [fallback-expiry]
+   Candidate ID: TSLA-2026-05-15-CALL-445
+   Thesis: best OTM premium candidate in the current delta/liquidity band
+   Entry: only as a defined-risk spread, not naked premium
+   Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
+   Targets: T1 25-35% capture, T2 50% capture, T3 hold only if risk remains contained
+   Confidence: 6/10 — clean spread/delta profile, downgraded if fallback expiry
+   Risk: manage in R; premium collection is not a license to overstay
+   Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
+5. XSP PUT | Underlying 733.71 | Strike 709.00 | Exp 2026-05-21 | 14DTE | Δ -0.1387 | Bid/Ask 1.80/1.93
+   Candidate ID: XSP-2026-05-21-PUT-709
    Thesis: best OTM premium candidate in the current delta/liquidity band
    Entry: only as a defined-risk spread, not naked premium
    Invalidation: abandon if structure requires chasing or volatility regime shifts against the setup
