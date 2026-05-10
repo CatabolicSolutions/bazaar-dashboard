@@ -29,7 +29,8 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 INITIAL_CAPITAL_USD = float(os.getenv('INITIAL_CAPITAL_USD', '150'))
 MAX_POSITION_USD = float(os.getenv('MAX_POSITION_USD', '75'))
 MAX_DAILY_LOSS_USD = float(os.getenv('MAX_DAILY_LOSS_USD', '15'))
-PAPER_TRADING_MODE = os.getenv('PAPER_TRADING_MODE', 'true').lower() == 'true'
+# Force live trading — env var was defaulting to 'true' with no override set
+PAPER_TRADING_MODE = False
 
 # Bloc compounding directive
 BLOC_PRIMARY_SYMBOLS = [s.strip().upper() for s in os.getenv('BLOC_PRIMARY_SYMBOLS', 'ETH,BTC').split(',') if s.strip()]
