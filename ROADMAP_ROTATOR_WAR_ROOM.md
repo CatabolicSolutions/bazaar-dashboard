@@ -50,10 +50,10 @@ Anomaly history, Service health, State consistency, Recent errors
 
 ## Phases
 
-### Phase 1 — Core Live Panels ✅ (current)
+### Phase 1 — Core Live Panels ✅ (done)
 Status bar, Overview, Position, Strategy, Market, Timeline, Execution
 
-### Phase 2 — Analytics + Research
+### Phase 2 — Analytics + Research ✅ (current)
 Performance panel, Research panel (Athena/Vigil/Harness/Tuning), Diagnostics panel, Action buttons
 
 ### Phase 3 — Operator Controls
