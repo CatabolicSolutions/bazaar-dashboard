@@ -1,8 +1,8 @@
 BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
-VIX: 18.16
+VIX: 18.13
 
 Directional / Scalping Leaders
-1. QQQ CALL | Underlying 713.58 | Strike 706.00 | Exp 2026-05-18 | 7DTE | Δ 0.6468 | Bid/Ask 13.00/13.05
+1. QQQ CALL | Underlying 714.18 | Strike 706.00 | Exp 2026-05-18 | 7DTE | Δ 0.6468 | Bid/Ask 13.42/13.46
    Candidate ID: QQQ-2026-05-18-CALL-706
    Setup Family: directional_momentum
    Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.
@@ -11,27 +11,18 @@ Directional / Scalping Leaders
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.
    Confidence: 10/10 | Structure Score 94.4 (delta 17.6, spread 19.8, premium 12.0, fallback penalty -0, dte penalty -0.0)
    Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep
-2. SPY CALL | Underlying 740.21 | Strike 735.00 | Exp 2026-05-18 | 7DTE | Δ 0.6421 | Bid/Ask 8.96/9.09
+2. SPY CALL | Underlying 740.32 | Strike 735.00 | Exp 2026-05-18 | 7DTE | Δ 0.6421 | Bid/Ask 9.03/9.17
    Candidate ID: SPY-2026-05-18-CALL-735
    Setup Family: directional_momentum
    Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.
    Expectations: Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.
    Invalidation: Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.
    Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.
-   Confidence: 10/10 | Structure Score 93.0 (delta 18.0, spread 19.1, premium 10.8, fallback penalty -0, dte penalty -0.0)
+   Confidence: 10/10 | Structure Score 93.0 (delta 18.0, spread 19.1, premium 10.9, fallback penalty -0, dte penalty -0.0)
    Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep
 
 Premium / Credit Leaders
-1. QQQ CALL | Underlying 713.58 | Strike 735.00 | Exp 2026-05-18 | 7DTE | Δ 0.1359 | Bid/Ask 1.16/1.18
-   Candidate ID: QQQ-2026-05-18-CALL-735
-   Setup Family: defined_risk_premium
-   Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.
-   Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.
-   Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.
-   Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.
-   Confidence: 8/10 | Structure Score 84.6 (delta 19.3, spread 19.0, premium 1.4, fallback penalty -0, dte penalty -0.0)
-   Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility
-2. SPY PUT | Underlying 740.21 | Strike 723.00 | Exp 2026-05-18 | 7DTE | Δ -0.1394 | Bid/Ask 1.19/1.20
+1. SPY PUT | Underlying 740.32 | Strike 723.00 | Exp 2026-05-18 | 7DTE | Δ -0.1394 | Bid/Ask 1.16/1.17
    Candidate ID: SPY-2026-05-18-PUT-723
    Setup Family: defined_risk_premium
    Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.
@@ -40,9 +31,18 @@ Premium / Credit Leaders
    Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.
    Confidence: 8/10 | Structure Score 85.8 (delta 19.9, spread 19.5, premium 1.4, fallback penalty -0, dte penalty -0.0)
    Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility
+2. QQQ PUT | Underlying 714.18 | Strike 688.00 | Exp 2026-05-18 | 7DTE | Δ -0.1433 | Bid/Ask 1.50/1.52
+   Candidate ID: QQQ-2026-05-18-PUT-688
+   Setup Family: defined_risk_premium
+   Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.
+   Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.
+   Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.
+   Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.
+   Confidence: 8/10 | Structure Score 85.4 (delta 19.4, spread 19.2, premium 1.8, fallback penalty -0, dte penalty -0.0)
+   Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility
 
 Run Notes
-- Leaders emitted: 18
-- Fallback-expiry leaders: 4
+- Leaders emitted: 19
+- Fallback-expiry leaders: 5
 - Interpret fallback-expiry leaders as second-best structural representations, not literal requested-DTE matches
 
