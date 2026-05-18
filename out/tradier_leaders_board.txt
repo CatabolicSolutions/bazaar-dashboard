@@ -1,32 +1,21 @@
 BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
-VIX: 18.43
-
-Directional / Scalping Leaders
-1. IWM CALL | Underlying 277.60 | Strike 275.00 | Exp 2026-05-22 | 7DTE | Δ 0.6274 | Bid/Ask 4.13/5.66
-   Candidate ID: IWM-2026-05-22-CALL-275
-   Setup Family: directional_momentum
-   Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.
-   Expectations: Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.
-   Invalidation: Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.
-   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.
-   Confidence: 6/10 | Leader Score 63.8 | Structure 71.5
-   Rubric: conviction 68.6, asymmetry 51.1, execution 62.6, invalidation 70.0, timing 61.0, scalp-fit 74.9
-   Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep
+VIX: 18.69
 
 Premium / Credit Leaders
-1. AMD PUT | Underlying 424.10 | Strike 375.00 | Exp 2026-05-29 | 14DTE | Δ -0.1518 | Bid/Ask 4.95/5.25
-   Candidate ID: AMD-2026-05-29-PUT-375
+1. SPY PUT | Underlying 739.17 | Strike 718.00 | Exp 2026-05-26 | 8DTE (requested 7DTE, fallback) | Δ -0.1387 | Bid/Ask 1.78/1.80 [fallback-expiry]
+   Candidate ID: SPY-2026-05-26-PUT-718
    Setup Family: defined_risk_premium
    Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.
    Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.
    Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.
    Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.
-   Confidence: 8/10 | Leader Score 70.5 | Structure 85.5
-   Rubric: conviction 57.7, asymmetry 67.3, execution 93.6, invalidation 70.0, timing 53.2, scalp-fit 86.5
+   Confidence: 6/10 | Leader Score 69.2 | Structure 71.2
+   Rubric: conviction 61.4, asymmetry 63.2, execution 80.1, invalidation 70.0, timing 59.1, scalp-fit 89.3
    Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility
+   Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-26.
 
 Run Notes
-- Leaders emitted: 3
-- Fallback-expiry leaders: 0
-- All leaders matched requested expiry intent directly
+- Leaders emitted: 2
+- Fallback-expiry leaders: 2
+- Interpret fallback-expiry leaders as second-best structural representations, not literal requested-DTE matches
 
