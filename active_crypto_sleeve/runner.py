@@ -135,6 +135,16 @@ def _fetch_candles(product_id: str, granularity: str = "FIVE_MINUTE", count: int
     return candles[-count:]
 
 
+SWEEP_PARAMS = {
+    # product_id -> {sweep_thresh, reclaim_thresh, high_conf, med_conf, stop_buf, vol_min, lookback, recent}
+    "BIP-20DEC30-CDE":  {"sweep": 0.0010, "reclaim": 0.0005, "high": 0.0030, "med": 0.0015, "stop_buf": 0.002, "vol_min": 1.5, "lookback": 18, "recent": 5},
+    "ETP-20DEC30-CDE":  {"sweep": 0.0010, "reclaim": 0.0005, "high": 0.0030, "med": 0.0015, "stop_buf": 0.002, "vol_min": 1.5, "lookback": 18, "recent": 5},
+    "SLP-20DEC30-CDE":  {"sweep": 0.0015, "reclaim": 0.0007, "high": 0.0040, "med": 0.0020, "stop_buf": 0.003, "vol_min": 1.5, "lookback": 18, "recent": 5},
+    "GOL-27MAY26-CDE":  {"sweep": 0.0005, "reclaim": 0.0003, "high": 0.0015, "med": 0.0008, "stop_buf": 0.001, "vol_min": 1.2, "lookback": 18, "recent": 5},
+    "MC-18JUN26-CDE":  {"sweep": 0.0008, "reclaim": 0.0004, "high": 0.0020, "med": 0.0010, "stop_buf": 0.0015, "vol_min": 1.3, "lookback": 18, "recent": 5},
+}
+
+
 def _detect_sweep_reclaim_candles(
     product_id: str,
     label: str,
@@ -142,9 +152,12 @@ def _detect_sweep_reclaim_candles(
 ) -> dict | None:
     """
     Detect liquidation sweep reclaim using real OHLC candle data.
+    Uses per-asset parameters from SWEEP_PARAMS.
     LONG: candle wicks below swing low, reclaims above.
     SHORT: spike above swing high, fails back.
     """
+    p = SWEEP_PARAMS.get(product_id, SWEEP_PARAMS["BIP-20DEC30-CDE"])  # BTC defaults fallback
+
     if not candles or len(candles) < 10:
         return None
 
@@ -162,8 +175,10 @@ def _detect_sweep_reclaim_candles(
         return None
 
     last = data[-1]
-    lookback = data[-20:-2]
-    recent_data = data[-5:]
+    lookback_end = -2
+    lookback_start = -(p["lookback"] + 2)
+    lookback = data[lookback_start:lookback_end]
+    recent_data = data[-p["recent"]:]
 
     swing_low = min(c["low"] for c in lookback)
     swing_high = max(c["high"] for c in lookback)
@@ -175,22 +190,33 @@ def _detect_sweep_reclaim_candles(
     max_recent_high = max(c["high"] for c in recent_data)
     vol_ratio = current_volume / max(avg_volume, 0.01) if avg_volume > 0 else 0
 
+    # Use per-asset thresholds
+    sweep_thresh = 1.0 - p["sweep"]        # e.g. 0.0010 -> 0.999 for LONG
+    reclaim_thresh = 1.0 + p["reclaim"]      # e.g. 0.0005 -> 1.0005 for LONG
+    short_sweep_thresh = 1.0 + p["sweep"]    # e.g. 0.0010 -> 1.001 for SHORT
+    short_reclaim_thresh = 1.0 - p["reclaim"] # e.g. 0.0005 -> 0.9995 for SHORT
+
     # LONG setup
-    sweep_long = min_recent_low < swing_low * 0.999
-    reclaim_long = current_close > swing_low * 1.0005
+    sweep_long = min_recent_low < swing_low * sweep_thresh
+    reclaim_long = current_close > swing_low * reclaim_thresh
     sweep_depth_long = (swing_low - min_recent_low) / swing_low * 100 if sweep_long else 0
 
     # SHORT setup
-    sweep_short = max_recent_high > swing_high * 1.001
-    reclaim_short = current_close < swing_high * 0.9995
+    sweep_short = max_recent_high > swing_high * short_sweep_thresh
+    reclaim_short = current_close < swing_high * short_reclaim_thresh
     spike_depth_short = (max_recent_high - swing_high) / swing_high * 100 if sweep_short else 0
+
+    high_depth = p["high"] * 100   # convert to % for comparison
+    med_depth = p["med"] * 100
+    stop_buf = 1.0 - p["stop_buf"]
+    short_stop_buf = 1.0 + p["stop_buf"]
 
     results = []
 
     if sweep_long and reclaim_long:
-        conf = "HIGH" if sweep_depth_long >= 0.3 else ("MEDIUM" if sweep_depth_long >= 0.15 else "LOW")
-        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > 1.5):
-            stop_val = min_recent_low * 0.998
+        conf = "HIGH" if sweep_depth_long >= high_depth else ("MEDIUM" if sweep_depth_long >= med_depth else "LOW")
+        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > p["vol_min"]):
+            stop_val = min_recent_low * stop_buf
             stop_pct = round((current_close - stop_val) / current_close * 100, 3) if stop_val else None
             results.append({
                 "product_id": product_id, "market": label, "direction": "LONG",
@@ -206,8 +232,10 @@ def _detect_sweep_reclaim_candles(
             })
 
     if sweep_short and reclaim_short:
-        conf = "HIGH" if spike_depth_short >= 0.3 else ("MEDIUM" if spike_depth_short >= 0.15 else "LOW")
-        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > 1.5):
+        conf = "HIGH" if spike_depth_short >= high_depth else ("MEDIUM" if spike_depth_short >= med_depth else "LOW")
+        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > p["vol_min"]):
+            stop_val = max_recent_high * short_stop_buf
+            stop_pct = round((stop_val - current_close) / current_close * 100, 3) if stop_val else None
             results.append({
                 "product_id": product_id, "market": label, "direction": "SHORT",
                 "setup_family": "candle_sweep_reclaim", "confidence": conf,
@@ -216,51 +244,12 @@ def _detect_sweep_reclaim_candles(
                 "spike_depth_pct": round(spike_depth_short, 3), "volume_ratio": round(vol_ratio, 2),
                 "entry_zone": f"{swing_high * 0.998:,.2f} - {swing_high * 0.9995:,.2f}",
                 "entry_trigger": f"Enter short below ${swing_high * 0.999:,.2f}",
-                "stop": f"{max_recent_high * 1.002:,.2f}",
+                "stop": f"{stop_val:,.2f}", "stop_pct": stop_pct,
                 "target_1": f"{swing_high * 0.995:,.2f}", "target_2": f"{swing_high * 0.99:,.2f}",
-                "invalidation": f"Abort if price reclaims above ${max_recent_high * 1.002:,.2f}",
+                "invalidation": f"Abort if price reclaims above ${stop_val:,.2f}",
             })
 
     return results[0] if results else None
-
-    data = []
-    for c in candles:
-        o = _float(c.get("open"))
-        h = _float(c.get("high"))
-        l = _float(c.get("low"))
-        cl = _float(c.get("close"))
-        v = _float(c.get("volume"))
-        if o and h and l and cl:
-            data.append({"open": o, "high": h, "low": l, "close": cl, "volume": v or 0})
-
-    if len(data) < 10:
-        return None
-
-    last = data[-1]
-    lookback = data[-20:-2]
-    recent_data = data[-5:]
-
-    swing_low = min(c["low"] for c in lookback)
-    swing_high = max(c["high"] for c in lookback)
-    avg_volume = sum(c["volume"] for c in lookback) / max(len(lookback), 1)
-
-    current_close = last["close"]
-    current_volume = last["volume"]
-    min_recent_low = min(c["low"] for c in recent_data)
-    max_recent_high = max(c["high"] for c in recent_data)
-    vol_ratio = current_volume / max(avg_volume, 0.01) if avg_volume > 0 else 0
-
-    # LONG setup
-    sweep_long = min_recent_low < swing_low * 0.999
-    reclaim_long = current_close > swing_low * 1.0005
-    sweep_depth_long = (swing_low - min_recent_low) / swing_low * 100 if sweep_long else 0
-
-    # SHORT setup
-    sweep_short = max_recent_high > swing_high * 1.001
-    reclaim_short = current_close < swing_high * 0.9995
-    spike_depth_short = (max_recent_high - swing_high) / swing_high * 100 if sweep_short else 0
-
-    results = []
 
     if sweep_long and reclaim_long:
         conf = "HIGH" if sweep_depth_long >= 0.3 else ("MEDIUM" if sweep_depth_long >= 0.15 else "LOW")
