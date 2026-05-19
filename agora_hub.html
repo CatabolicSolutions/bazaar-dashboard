@@ -4,294 +4,400 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AGORA — Bazaar of Fortunes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg-primary: #070b15;
+  --bg-surface: #0c1320;
+  --bg-card: #111827;
+  --bg-card-hover: #162033;
+  --border: #1e2a3f;
+  --border-light: #27344e;
+  --text-primary: #e8edf5;
+  --text-secondary: #8892a8;
+  --text-tertiary: #556075;
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.1);
+  --green-border: rgba(34,197,94,0.25);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --red-border: rgba(239,68,68,0.25);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245,158,11,0.1);
+  --cyan: #06b6d4;
+  --cyan-bg: rgba(6,182,212,0.1);
+  --accent: #6366f1;
+  --accent-bg: rgba(99,102,241,0.1);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#030712;color:#e0e6ed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:16px;min-height:100vh}
-.header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#08111e;border:1px solid #1a2740;border-radius:8px;margin-bottom:16px}
-.header h1{font-size:16px;font-weight:600;color:#e0e6ed;display:flex;align-items:center;gap:10px}
-.header h1 span{background:linear-gradient(135deg,#1de9b6,#00bcd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.health-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.health-dot.green{background:#1de9b6;box-shadow:0 0 6px rgba(29,233,182,.5)}
-.health-dot.amber{background:#f5a623;box-shadow:0 0 6px rgba(245,166,35,.5)}
-.health-dot.red{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.5)}
-.health-dot.grey{background:#4a5a6d}
-.header-meta{display:flex;align-items:center;gap:16px;font-size:11px;color:#6b7b8d}
-.header-meta .ts{font-family:'SF Mono','Fira Code','Consolas',monospace;color:#4a5a6d}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:'Inter',-apple-system,sans-serif;font-size:13px;min-height:100vh;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono','SF Mono',monospace}
+.tabular{font-variant-numeric:tabular-nums}
 
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
-.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px}
+/* ── Layout ── */
+.app{max-width:1400px;margin:0 auto;padding:20px 24px}
 
-.card{border:1px solid #1a2740;border-radius:8px;background:#08111e;overflow:hidden}
-.card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #1a2740;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7b8d}
-.card-header .card-title{font-weight:600}
-.card-body{padding:14px}
+/* ── Header ── */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--cyan));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff}
+.header h1{font-size:18px;font-weight:600;color:var(--text-primary)}
+.header h1 span{color:var(--text-tertiary);font-weight:400}
+.header-right{display:flex;align-items:center;gap:12px}
+.header-time{font-size:11px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace}
 
-.price-card{text-align:center;padding:16px 12px}
-.price-card .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#6b7b8d;margin-bottom:4px;font-weight:500}
-.price-card .price{font-size:26px;font-weight:600;color:#e0e6ed;font-family:'SF Mono','Fira Code','Consolas',monospace}
-.price-card .meta{font-size:10px;color:#4a5a6d;margin-top:6px}
+.service-dots{display:flex;gap:8px;align-items:center}
+.service-dot{display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:500;background:var(--bg-card);border:1px solid var(--border)}
+.service-dot .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:var(--green);box-shadow:0 0 4px rgba(34,197,94,0.4)}
+.dot.err{background:var(--red);box-shadow:0 0 4px rgba(239,68,68,0.4)}
+.dot.warn{background:var(--amber);box-shadow:0 0 4px rgba(245,158,11,0.4)}
+.dot.off{background:var(--text-tertiary)}
 
-.stat-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(20,32,48,.5)}
-.stat-row:last-child{border:none}
-.stat-label{color:#6b7b8d}
-.stat-value{color:#c0c8d0;font-family:'SF Mono','Fira Code','Consolas',monospace;font-size:11px}
-.stat-value.green{color:#1de9b6}
-.stat-value.amber{color:#f5a623}
-.stat-value.red{color:#ef4444}
+/* ── Section ── */
+.section{margin-bottom:20px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px}
+.section-title{font-size:14px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:16px}
+.section-subtitle{font-size:11px;color:var(--text-tertiary);font-weight:400}
 
-table{width:100%;border-collapse:collapse;font-size:11px}
-thead th{text-align:left;padding:6px 8px;color:#6b7b8d;font-weight:500;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1a2740;position:sticky;top:0;background:#08111e}
-tbody td{padding:5px 8px;border-bottom:1px solid rgba(20,32,48,.5);white-space:nowrap}
-tr:hover td{background:rgba(255,255,255,.02)}
-.num{text-align:right;font-family:'SF Mono','Fira Code','Consolas',monospace}
-.pos{color:#1de9b6}
-.neg{color:#ef4444}
+/* ── Grids ── */
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
-.signal-banner{padding:10px 14px;border-radius:6px;margin-bottom:10px;font-size:12px;display:none}
-.signal-banner.long{display:block;border-left:3px solid #1de9b6;background:#0a1f1a}
-.signal-banner.short{display:block;border-left:3px solid #ef4444;background:#1f0a0a}
-.signal-dir{font-weight:700;font-size:13px}
-.signal-conf{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:8px;vertical-align:middle}
-.signal-conf.HIGH{background:#1de9b6;color:#030712}
-.signal-conf.MEDIUM{background:#f5a623;color:#030712}
-.signal-conf.LOW{background:#4a5a6d;color:#c0c8d0}
-.signal-detail{font-size:11px;color:#a0a8b0;margin-top:4px}
+/* ── Cards ── */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.15s}
+.card:hover{border-color:var(--border-light)}
 
-.pending-banner{border:1px solid #f5a623;background:#1a1408;border-radius:6px;padding:10px 14px;margin-bottom:10px;display:none;font-size:12px}
-.pending-banner.visible{display:flex;align-items:center;gap:8px}
-.pending-banner .tag{background:#f5a623;color:#030712;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase}
+/* ── Price Cards ── */
+.price-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;text-align:center;transition:border-color 0.15s}
+.price-card:hover{border-color:var(--border-light)}
+.price-card .asset-sym{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.price-card .asset-price{font-size:22px;font-weight:600;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.price-card .asset-params{font-size:10px;color:var(--text-tertiary);margin-top:6px;font-family:'JetBrains Mono',monospace}
 
-.empty-state{padding:24px;text-align:center;color:#4a5a6d;font-size:12px}
-.loading{color:#4a5a6d;font-size:11px;animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+/* ── Signal Banner ── */
+.signal-banner{display:none;padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:8px;align-items:flex-start;gap:12px}
+.signal-banner.long{display:flex;background:var(--green-bg);border:1px solid var(--green-border)}
+.signal-banner.short{display:flex;background:var(--red-bg);border:1px solid var(--red-border)}
+.signal-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.signal-icon.long{background:var(--green);color:#fff}
+.signal-icon.short{background:var(--red);color:#fff}
+.signal-content{flex:1;min-width:0}
+.signal-top{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap}
+.signal-dir{font-size:13px;font-weight:600}
+.signal-market{font-size:12px;color:var(--text-secondary)}
+.signal-conf{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:0.03em}
+.signal-conf.HIGH{background:var(--green);color:#030712}
+.signal-conf.MEDIUM{background:var(--amber);color:#030712}
+.signal-conf.LOW{background:var(--text-tertiary);color:var(--text-secondary)}
+.signal-detail{font-size:11px;color:var(--text-secondary);margin-top:4px;line-height:1.4}
+.signal-meta{display:flex;gap:16px;margin-top:8px;font-size:10px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace}
+.signal-meta span{display:flex;align-items:center;gap:4px}
 
-.mono{font-family:'SF Mono','Fira Code','Consolas',monospace}
-.w-full{width:100%}
-.mt-8{margin-top:8px}
-.mb-8{margin-bottom:8px}
-.flex{display:flex}
-.items-center{align-items:center}
-.gap-8{gap:8px}
-.text-xs{font-size:11px}
-.text-2{color:#6b7b8d}
-.text-mono{font-family:'SF Mono','Fira Code','Consolas',monospace}
+/* ── Pending Banner ── */
+.pending-banner{display:none;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:8px;align-items:center;gap:10px;background:var(--amber-bg);border:1px solid rgba(245,158,11,0.2)}
+.pending-banner.visible{display:flex}
+.pending-tag{background:var(--amber);color:#030712;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.pending-text{font-size:12px;color:var(--text-primary)}
+.pending-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-tertiary)}
+
+/* ── Guardrails Badge ── */
+.guardrails-bar{display:flex;gap:16px;padding:8px 0 0;flex-wrap:wrap}
+.guardrail-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace}
+.guardrail-item .tag{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600}
+.guardrail-item .tag.live{background:var(--green);color:#030712}
+.guardrail-item .tag.dry{background:var(--text-tertiary);color:#030712}
+
+/* ── Rotator Card ── */
+.rotator-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.rotator-stat{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;border-bottom:1px solid rgba(30,42,63,0.5)}
+.rotator-stat:last-child{border-bottom:none}
+.rotator-label{color:var(--text-tertiary)}
+.rotator-value{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.rotator-value.green{color:var(--green)}
+.rotator-value.amber{color:var(--amber)}
+.rotator-value.red{color:var(--red)}
+
+/* ── Tables ── */
+.table-wrap{overflow-x:auto}
+.table-wrap table{width:100%;border-collapse:separate;border-spacing:0;font-size:11px}
+.table-wrap thead th{position:sticky;top:0;background:var(--bg-card);text-align:left;padding:8px 10px;font-size:10px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--border);white-space:nowrap}
+.table-wrap tbody td{padding:7px 10px;border-bottom:1px solid rgba(30,42,63,0.4);white-space:nowrap;font-variant-numeric:tabular-nums}
+.table-wrap tbody tr:last-child td{border-bottom:none}
+.table-wrap tbody tr:hover td{background:var(--bg-card-hover)}
+.num{text-align:right;font-family:'JetBrains Mono',monospace}
+.r{color:var(--red)}
+.g{color:var(--green)}
+
+/* ── Positions ── */
+.pos-state{padding:2px 6px;border-radius:3px;font-size:9px;font-weight:500}
+.pos-state.damage_control{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.pos-state.active{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.pos-state.pending{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
+
+/* ── Empty State ── */
+.empty{padding:32px;text-align:center;color:var(--text-tertiary);font-size:12px;line-height:1.6}
+.empty .icon{font-size:28px;display:block;margin-bottom:8px;opacity:0.5}
+.empty .sub{font-size:11px;color:var(--text-tertiary);margin-top:4px;opacity:0.7}
+
+/* ── Loading ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:24px;gap:8px;color:var(--text-tertiary);font-size:12px}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Responsive ── */
+@media(max-width:1000px){.grid-5{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:1fr}}
+@media(max-width:700px){.grid-5{grid-template-columns:repeat(2,1fr)}.header{flex-direction:column;align-items:flex-start;gap:12px}.service-dots{flex-wrap:wrap}}
 </style>
 </head>
 <body>
+<div class="app">
 
-<div class="header">
-  <h1><span class="health-dot" id="hdr-health"></span> <span>AGORA</span> <span style="font-weight:400;font-size:13px;color:#6b7b8d;background:0;font-variant-numeric:tabular-nums">Bazaar of Fortunes</span></h1>
-  <div class="header-meta">
-    <span id="hdr-cfm">CFM —</span>
-    <span id="hdr-rotator">ROTATOR —</span>
-    <span id="hdr-tradier">TRADIER —</span>
-    <span class="ts" id="hdr-ts">—</span>
-  </div>
-</div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">A</div>
+      <h1>AGORA <span>· Bazaar of Fortunes</span></h1>
+    </div>
+    <div class="header-right">
+      <div class="service-dots">
+        <span class="service-dot"><span class="dot" id="dot-cfm"></span>CFM</span>
+        <span class="service-dot"><span class="dot" id="dot-rot"></span>Rotator</span>
+        <span class="service-dot"><span class="dot" id="dot-trd"></span>Tradier</span>
+      </div>
+      <span class="header-time" id="hdr-time">—</span>
+    </div>
+  </header>
 
-<!-- CFM RUNNER -->
-<div class="card mb-8">
-  <div class="card-header">
-    <span class="card-title">⚡ Coinbase CFM — Active Sleeve</span>
-    <span id="cfm-status" style="font-size:10px;color:#4a5a6d">—</span>
-  </div>
-  <div class="card-body">
-    <div class="grid-5" id="cfm-prices"></div>
-    <div id="cfm-signal"></div>
-    <div id="cfm-pending"></div>
-    <div class="stat-row" style="padding:6px 0 0">
-      <span class="stat-label">Guardrails</span>
-      <span class="stat-value green" id="cfm-guardrails">—</span>
+  <!-- CFM Runner -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">⚡</span> CFM Active Sleeve</div>
+      <span class="section-subtitle" id="cfm-subtitle">—</span>
     </div>
-  </div>
-</div>
+    <div class="card" style="padding:16px">
+      <div class="grid-5" id="cfm-prices"></div>
+      <div id="cfm-signal"></div>
+      <div id="cfm-pending"></div>
+      <div class="guardrails-bar" id="cfm-guardrails"></div>
+    </div>
+  </section>
 
-<!-- ROTATOR & TRADIER -->
-<div class="grid-2">
-  <!-- UNISWAP ROTATOR -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">🔄 Uniswap Rotator — Compounder</span>
-      <span id="rot-status" style="font-size:10px;color:#4a5a6d">—</span>
-    </div>
-    <div class="card-body" id="rot-body">
-      <div class="loading">Loading rotator state…</div>
-    </div>
+  <!-- Rotator + Tradier -->
+  <div class="grid-2">
+    <!-- Rotator -->
+    <section class="section" style="margin-bottom:0">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">🔄</span> Uniswap Rotator</div>
+        <span class="section-subtitle" id="rot-subtitle">—</span>
+      </div>
+      <div class="card" id="rot-body">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </section>
+    <!-- Tradier -->
+    <section class="section" style="margin-bottom:0">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📋</span> Tradier Leaders</div>
+        <span class="section-subtitle" id="trd-subtitle">—</span>
+      </div>
+      <div class="card" id="trd-body">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </section>
   </div>
 
-  <!-- TRADIER LEADERS -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">📋 Tradier — Options Leaders</span>
-      <span id="trad-status" style="font-size:10px;color:#4a5a6d">—</span>
+  <!-- Positions -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">💼</span> Positions</div>
+      <span class="section-subtitle" id="pos-subtitle">—</span>
     </div>
-    <div class="card-body" id="trad-body">
-      <div class="loading">Loading Tradier leaders…</div>
+    <div class="card" id="pos-body">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
     </div>
-  </div>
-</div>
-
-<!-- POSITIONS -->
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">💼 Positions</span>
-    <span id="pos-status" style="font-size:10px;color:#4a5a6d">—</span>
-  </div>
-  <div class="card-body" id="pos-body">
-    <div class="loading">Loading positions…</div>
-  </div>
+  </section>
 </div>
 
 <script>
 const API = '/agora/api/agora';
 
-const ASSET_META = {
-  "BIP-20DEC30-CDE":{sym:"BTC",name:"Bitcoin Perp",params:"sweep 0.10%"},
-  "ETP-20DEC30-CDE":{sym:"ETH",name:"Ethereum Perp",params:"sweep 0.10%"},
-  "SLP-20DEC30-CDE":{sym:"SOL",name:"Solana Perp",params:"sweep 0.15%"},
-  "GOL-27MAY26-CDE":{sym:"GOLD",name:"Gold Future",params:"sweep 0.05%"},
-  "MC-18JUN26-CDE":{sym:"MAG7",name:"Mag 7 Index",params:"sweep 0.08%"},
+const ASSETS = {
+  "BIP-20DEC30-CDE":{sym:"BTC",params:"0.10% sweep"},
+  "ETP-20DEC30-CDE":{sym:"ETH",params:"0.10% sweep"},
+  "SLP-20DEC30-CDE":{sym:"SOL",params:"0.15% sweep"},
+  "GOL-27MAY26-CDE":{sym:"GOLD",params:"0.05% sweep"},
+  "MC-18JUN26-CDE":{sym:"MAG7",params:"0.08% sweep"},
 };
 
-// ── Formatting ──
-function fmtPnl(v){if(v===undefined||v===null)return '—';const s=v.toFixed(2);return (v>=0?'+'+s:s)}
-function fmt$(v){if(v===undefined||v===null)return '—';return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function fmtPct(v){if(v===undefined||v===null)return '—';return (v>=0?'+':'')+v.toFixed(2)+'%'}
-function timeAgo(iso){if(!iso)return '—';const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return Math.round(s)+'s ago';if(s<3600)return Math.round(s/60)+'m ago';return Math.round(s/3600)+'h ago'}
+function $(id){return document.getElementById(id)}
 
-// ── API ──
-async function fetchJson(url){const r=await fetch(url);return r.json()}
+function dot(id, ok){
+  const e=$(id);if(!e)return;
+  e.className='dot '+(ok===null?'off':ok?'ok':'err');
+}
 
-function setHealth(id,ok){const el=document.getElementById(id);if(!el)return;el.className='health-dot '+(ok==null?'grey':ok?'green':'red')}
+function fmt$(v){
+  if(v===undefined||v===null)return '—';
+  return Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtPct(v){
+  if(v===undefined||v===null)return '—';
+  return (v>=0?'+':'')+Number(v).toFixed(2)+'%';
+}
+function timeAgo(iso){
+  if(!iso)return '—';
+  const s=(Date.now()-new Date(iso).getTime())/1000;
+  if(s<60)return Math.round(s)+'s';
+  if(s<3600)return Math.round(s/60)+'m';
+  if(s<86400)return Math.round(s/3600)+'h';
+  return Math.round(s/86400)+'d';
+}
+function ageStr(iso){
+  if(!iso)return '—';
+  return timeAgo(iso)+' ago';
+}
 
-// ── CFM Runner ──
+// ── CFM ──
 async function renderCFM(){
   try{
-    const d=await fetchJson(API+'/active-crypto');
-    setHealth('hdr-cfm',d.ok);
-    document.getElementById('cfm-status').textContent=d.ok?'Active':'Error';
+    const d=await (await fetch(API+'/active-crypto')).json();
+    dot('dot-cfm',d.ok);
+    $(h='cfm-subtitle').textContent=d.ok?'Active':(d.error||'Error');
 
     // Prices
     const mids=d.mids||{};
     let html='';
-    for(const[pid,meta]of Object.entries(ASSET_META)){
+    for(const[pid,meta]of Object.entries(ASSETS)){
       const p=mids[pid];if(p===undefined)continue;
-      const abs=Math.abs(p);
-      const f=abs>=100?fmt$(p):abs>=1?p.toFixed(4):p.toFixed(6);
-      html+='<div class="price-card"><div class="label">'+meta.sym+'</div><div class="price">$'+f+'</div><div class="meta">'+meta.params+'</div></div>';
+      const f=p>=100?fmt$(p):p>=1?p.toFixed(4):p.toFixed(6);
+      html+=`<div class="price-card"><div class="asset-sym">${meta.sym}</div><div class="asset-price">$${f}</div><div class="asset-params">${meta.params}</div></div>`;
     }
-    document.getElementById('cfm-prices').innerHTML=html||'<div class="empty-state">No prices available</div>';
+    $(h='cfm-prices').innerHTML=html||'<div class="empty"><div class="icon">📡</div>No price data</div>';
 
     // Signal
     const sig=d.active_signal;
-    const sigEl=document.getElementById('cfm-signal');
-    if(sig){
-      const dir=sig.direction||sig.signal_detail?.toLowerCase().includes('long')?'LONG':'SHORT';
-      sigEl.innerHTML='<div class="signal-banner '+dir.toLowerCase()+'"><div><span class="signal-dir">'+dir+' '+(sig.market||'')+'</span><span class="signal-conf '+(sig.confidence||'LOW')+'">'+(sig.confidence||'LOW')+'</span></div><div class="signal-detail">'+(sig.signal_detail||'')+'</div></div>';
-    }else{
-      sigEl.innerHTML='';
-    }
+    const sigEl=$(h='cfm-signal');
+    if(sig&&sig.direction){
+      const dir=sig.direction==='LONG'?'long':'short';
+      sigEl.innerHTML=`<div class="signal-banner ${dir}"><div class="signal-icon ${dir}">${dir==='long'?'▲':'▼'}</div><div class="signal-content"><div class="signal-top"><span class="signal-dir">${sig.direction}</span><span class="signal-market">${sig.market||''}</span><span class="signal-conf ${sig.confidence||'LOW'}">${sig.confidence||'LOW'}</span></div><div class="signal-detail">${sig.signal_detail||''}</div><div class="signal-meta"><span>Entry: ${sig.entry_zone||'—'}</span><span>Stop: $${sig.stop||'—'}</span><span>Vol: ${sig.volume_ratio||'—'}x</span></div></div></div>`;
+    }else sigEl.innerHTML='';
 
     // Pending
-    const pendEl=document.getElementById('cfm-pending');
+    const pEl=$(h='cfm-pending');
     if(d.pending_trade){
-      pendEl.innerHTML='<div class="pending-banner visible"><span class="tag">PENDING</span> Trade <span class="mono">'+d.pending_trade+'</span></div>';
-    }else pendEl.innerHTML='';
+      pEl.innerHTML=`<div class="pending-banner visible"><span class="pending-tag">Pending</span><span class="pending-text">Active trade</span><span class="pending-id">${d.pending_trade}</span></div>`;
+    }else pEl.innerHTML='';
 
     // Guardrails
     const g=d.guardrails||{};
-    const live=d.live_trading_enabled?'🔓 LIVE':'🔒 DRY';
-    document.getElementById('cfm-guardrails').textContent=live+' | '+g.max_trade_risk_pct+'% risk | '+g.max_leverage+'x lev | max 1 pos';
-    document.getElementById('hdr-ts').textContent=d.heartbeat_updated_at?timeAgo(d.heartbeat_updated_at):'—';
+    const live=d.live_trading_enabled;
+    $(h='cfm-guardrails').innerHTML=
+      `<span class="guardrail-item"><span class="tag ${live?'live':'dry'}">${live?'LIVE':'DRY'}</span></span>`+
+      `<span class="guardrail-item">Risk ${g.max_trade_risk_pct||'?'}%</span>`+
+      `<span class="guardrail-item">Lev ${g.max_leverage||'?'}x</span>`+
+      `<span class="guardrail-item">Max 1 pos</span>`+
+      `<span class="guardrail-item">${g.max_daily_loss_pct||'?'}% daily loss</span>`;
+
+    // Time
+    $(h='hdr-time').textContent=ageStr(d.heartbeat_updated_at);
   }catch(e){
-    document.getElementById('cfm-prices').innerHTML='<div class="empty-state">API error: '+e.message+'</div>';
-    setHealth('hdr-cfm',false);
+    dot('dot-cfm',false);
+    $(h='cfm-prices').innerHTML=`<div class="empty"><div class="icon">⚠️</div>${e.message}</div>`;
   }
 }
 
 // ── Rotator ──
-async function renderRotator(){
+async function renderRot(){
   try{
-    const d=await fetchJson(API+'/rotator-hub');
-    setHealth('hdr-rotator',d.ok);
+    const d=await (await fetch(API+'/rotator-hub')).json();
+    dot('dot-rot',d.ok);
     const h=d.hub||{};
-    const bal=h.balances||{};
-    const perf=h.recent_performance||{};
-    const side=h.current_side||'?';
+    const b=h.balances||{};
+    const p=h.recent_performance||{};
+    const side=h.current_side||'—';
+    const pv=h.portfolio_value_usd;
+    $(h='rot-subtitle').textContent=side;
 
-    let html='';
-    html+='<div class="stat-row"><span class="stat-label">Side</span><span class="stat-value '+(side==='CBBTC'?'green':side==='USDC'?'amber':'')+'">'+side+'</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">Portfolio</span><span class="stat-value green">$'+fmt$(h.portfolio_value_usd)+'</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">CBBTC</span><span class="stat-value">'+(bal.cbbtc?bal.cbbtc.toFixed(6):'0')+' BTC</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">WETH</span><span class="stat-value">'+(bal.weth?bal.weth.toFixed(6):'0')+' ETH</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">USDC</span><span class="stat-value">$'+(bal.usdc?bal.usdc.toFixed(2):'0.00')+'</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">Total Trades</span><span class="stat-value">'+(perf.trade_count||0)+'</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">Net PnL</span><span class="stat-value '+(perf.usd_delta_total>=0?'green':'red')+'">'+fmt$(perf.usd_delta_total)+'</span></div>';
-    html+='<div class="stat-row"><span class="stat-label">Status</span><span class="stat-value '+(h.status==='live'?'green':'amber')+'">'+(h.status||'—')+'</span></div>';
-    html+='<div class="stat-row" style="border:none"><span class="stat-label">Alert</span><span class="stat-value">'+(h.latest_alert||'NONE')+'</span></div>';
-
-    document.getElementById('rot-body').innerHTML=html;
-    document.getElementById('rot-status').textContent=side;
+    let html='<div class="rotator-grid">';
+    const add=(lab,val,cls)=>html+=`<div class="rotator-stat"><span class="rotator-label">${lab}</span><span class="rotator-value ${cls||''}">${val}</span></div>`;
+    add('Side',side,side==='CBBTC'?'green':side==='USDC'?'amber':'');
+    add('Portfolio',pv!==undefined?`$${fmt$(pv)}`:'—','green');
+    add('CBBTC',b.cbbtc?b.cbbtc.toFixed(6)+' BTC':'0 BTC');
+    add('WETH',b.weth?b.weth.toFixed(6)+' ETH':'0 ETH');
+    add('USDC',b.usdc?`$${b.usdc.toFixed(2)}`:'$0.00');
+    add('Trades',(p.trade_count||0).toString());
+    add('Net PnL',fmt$(p.usd_delta_total),(p.usd_delta_total||0)>=0?'green':'red');
+    add('Status',(h.status||'—'),h.status==='live'?'green':'amber');
+    add('Alert',(h.latest_alert||'NONE'));
+    html+='</div>';
+    $(h='rot-body').innerHTML=html;
   }catch(e){
-    document.getElementById('rot-body').innerHTML='<div class="empty-state">Error: '+e.message+'</div>';
-    setHealth('hdr-rotator',false);
+    dot('dot-rot',false);
+    $(h='rot-body').innerHTML=`<div class="empty"><div class="icon">⚠️</div>${e.message}</div>`;
   }
 }
 
-// ── Tradier Leaders ──
-async function renderTradier(){
+// ── Tradier ──
+async function renderTrd(){
   try{
-    const d=await fetchJson(API+'/tradier-leaders');
-    setHealth('hdr-tradier',d.ok);
-    const candidates=d.ranked_candidates||[];
-    if(!candidates.length){
-      document.getElementById('trad-body').innerHTML='<div class="empty-state">No leaders available</div>';
-      document.getElementById('trad-status').textContent='—';
+    const d=await (await fetch(API+'/tradier-leaders')).json();
+    dot('dot-trd',d.ok);
+    const cs=d.ranked_candidates||[];
+    $(h='trd-subtitle').textContent=cs.length+' candidates';
+
+    if(!cs.length){
+      $(h='trd-body').innerHTML='<div class="empty"><div class="icon">📋</div>No leaders available</div>';
       return;
     }
-    let html='<div style="max-height:380px;overflow-y:auto"><table><thead><tr><th>#</th><th>Sym</th><th>Strike</th><th>Type</th><th>Mid</th><th>Vol</th><th>OI</th><th>DTE</th><th>Score</th></tr></thead><tbody>';
-    candidates.slice(0,10).forEach((c,i)=>{
-      const volFmt=c.volume>=1000?(c.volume/1000).toFixed(1)+'k':c.volume;
-      const oiFmt=c.open_interest>=1000?(c.open_interest/1000).toFixed(1)+'k':c.open_interest;
-      html+='<tr><td>'+(i+1)+'</td><td style="font-weight:600">'+c.symbol+'</td><td class="num">$'+c.strike+'</td><td>'+c.option_type+'</td><td class="num">$'+c.mid.toFixed(3)+'</td><td class="num">'+volFmt+'</td><td class="num">'+oiFmt+'</td><td class="num">'+c.dte+'</td><td class="num" style="color:'+(c.score>=75?'#1de9b6':c.score>=65?'#f5a623':'#c0c8d0')+';font-weight:600">'+c.score+'</td></tr>';
+
+    let html='<div class="table-wrap" style="max-height:340px;overflow-y:auto"><table><thead><tr><th>#</th><th>Sym</th><th class="num">Strike</th><th>Type</th><th class="num">Mid</th><th class="num">Vol</th><th class="num">OI</th><th class="num">DTE</th><th class="num">Score</th></tr></thead><tbody>';
+    cs.slice(0,10).forEach((c,i)=>{
+      const vf=c.volume>=1000?(c.volume/1000).toFixed(1)+'k':c.volume;
+      const oi=c.open_interest>=1000?(c.open_interest/1000).toFixed(1)+'k':c.open_interest;
+      const sc=c.score||0;
+      html+=`<tr><td>${i+1}</td><td style="font-weight:600">${c.symbol}</td><td class="num">$${c.strike}</td><td>${c.option_type}</td><td class="num">$${c.mid.toFixed(3)}</td><td class="num">${vf}</td><td class="num">${oi}</td><td class="num">${c.dte}</td><td class="num" style="color:${sc>=75?'var(--green)':sc>=65?'var(--amber)':'var(--text-secondary)'};font-weight:600">${sc}</td></tr>`;
     });
     html+='</tbody></table></div>';
-    document.getElementById('trad-body').innerHTML=html;
-    document.getElementById('trad-status').textContent=candidates.length+' candidates';
+    $(h='trd-body').innerHTML=html;
   }catch(e){
-    document.getElementById('trad-body').innerHTML='<div class="empty-state">Error: '+e.message+'</div>';
-    setHealth('hdr-tradier',false);
+    dot('dot-trd',false);
+    $(h='trd-body').innerHTML=`<div class="empty"><div class="icon">⚠️</div>${e.message}</div>`;
   }
 }
 
 // ── Positions ──
-async function renderPositions(){
+async function renderPos(){
   try{
-    const d=await fetchJson(API+'/position-monitor');
-    const positions=d.positions||[];
-    if(!positions.length){
-      document.getElementById('pos-body').innerHTML='<div class="empty-state">No open positions</div>';
-      document.getElementById('pos-status').textContent='0';
+    const d=await (await fetch(API+'/position-monitor')).json();
+    const pos=d.positions||[];
+    $(h='pos-subtitle').textContent=pos.length?'Open'+(pos.length>1?' ('+pos.length+')':''):'None';
+
+    if(!pos.length){
+      $(h='pos-body').innerHTML='<div class="empty"><div class="icon">📭</div>No open positions</div>';
       return;
     }
-    let html='<table><thead><tr><th>Account</th><th>Symbol</th><th>Option</th><th>Qty</th><th>Entry</th><th>Mid</th><th>PnL</th><th>PnL %</th><th>State</th></tr></thead><tbody>';
-    positions.forEach(p=>{
-      const pnlClass=p.pnl_total>=0?'pos':'neg';
-      html+='<tr><td>'+(p.account||'—')+'</td><td style="font-weight:600">'+(p.symbol||'—')+'</td><td style="font-size:10px;color:#6b7b8d">'+(p.option_symbol||'—')+'</td><td class="num">'+(p.qty||0)+'</td><td class="num">$'+fmt$(p.entry_price)+'</td><td class="num">$'+fmt$(p.current_mid)+'</td><td class="num '+pnlClass+'">'+fmt$(p.pnl_total)+'</td><td class="num '+pnlClass+'">'+fmtPct(p.pnl_pct)+'</td><td><span style="font-size:10px;color:'+(p.state==='damage_control'?'#ef4444':'#1de9b6')+'">'+(p.state||'—')+'</span></td></tr>';
+
+    let html='<div class="table-wrap"><table><thead><tr><th>Account</th><th>Symbol</th><th class="num">Qty</th><th class="num">Entry</th><th class="num">Mid</th><th class="num">P&L</th><th class="num">P&L %</th><th>State</th></tr></thead><tbody>';
+    pos.forEach(p=>{
+      const dir=p.pnl_total>=0?'g':'r';
+      html+=`<tr><td>${p.account||'—'}</td><td style="font-weight:600">${p.symbol||'—'}</td><td class="num">${p.qty||0}</td><td class="num">$${fmt$(p.entry_price)}</td><td class="num">$${fmt$(p.current_mid)}</td><td class="num ${dir}">${fmt$(p.pnl_total)}</td><td class="num ${dir}">${fmtPct(p.pnl_pct)}</td><td><span class="pos-state ${p.state||'active'}">${p.state||'active'}</span></td></tr>`;
     });
-    html+='</tbody></table>';
-    document.getElementById('pos-body').innerHTML=html;
-    document.getElementById('pos-status').textContent=positions.length+' position'+(positions.length>1?'s':'');
+    html+='</tbody></table></div>';
+    $(h='pos-body').innerHTML=html;
   }catch(e){
-    document.getElementById('pos-body').innerHTML='<div class="empty-state">Error: '+e.message+'</div>';
+    $(h='pos-body').innerHTML=`<div class="empty"><div class="icon">⚠️</div>${e.message}</div>`;
   }
 }
 
 // ── Poll ──
 async function poll(){
-  await Promise.allSettled([renderCFM(),renderRotator(),renderTradier(),renderPositions()]);
+  await Promise.allSettled([renderCFM(),renderRot(),renderTrd(),renderPos()]);
 }
 poll();
 setInterval(poll,15000);
