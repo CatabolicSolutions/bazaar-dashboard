@@ -21,6 +21,7 @@ HEARTBEAT_PATH = ROOT / "state" / "active_crypto_runner_heartbeat.json"
 PRICE_HISTORY_PATH = ROOT / "state" / "active_crypto_price_history.json"
 PENDING_TRADE_PATH = ROOT / "state" / "active_crypto_sleeve_pending_trade.json"
 APPROVAL_STATE_PATH = ROOT / "state" / "active_crypto_sleeve_approval.json"
+CACHED_CFM_PATH = ROOT / "state" / "active_crypto_cached_cfm.json"
 
 HISTORY_SIZE = 60  # Keep 60 price samples (30 min at 30s intervals)
 
@@ -78,16 +79,18 @@ def _fetch_mids() -> dict[str, float]:
     if not result.get("ok"):
         return {}
     payload = result.get("payload", {}) or {}
+    WATCHED = ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE", "SLP-20DEC30-CDE", "GOL-27MAY26-CDE", "MC-18JUN26-CDE")
     mids = {}
     for pr in payload.get("products", []):
         pid = pr.get("product_id")
-        if pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE"):
+        if pid in WATCHED:
             mid = _float(pr.get("mid_market_price") or pr.get("price"))
             if mid:
                 mids[pid] = mid
     # Fallback: try best_bid_ask if products endpoint gave nothing
     if not mids:
-        for pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE"):
+        WATCHED = ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE", "SLP-20DEC30-CDE", "GOL-27MAY26-CDE", "MC-18JUN26-CDE")
+        for pid in WATCHED:
             r = client.get("/best_bid_ask", {"product_ids": pid})
             if not r.get("ok"):
                 continue
@@ -142,33 +145,83 @@ def _detect_sweep_reclaim_candles(
     LONG: candle wicks below swing low, reclaims above.
     SHORT: spike above swing high, fails back.
     """
-    if not history or len(history) < 10:
-        return None
-    
-    mids = [s["mid"] for s in history]
-    if not mids:
-        return None
-    
-    recent = mids[-20:]  # Last ~10 min of samples
-    window_1 = mids[:30]  # First half for structure reference
-    window_2 = mids[20:]  # Overlapping detection window
-    
-    high_1 = max(window_1)
-    low_1 = min(window_1)
-    high_recent = max(recent)
-    low_recent = min(recent)
-    current_from_low = (current_mid - low_recent) / low_recent * 100
-    
-    # BTC-specific sweep thresholds
-    depth_threshold = current_mid * 0.002  # 0.2% sweep depth minimum to matter
-    reclaim_buffer = current_mid * 0.0008  # 0.08% above swept low to confirm
-
-    swing_low = low_1
-    swing_high = high_1
-    
-    # Build candle data for detection
     if not candles or len(candles) < 10:
         return None
+
+    data = []
+    for c in candles:
+        o = _float(c.get("open"))
+        h = _float(c.get("high"))
+        l = _float(c.get("low"))
+        cl = _float(c.get("close"))
+        v = _float(c.get("volume"))
+        if o and h and l and cl:
+            data.append({"open": o, "high": h, "low": l, "close": cl, "volume": v or 0})
+
+    if len(data) < 10:
+        return None
+
+    last = data[-1]
+    lookback = data[-20:-2]
+    recent_data = data[-5:]
+
+    swing_low = min(c["low"] for c in lookback)
+    swing_high = max(c["high"] for c in lookback)
+    avg_volume = sum(c["volume"] for c in lookback) / max(len(lookback), 1)
+
+    current_close = last["close"]
+    current_volume = last["volume"]
+    min_recent_low = min(c["low"] for c in recent_data)
+    max_recent_high = max(c["high"] for c in recent_data)
+    vol_ratio = current_volume / max(avg_volume, 0.01) if avg_volume > 0 else 0
+
+    # LONG setup
+    sweep_long = min_recent_low < swing_low * 0.999
+    reclaim_long = current_close > swing_low * 1.0005
+    sweep_depth_long = (swing_low - min_recent_low) / swing_low * 100 if sweep_long else 0
+
+    # SHORT setup
+    sweep_short = max_recent_high > swing_high * 1.001
+    reclaim_short = current_close < swing_high * 0.9995
+    spike_depth_short = (max_recent_high - swing_high) / swing_high * 100 if sweep_short else 0
+
+    results = []
+
+    if sweep_long and reclaim_long:
+        conf = "HIGH" if sweep_depth_long >= 0.3 else ("MEDIUM" if sweep_depth_long >= 0.15 else "LOW")
+        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > 1.5):
+            stop_val = min_recent_low * 0.998
+            stop_pct = round((current_close - stop_val) / current_close * 100, 3) if stop_val else None
+            results.append({
+                "product_id": product_id, "market": label, "direction": "LONG",
+                "setup_family": "candle_sweep_reclaim", "confidence": conf,
+                "signal_detail": f"Wick ${min_recent_low:,.2f} swept swing low ${swing_low:,.2f} ({sweep_depth_long:.2f}%), reclaimed at ${current_close:,.2f}. Vol {vol_ratio:.1f}x avg",
+                "current_mid": current_close, "swing_low": swing_low, "swing_high": swing_high,
+                "sweep_depth_pct": round(sweep_depth_long, 3), "volume_ratio": round(vol_ratio, 2),
+                "entry_zone": f"{swing_low * 1.001:,.2f} - {swing_low * 1.003:,.2f}",
+                "entry_trigger": f"Enter long if price holds above ${swing_low * 1.001:,.2f}",
+                "stop": f"{stop_val:,.2f}", "stop_pct": stop_pct,
+                "target_1": f"{swing_low * 1.005:,.2f}", "target_2": f"{swing_low * 1.01:,.2f}",
+                "invalidation": f"Abort if price loses ${stop_val:,.2f}",
+            })
+
+    if sweep_short and reclaim_short:
+        conf = "HIGH" if spike_depth_short >= 0.3 else ("MEDIUM" if spike_depth_short >= 0.15 else "LOW")
+        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > 1.5):
+            results.append({
+                "product_id": product_id, "market": label, "direction": "SHORT",
+                "setup_family": "candle_sweep_reclaim", "confidence": conf,
+                "signal_detail": f"Spike to ${max_recent_high:,.2f} (${(max_recent_high - swing_high):,.2f} above swing high ${swing_high:,.2f}), failed to ${current_close:,.2f}. Vol {vol_ratio:.1f}x avg",
+                "current_mid": current_close, "swing_low": swing_low, "swing_high": swing_high,
+                "spike_depth_pct": round(spike_depth_short, 3), "volume_ratio": round(vol_ratio, 2),
+                "entry_zone": f"{swing_high * 0.998:,.2f} - {swing_high * 0.9995:,.2f}",
+                "entry_trigger": f"Enter short below ${swing_high * 0.999:,.2f}",
+                "stop": f"{max_recent_high * 1.002:,.2f}",
+                "target_1": f"{swing_high * 0.995:,.2f}", "target_2": f"{swing_high * 0.99:,.2f}",
+                "invalidation": f"Abort if price reclaims above ${max_recent_high * 1.002:,.2f}",
+            })
+
+    return results[0] if results else None
 
     data = []
     for c in candles:
@@ -260,7 +313,13 @@ def _main_loop():
         
         # Fetch REAL candle data for sweep detection
         signals = []
-        for pid, label in [("BIP-20DEC30-CDE", "BTC PERP"), ("ETP-20DEC30-CDE", "ETH PERP")]:
+        for pid, label in [
+            ("BIP-20DEC30-CDE", "BTC PERP"),
+            ("ETP-20DEC30-CDE", "ETH PERP"),
+            ("SLP-20DEC30-CDE", "SOL PERP"),
+            ("GOL-27MAY26-CDE", "GOLD FUT"),
+            ("MC-18JUN26-CDE", "MAG7C FUT"),
+        ]:
             mid = mids.get(pid)
             if not mid:
                 continue
@@ -289,35 +348,46 @@ def _main_loop():
                 }
                 _save_json(PENDING_TRADE_PATH, pending)
                 
-                # ── AUTO-EXECUTE on HIGH confidence ────────────────────────
-                if best_signal["confidence"] == "HIGH":
+                # ── AUTO-EXECUTE on MEDIUM or HIGH confidence ─────────────
+                if best_signal["confidence"] in ("HIGH", "MEDIUM"):
                     imported = _import_le_executor()
                     if imported:
                         executor_module, CoinbaseExecutor = imported
                         try:
-                            # Get balance for sizing
+                            # ▸ Balance fetch with fallback chain
                             client = _get_client()
                             bal_result = client.get("/cfm/balance_summary")
                             cfg_cfm = 0.0
                             if bal_result.get("ok"):
                                 bal_payload = (bal_result.get("payload") or {}).get("futures_balance_summary", {}) or {}
                                 cfg_cfm = _float(bal_payload.get("total_with_cushion", {}).get("value")) or 0.0
+                            if cfg_cfm <= 0:
+                                # Fallback: read cached balance
+                                cached_cfm = _load_json(CACHED_CFM_PATH) or {}
+                                cfg_cfm = _float(cached_cfm.get("cfg_cfm", 0)) or 0.0
+                            if cfg_cfm <= 0:
+                                # Hard fallback: known balance from last confirm
+                                cfg_cfm = 562.27
                             
-                            # Size: 50% of CFM / stop distance
-                            stop_str = best_signal.get("stop", "0")
-                            stop_val = _float(stop_str.replace(",", "")) or 0.0
+                            # Save current balance to cache for future fallback
+                            _save_json(CACHED_CFM_PATH, {"cfg_cfm": cfg_cfm, "updated": datetime.now(timezone.utc).isoformat()})
+                            
+                            # ▸ Stop: fixed 5% from entry (risk-based, not wick-based)
                             entry = best_signal.get("entry_zone", "0-0").split(" - ")[0]
                             entry_val = _float(entry.replace(",", "")) or best_signal["current_mid"]
-                            stop_distance = abs(entry_val - stop_val) / entry_val if entry_val and stop_val else 0.01
+                            stop_pct = 0.05  # 5% stop loss
+                            stop_val = entry_val * (1 - stop_pct) if direction == "LONG" else entry_val * (1 + stop_pct)
+                            stop_distance = stop_pct
                             
-                            max_risk = cfg_cfm * 0.5  # 50% of CFM
+                            max_risk = cfg_cfm * 0.75
                             position_value = max_risk / max(stop_distance, 0.001)
-                            position_value = min(position_value, cfg_cfm * 2.0)  # Cap at 2x leverage
-                            position_value = max(position_value, 10.0)  # Min $10
+                            position_value = min(position_value, cfg_cfm * 3.0)
+                            position_value = max(position_value, 100.0)  # Minimum $100
                             
                             executor = CoinbaseExecutor(client)
                             direction = best_signal["direction"]
                             order_side = "BUY" if direction == "LONG" else "SELL"
+                            order_side_stop = "SELL" if direction == "LONG" else "BUY"
                             
                             order_result = executor.place_order(
                                 product_id=best_signal["product_id"],
@@ -345,12 +415,29 @@ def _main_loop():
                             _save_json(ROOT / "state" / "active_crypto_last_execution.json", exec_notification)
                             
                             if order_result.get("ok"):
-                                # Also send via Coinbase executor's built-in flow
                                 pending["submitted"] = True
                                 pending["submitted_at"] = datetime.now(timezone.utc).isoformat()
                                 pending["order_response"] = order_result.get("payload", {})
-                                pending["stop_order_id"] = None  # TODO: place stop order after fill
+                                pending["stop_order_id"] = None
                                 _save_json(PENDING_TRADE_PATH, pending)
+                                
+                                # ▸ Place stop-limit order after fill
+                                try:
+                                    stop_order = executor.place_order(
+                                        product_id=best_signal["product_id"],
+                                        side=order_side_stop,
+                                        size=f"{position_value:.2f}",
+                                        order_type="STOP",
+                                        limit_price=str(stop_val),
+                                        stop_price=str(stop_val),
+                                    )
+                                    if stop_order.get("ok"):
+                                        pending["stop_order_id"] = (stop_order.get("payload", {}) or {}).get("order_id") or "unknown"
+                                        _save_json(PENDING_TRADE_PATH, pending)
+                                except Exception as stop_err:
+                                    # Stop order failed — position still exists, log for review
+                                    pending["stop_failed"] = str(stop_err)
+                                    _save_json(PENDING_TRADE_PATH, pending)
                         except Exception as exec_err:
                             # Log error but don't crash the cycle
                             _save_json(ROOT / "state" / "active_crypto_last_execution.json", {
@@ -445,9 +532,13 @@ def run_loop(interval: float = 120.0):
         if signal:
             print(f"[{ts}] SIGNAL: {signal.get('direction')} on {signal.get('market','')}")
         elif mids:
-            btc = mids.get("BIP-20DEC30-CDE","?")
-            eth = mids.get("ETP-20DEC30-CDE","?")
-            print(f"[{ts}] BTC={btc} ETH={eth}")
+            parts = []
+            for pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE", "SLP-20DEC30-CDE", "GOL-27MAY26-CDE", "MC-18JUN26-CDE"):
+                v = mids.get(pid, "?")
+                label = {"BIP-20DEC30-CDE":"BTC", "ETP-20DEC30-CDE":"ETH", "SLP-20DEC30-CDE":"SOL", "GOL-27MAY26-CDE":"GOLD", "MC-18JUN26-CDE":"MAG7"}.get(pid, pid)
+                if v != "?":
+                    parts.append(f"{label}={v}")
+            print(f"[{ts}] {' '.join(parts)}")
         elapsed = time.time() - start
         sleep_time = max(5.0, interval - elapsed)
         time.sleep(sleep_time)
