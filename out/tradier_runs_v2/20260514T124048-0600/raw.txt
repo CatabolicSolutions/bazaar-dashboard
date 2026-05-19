@@ -1,0 +1,852 @@
+bash: cannot set terminal process group (4152): Inappropriate ioctl for device
+bash: no job control in this shell
+DEBUG: Today's date: 2026-05-14
+DEBUG: Attempting to fetch VIX quote.
+
+--- Current VIX: 17.52 ---
+DEBUG: VIX fetched successfully. Starting symbol processing loop.
+
+--- Processing SPX ---
+  Underlying price for SPX: 7499.14
+Fetching option chain for SPX, requested DTE: 7 (Using Expiry: 2026-06-18, Label: 35DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-06-18.
+Skipping scalping output for SPX requested 7DTE because fallback actual DTE 35 is too distant.
+Skipping credit spread output for SPX requested 7DTE because fallback actual DTE 35 is too distant.
+No tickets generated for this symbol/requested DTE.
+Skipping duplicate expiry 2026-06-18 for SPX; already processed via a higher-priority DTE path.
+
+--- Processing SPY ---
+  Underlying price for SPY: 747.735
+Fetching option chain for SPY, requested DTE: 7 (Using Expiry: 2026-05-21, Label: 7DTE)...
+Applying 'scalping_buy' strategy for SPY on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for SPY on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for SPY (7DTE)**
+  - Underlying Price: $747.74
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $743.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $8.94
+  - Bid: $9.02 / Ask: $9.14
+  - Delta: 0.6478
+  - Spread Ratio: 1.32%
+  - Setup Family: directional_momentum
+  - Structure Score: 94.26
+  - Confidence Score: 10/10
+  - Liquidity Score: 38.10
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.80
+  - Distance Score: 16.35
+  - VIX Regime: normal
+  - Narrative: SPY CALL is a liquid 7DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for SPY (7DTE)**
+  - Underlying Price: $747.74
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $729.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.14
+  - Bid: $1.13 / Ask: $1.15
+  - Delta: -0.1375
+  - Spread Ratio: 1.75%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 75.91
+  - Confidence Score: 7/10
+  - Liquidity Score: 21.45
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.55
+  - Distance Score: 14.91
+  - VIX Regime: normal
+  - Narrative: SPY PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for SPY, requested DTE: 14 (Using Expiry: 2026-05-28, Label: 14DTE)...
+Applying 'scalping_buy' strategy for SPY on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for SPY on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for SPY (14DTE)**
+  - Underlying Price: $747.74
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $742.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $12.16
+  - Bid: $12.14 / Ask: $12.38
+  - Delta: 0.6386
+  - Spread Ratio: 1.96%
+  - Setup Family: directional_momentum
+  - Structure Score: 93.81
+  - Confidence Score: 10/10
+  - Liquidity Score: 38.83
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 18.97
+  - Distance Score: 16.01
+  - VIX Regime: normal
+  - Narrative: SPY CALL is a liquid 14DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for SPY (14DTE)**
+  - Underlying Price: $747.74
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $725.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $2.05
+  - Bid: $1.99 / Ask: $2.01
+  - Delta: -0.1435
+  - Spread Ratio: 1.00%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 79.07
+  - Confidence Score: 7/10
+  - Liquidity Score: 23.79
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.37
+  - Distance Score: 15.91
+  - VIX Regime: normal
+  - Narrative: SPY PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing NDX ---
+  Underlying price for NDX: 29628.71
+Fetching option chain for NDX, requested DTE: 7 (Using Expiry: 2026-06-18, Label: 35DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-06-18.
+Skipping scalping output for NDX requested 7DTE because fallback actual DTE 35 is too distant.
+Skipping credit spread output for NDX requested 7DTE because fallback actual DTE 35 is too distant.
+No tickets generated for this symbol/requested DTE.
+Skipping duplicate expiry 2026-06-18 for NDX; already processed via a higher-priority DTE path.
+
+--- Processing QQQ ---
+  Underlying price for QQQ: 719.57
+Fetching option chain for QQQ, requested DTE: 7 (Using Expiry: 2026-05-21, Label: 7DTE)...
+Applying 'scalping_buy' strategy for QQQ on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for QQQ on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for QQQ (7DTE)**
+  - Underlying Price: $719.57
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $713.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $13.25
+  - Bid: $13.26 / Ask: $13.38
+  - Delta: 0.6523
+  - Spread Ratio: 0.90%
+  - Setup Family: directional_momentum
+  - Structure Score: 94.88
+  - Confidence Score: 10/10
+  - Liquidity Score: 39.46
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.79
+  - Distance Score: 15.63
+  - VIX Regime: normal
+  - Narrative: QQQ CALL is a liquid 7DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for QQQ (7DTE)**
+  - Underlying Price: $719.57
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $694.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $2.02
+  - Bid: $2.01 / Ask: $2.05
+  - Delta: -0.1444
+  - Spread Ratio: 1.97%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 77.25
+  - Confidence Score: 7/10
+  - Liquidity Score: 23.26
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.21
+  - Distance Score: 14.78
+  - VIX Regime: normal
+  - Narrative: QQQ PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for QQQ, requested DTE: 14 (Using Expiry: 2026-05-28, Label: 14DTE)...
+Applying 'scalping_buy' strategy for QQQ on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for QQQ on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for QQQ (14DTE)**
+  - Underlying Price: $719.57
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $711.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $N/A
+  - Bid: $17.83 / Ask: $18.52
+  - Delta: 0.6452
+  - Spread Ratio: 3.80%
+  - Setup Family: directional_momentum
+  - Structure Score: 92.19
+  - Confidence Score: 10/10
+  - Liquidity Score: 37.72
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.57
+  - Distance Score: 14.90
+  - VIX Regime: normal
+  - Narrative: QQQ CALL is a liquid 14DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for QQQ (14DTE)**
+  - Underlying Price: $719.57
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $683.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $2.55
+  - Bid: $2.59 / Ask: $2.63
+  - Delta: -0.1406
+  - Spread Ratio: 1.53%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 76.11
+  - Confidence Score: 7/10
+  - Liquidity Score: 24.80
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.89
+  - Distance Score: 11.42
+  - VIX Regime: normal
+  - Narrative: QQQ PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing NVDA ---
+  Underlying price for NVDA: 235.37
+Fetching option chain for NVDA, requested DTE: 7 (Using Expiry: 2026-05-22, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for NVDA requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for NVDA on 2026-05-22 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+No strict credit spread candidates found. Generating fallback shortlist...
+---TICKET_START---
+[FALLBACK] Credit Spread Sell Opportunity for NVDA (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $235.37
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $212.50
+  - Expiration: 2026-05-22
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $1.76
+  - Bid: $1.77 / Ask: $1.79
+  - Delta: -0.1403
+  - Spread Ratio: 1.12%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 49.40
+  - Confidence Score: 2/10
+  - Liquidity Score: 23.23
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 19.95
+  - Distance Score: 1.22
+  - VIX Regime: normal
+  - Narrative: NVDA PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: below minimum structure threshold
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for NVDA, requested DTE: 14 (Using Expiry: 2026-05-29, Label: 15DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+Skipping scalping output for NVDA requested 14DTE because fallback actual DTE 15 is too distant.
+Applying 'credit_spread_sell' strategy for NVDA on 2026-05-29 (Requested DTE 14, Actual DTE 15)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+No strict credit spread candidates found. Generating fallback shortlist...
+---TICKET_START---
+[FALLBACK] Credit Spread Sell Opportunity for NVDA (15DTE (requested 14DTE, fallback))**
+  - Underlying Price: $235.37
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $207.50
+  - Expiration: 2026-05-29
+  - Requested DTE: 14
+  - Actual DTE: 15
+  - Last Price: $1.69
+  - Bid: $1.72 / Ask: $1.77
+  - Delta: -0.1400
+  - Spread Ratio: 2.87%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 47.09
+  - Confidence Score: 2/10
+  - Liquidity Score: 22.09
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 20.00
+  - Distance Score: 0.00
+  - VIX Regime: normal
+  - Narrative: NVDA PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: below minimum structure threshold
+  - Expiry Selection Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing TSLA ---
+  Underlying price for TSLA: 444.53
+Fetching option chain for TSLA, requested DTE: 7 (Using Expiry: 2026-05-22, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for TSLA requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for TSLA on 2026-05-22 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for TSLA (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $444.53
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $415.00
+  - Expiration: 2026-05-22
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $3.05
+  - Bid: $2.95 / Ask: $2.98
+  - Delta: -0.1520
+  - Spread Ratio: 1.01%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 56.73
+  - Confidence Score: 4/10
+  - Liquidity Score: 25.90
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 17.84
+  - Distance Score: 7.99
+  - VIX Regime: normal
+  - Narrative: TSLA PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for TSLA, requested DTE: 14 (Using Expiry: 2026-05-29, Label: 15DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+Skipping scalping output for TSLA requested 14DTE because fallback actual DTE 15 is too distant.
+Applying 'credit_spread_sell' strategy for TSLA on 2026-05-29 (Requested DTE 14, Actual DTE 15)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for TSLA (15DTE (requested 14DTE, fallback))**
+  - Underlying Price: $444.53
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $407.50
+  - Expiration: 2026-05-29
+  - Requested DTE: 14
+  - Actual DTE: 15
+  - Last Price: $3.9
+  - Bid: $3.85 / Ask: $3.95
+  - Delta: -0.1469
+  - Spread Ratio: 2.56%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 55.02
+  - Confidence Score: 3/10
+  - Liquidity Score: 26.99
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 18.76
+  - Distance Score: 4.27
+  - VIX Regime: normal
+  - Narrative: TSLA PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+  - Expiry Selection Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing XSP ---
+  Underlying price for XSP: 749.85
+Fetching option chain for XSP, requested DTE: 7 (Using Expiry: 2026-05-21, Label: 7DTE)...
+Applying 'scalping_buy' strategy for XSP on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for XSP on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for XSP (7DTE)**
+  - Underlying Price: $749.85
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $745.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $7.88
+  - Bid: $8.65 / Ask: $9.17
+  - Delta: 0.6418
+  - Spread Ratio: 5.84%
+  - Setup Family: directional_momentum
+  - Structure Score: 90.77
+  - Confidence Score: 9/10
+  - Liquidity Score: 35.19
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.26
+  - Distance Score: 16.32
+  - VIX Regime: normal
+  - Narrative: XSP CALL is a liquid 7DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for XSP (7DTE)**
+  - Underlying Price: $749.85
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $733.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $1.35
+  - Bid: $1.32 / Ask: $1.40
+  - Delta: -0.1412
+  - Spread Ratio: 5.88%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 73.55
+  - Confidence Score: 6/10
+  - Liquidity Score: 19.42
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.78
+  - Distance Score: 14.34
+  - VIX Regime: normal
+  - Narrative: XSP PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for XSP, requested DTE: 14 (Using Expiry: 2026-05-28, Label: 14DTE)...
+Applying 'scalping_buy' strategy for XSP on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for XSP on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for XSP (14DTE)**
+  - Underlying Price: $749.85
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $743.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $10.67
+  - Bid: $12.48 / Ask: $13.09
+  - Delta: 0.6554
+  - Spread Ratio: 4.77%
+  - Setup Family: directional_momentum
+  - Structure Score: 92.28
+  - Confidence Score: 10/10
+  - Liquidity Score: 37.14
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.51
+  - Distance Score: 15.62
+  - VIX Regime: normal
+  - Narrative: XSP CALL is a liquid 14DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for XSP (14DTE)**
+  - Underlying Price: $749.85
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $725.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $1.89
+  - Bid: $1.76 / Ask: $1.84
+  - Delta: -0.1390
+  - Spread Ratio: 4.44%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 76.38
+  - Confidence Score: 7/10
+  - Liquidity Score: 21.25
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.82
+  - Distance Score: 15.31
+  - VIX Regime: normal
+  - Narrative: XSP PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing IWM ---
+  Underlying price for IWM: 284.74
+Fetching option chain for IWM, requested DTE: 7 (Using Expiry: 2026-05-21, Label: 7DTE)...
+Applying 'scalping_buy' strategy for IWM on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for IWM on 2026-05-21 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for IWM (7DTE)**
+  - Underlying Price: $284.74
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $282.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $4.97
+  - Bid: $4.87 / Ask: $4.93
+  - Delta: 0.6372
+  - Spread Ratio: 1.22%
+  - Setup Family: directional_momentum
+  - Structure Score: 84.37
+  - Confidence Score: 8/10
+  - Liquidity Score: 30.02
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 18.85
+  - Distance Score: 15.50
+  - VIX Regime: normal
+  - Narrative: IWM CALL is a liquid 7DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for IWM (7DTE)**
+  - Underlying Price: $284.74
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $275.00
+  - Expiration: 2026-05-21
+  - Requested DTE: 7
+  - Actual DTE: 7
+  - Last Price: $0.78
+  - Bid: $0.59 / Ask: $0.61
+  - Delta: -0.1336
+  - Spread Ratio: 3.33%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 73.23
+  - Confidence Score: 6/10
+  - Liquidity Score: 19.31
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 18.85
+  - Distance Score: 15.07
+  - VIX Regime: normal
+  - Narrative: IWM PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for IWM, requested DTE: 14 (Using Expiry: 2026-05-28, Label: 14DTE)...
+Applying 'scalping_buy' strategy for IWM on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for scalping_buy. Formatting tickets...
+Applying 'credit_spread_sell' strategy for IWM on 2026-05-28 (Requested DTE 14, Actual DTE 14)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Scalping Buy Opportunity for IWM (14DTE)**
+  - Underlying Price: $284.74
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $281.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $5.89
+  - Bid: $6.96 / Ask: $7.04
+  - Delta: 0.6386
+  - Spread Ratio: 1.14%
+  - Setup Family: directional_momentum
+  - Structure Score: 88.23
+  - Confidence Score: 9/10
+  - Liquidity Score: 34.67
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 18.97
+  - Distance Score: 14.58
+  - VIX Regime: normal
+  - Narrative: IWM CALL is a liquid 14DTE directional candidate with bullish exposure and near-target delta efficiency.
+  - Expectations: Use only when the underlying confirms continuation and tape quality supports a fast directional expression.
+  - Invalidation: Reject or exit if continuation fails, spread quality widens materially, or the move stalls after entry.
+  - Risk Profile: defined-risk premium outlay; size for quick confirmation failure rather than thesis perfection
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+Credit Spread Sell Opportunity for IWM (14DTE)**
+  - Underlying Price: $284.74
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $271.00
+  - Expiration: 2026-05-28
+  - Requested DTE: 14
+  - Actual DTE: 14
+  - Last Price: $0.91
+  - Bid: $0.92 / Ask: $0.95
+  - Delta: -0.1429
+  - Spread Ratio: 3.21%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 71.58
+  - Confidence Score: 6/10
+  - Liquidity Score: 20.12
+  - Expiry Quality Score: 20.00
+  - Delta Fit Score: 19.48
+  - Distance Score: 11.98
+  - VIX Regime: normal
+  - Narrative: IWM PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing VIX ---
+  Underlying price for VIX: 17.52
+Fetching option chain for VIX, requested DTE: 7 (Using Expiry: 2026-06-17, Label: 34DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-06-17.
+Skipping scalping output for VIX requested 7DTE because fallback actual DTE 34 is too distant.
+Skipping credit spread output for VIX requested 7DTE because fallback actual DTE 34 is too distant.
+No tickets generated for this symbol/requested DTE.
+Skipping duplicate expiry 2026-06-17 for VIX; already processed via a higher-priority DTE path.
+
+--- Processing AMD ---
+  Underlying price for AMD: 445.7
+Fetching option chain for AMD, requested DTE: 7 (Using Expiry: 2026-05-22, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for AMD requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for AMD on 2026-05-22 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+No strict credit spread candidates found. Generating fallback shortlist...
+---TICKET_START---
+[FALLBACK] Credit Spread Sell Opportunity for AMD (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $445.70
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $400.00
+  - Expiration: 2026-05-22
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $4.5
+  - Bid: $4.40 / Ask: $4.65
+  - Delta: -0.1510
+  - Spread Ratio: 5.52%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 49.58
+  - Confidence Score: 2/10
+  - Liquidity Score: 26.52
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 18.02
+  - Distance Score: 0.04
+  - VIX Regime: normal
+  - Narrative: AMD PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: below minimum structure threshold
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for AMD, requested DTE: 14 (Using Expiry: 2026-05-29, Label: 15DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+Skipping scalping output for AMD requested 14DTE because fallback actual DTE 15 is too distant.
+Applying 'credit_spread_sell' strategy for AMD on 2026-05-29 (Requested DTE 14, Actual DTE 15)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+No strict credit spread candidates found. Generating fallback shortlist...
+---TICKET_START---
+[FALLBACK] Credit Spread Sell Opportunity for AMD (15DTE (requested 14DTE, fallback))**
+  - Underlying Price: $445.70
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $385.00
+  - Expiration: 2026-05-29
+  - Requested DTE: 14
+  - Actual DTE: 15
+  - Last Price: $5.25
+  - Bid: $4.85 / Ask: $5.30
+  - Delta: -0.1377
+  - Spread Ratio: 8.87%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 50.21
+  - Confidence Score: 3/10
+  - Liquidity Score: 25.62
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 19.59
+  - Distance Score: 0.00
+  - VIX Regime: normal
+  - Narrative: AMD PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: below minimum structure threshold
+  - Expiry Selection Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing AAPL ---
+  Underlying price for AAPL: 298.4
+Fetching option chain for AAPL, requested DTE: 7 (Using Expiry: 2026-05-22, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for AAPL requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for AAPL on 2026-05-22 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for AAPL (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $298.40
+  - Current VIX: 17.52
+  - Type: CALL
+  - Strike: $310.00
+  - Expiration: 2026-05-22
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $1.0
+  - Bid: $0.99 / Ask: $1.02
+  - Delta: 0.1726
+  - Spread Ratio: 2.99%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 53.58
+  - Confidence Score: 3/10
+  - Liquidity Score: 20.40
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 14.13
+  - Distance Score: 14.05
+  - VIX Regime: normal
+  - Narrative: AAPL CALL sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: passes structure threshold and ranks favorably within current filtered set
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-22.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for AAPL, requested DTE: 14 (Using Expiry: 2026-05-29, Label: 15DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+Skipping scalping output for AAPL requested 14DTE because fallback actual DTE 15 is too distant.
+Applying 'credit_spread_sell' strategy for AAPL on 2026-05-29 (Requested DTE 14, Actual DTE 15)...
+ [Strategy Processor] Current VIX: 17.52. Applying strict filters.
+No strict credit spread candidates found. Generating fallback shortlist...
+---TICKET_START---
+[FALLBACK] Credit Spread Sell Opportunity for AAPL (15DTE (requested 14DTE, fallback))**
+  - Underlying Price: $298.40
+  - Current VIX: 17.52
+  - Type: PUT
+  - Strike: $285.00
+  - Expiration: 2026-05-29
+  - Requested DTE: 14
+  - Actual DTE: 15
+  - Last Price: $1.52
+  - Bid: $1.45 / Ask: $1.54
+  - Delta: -0.1751
+  - Spread Ratio: 6.02%
+  - Setup Family: defined_risk_premium
+  - Structure Score: 51.03
+  - Confidence Score: 3/10
+  - Liquidity Score: 19.63
+  - Expiry Quality Score: 5.00
+  - Delta Fit Score: 13.68
+  - Distance Score: 12.72
+  - VIX Regime: normal
+  - Narrative: AAPL PUT sits in the preferred short-premium delta band with cleaner pricing and distance than the broader chain.
+  - Expectations: Use only inside a defined-risk spread when the underlying is stable-to-favorable and the volatility regime is not disorderly.
+  - Invalidation: Reject if volatility expands against the structure, fill quality degrades, or the defined-risk profile stops making sense.
+  - Risk Profile: defined-risk spread only; no naked premium and no chasing weak credits
+  - Selection Reason: below minimum structure threshold
+  - Expiry Selection Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-29.
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+Tradier options processing complete.

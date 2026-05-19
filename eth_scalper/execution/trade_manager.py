@@ -42,9 +42,9 @@ class TradeManager:
         self.active_monitors: Dict[str, asyncio.Task] = {}
         
         # Exit parameters
-        self.default_target_pct = 0.2  # 0.2% net compounding target
-        self.default_stop_pct = 0.1    # 0.1% hard stop
-        self.max_hold_time = 180       # 3 minutes max hold
+        self.default_target_pct = 0.35  # demand more from real reversal capture
+        self.default_stop_pct = 0.12    # keep losers tighter than target
+        self.max_hold_time = 300        # allow continuation to develop
     
     def create_position(self, signal: Dict, size_usd: float, paper: bool = False) -> Position:
         """Create a new position from signal"""
@@ -54,13 +54,19 @@ class TradeManager:
         # Calculate target and stop prices
         entry = signal['price']
         direction = 'long' if signal['direction'] in ('up', 'down') else 'long'
-        
+        reversal_strength = abs(float(signal.get('reversal_strength_pct') or 0.0))
+        pullback_depth = abs(float(signal.get('pullback_depth_pct') or signal.get('distance_from_mid_pct') or 0.0))
+        dynamic_target_pct = max(self.default_target_pct, min(0.80, reversal_strength * 0.90 if reversal_strength else pullback_depth * 1.20))
+        dynamic_stop_pct = max(0.08, min(self.default_stop_pct, max(0.08, dynamic_target_pct * 0.45)))
+        trailing_trigger_pct = max(0.18, dynamic_target_pct * 0.6)
+        trailing_retrace_pct = max(0.06, dynamic_target_pct * 0.3)
+
         if direction == 'long':
-            target = entry * (1 + self.default_target_pct / 100)
-            stop = entry * (1 - self.default_stop_pct / 100)
+            target = entry * (1 + dynamic_target_pct / 100)
+            stop = entry * (1 - dynamic_stop_pct / 100)
         else:
-            target = entry * (1 - self.default_target_pct / 100)
-            stop = entry * (1 + self.default_stop_pct / 100)
+            target = entry * (1 - dynamic_target_pct / 100)
+            stop = entry * (1 + dynamic_stop_pct / 100)
         
         position = Position(
             id=position_id,
@@ -72,6 +78,11 @@ class TradeManager:
             stop_price=stop,
             paper=paper
         )
+        position.dynamic_target_pct = dynamic_target_pct
+        position.dynamic_stop_pct = dynamic_stop_pct
+        position.trailing_trigger_pct = trailing_trigger_pct
+        position.trailing_retrace_pct = trailing_retrace_pct
+        position.peak_price = entry
         
         self.positions[position_id] = position
         return position

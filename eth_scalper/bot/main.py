@@ -161,33 +161,9 @@ class ETHScalper:
         # Check for momentum signals
         signal = momentum_detector.detect_momentum()
 
-        eth_prices = multi_asset_feed.get_prices()
-        eth_history = multi_asset_feed.price_history.get('ETH', [])
-        eth_mid = sum(p for _, p in eth_history[-12:]) / max(1, len(eth_history[-12:])) if eth_history else eth_prices.get('ETH')
-        eth_cur = eth_prices.get('ETH')
-        if eth_cur is not None and eth_mid is not None:
-            print(f"   📏 ETH midpoint check: current=${eth_cur:.2f}, midpoint=${eth_mid:.2f}, at_or_below_mid={eth_cur <= eth_mid}")
-
+        asset_prices = multi_asset_feed.get_prices()
         if signal and not self.execution_pending:
             await self._handle_signal(signal)
-        elif (eth_cur is not None and eth_mid is not None and eth_cur <= eth_mid and len(trade_manager.get_open_positions()) == 0 and not self.execution_pending):
-            print("🎯 Natural midline buy condition met, forcing immediate buy_pullback handling")
-            mid_signal = {
-                'timestamp': time.time(),
-                'symbol': 'ETH',
-                'direction': 'down',
-                'price': eth_cur,
-                'change_60s_pct': 0.0,
-                'gas_gwei': price_feed.get_gas_price_gwei() or 0.0,
-                'score': 10,
-                'type': 'midline_buy',
-                'setup': 'buy_pullback',
-                'midpoint_price': eth_mid,
-                'distance_from_mid_pct': abs(((eth_cur - eth_mid) / eth_mid) * 100) if eth_mid else 0.0,
-                'pullback_bias': True,
-                'sell_strength_bias': False,
-            }
-            await self._handle_signal(mid_signal)
         elif (not PAPER_TRADING_MODE and now - self.last_forced_entry > AUTO_MANUAL_BUY_FALLBACK_SECONDS and len(trade_manager.get_open_positions()) == 0 and not self.execution_pending):
             print("⏰ No natural signal recently, forcing fallback live entry")
             self.last_forced_entry = now
@@ -507,8 +483,8 @@ class ETHScalper:
             canonical_midline_entry = (
                 signal.get('symbol', 'ETH') == 'ETH'
                 and signal.get('funded_side') == 'USDC'
-                and signal.get('type') in ('buy_pullback', 'forced_midline_buy')
-                and bool(signal.get('direction') == 'down')
+                and (signal.get('type') in ('buy_pullback', 'buy_reversal', 'forced_midline_buy') or signal.get('setup') in ('buy_pullback', 'buy_reversal'))
+                and bool(signal.get('pullback_bias'))
             )
             if not canonical_midline_entry:
                 if friction_pct >= gross_edge_pct:
@@ -795,15 +771,24 @@ class ETHScalper:
             if not current_price:
                 await asyncio.sleep(5)
                 continue
-            
-            # Check target hit
+
             if position.direction == 'long':
-                if current_price >= position.target_price:
-                    await self._close_live_position(position, current_price, "target_hit")
-                    return
+                peak_price = max(getattr(position, 'peak_price', position.entry_price), current_price)
+                position.peak_price = peak_price
+                profit_pct = ((current_price - position.entry_price) / position.entry_price) * 100 if position.entry_price else 0.0
+                retrace_from_peak_pct = ((peak_price - current_price) / peak_price) * 100 if peak_price else 0.0
+
                 if current_price <= position.stop_price:
                     await self._close_live_position(position, current_price, "stop_loss")
                     return
+                if profit_pct >= getattr(position, 'dynamic_target_pct', trade_manager.default_target_pct):
+                    if retrace_from_peak_pct >= getattr(position, 'trailing_retrace_pct', 0.06):
+                        await self._close_live_position(position, current_price, "target_retrace_exit")
+                        return
+                elif profit_pct >= getattr(position, 'trailing_trigger_pct', 0.18):
+                    if retrace_from_peak_pct >= getattr(position, 'trailing_retrace_pct', 0.06):
+                        await self._close_live_position(position, current_price, "continuation_retrace_exit")
+                        return
             else:  # short
                 if current_price <= position.target_price:
                     await self._close_live_position(position, current_price, "target_hit")
@@ -811,13 +796,16 @@ class ETHScalper:
                 if current_price >= position.stop_price:
                     await self._close_live_position(position, current_price, "stop_loss")
                     return
-            
-            # Check timeout
+
             hold_time = time.time() - position.entry_time
             if hold_time > trade_manager.max_hold_time:
-                await self._close_live_position(position, current_price, "timeout")
+                profit_pct = ((current_price - position.entry_price) / position.entry_price) * 100 if position.entry_price else 0.0
+                if profit_pct > 0:
+                    await self._close_live_position(position, current_price, "timed_profit_take")
+                else:
+                    await self._close_live_position(position, current_price, "timeout")
                 return
-            
+
             await asyncio.sleep(5)
     
     async def _close_live_position(self, position, current_price, reason):

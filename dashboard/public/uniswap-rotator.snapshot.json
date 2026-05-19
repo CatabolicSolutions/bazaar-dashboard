@@ -1,0 +1,333 @@
+{
+  "tab": {
+    "id": "rotator-overview",
+    "title": "UniSwap Rotator HQ",
+    "sections": [
+      {
+        "id": "portfolio-composition",
+        "title": "Portfolio Composition",
+        "source": "portfolio",
+        "fields": [
+          "weth",
+          "cbbtc",
+          "usdc",
+          "portfolio_usd",
+          "portfolio_eth_equiv"
+        ]
+      },
+      {
+        "id": "performance-summary",
+        "title": "Performance Summary",
+        "source": "performance",
+        "fields": [
+          "current_side",
+          "portfolio_usd",
+          "portfolio_eth_equiv",
+          "last_transition_ts",
+          "bars_since_flip",
+          "risk_mode"
+        ]
+      },
+      {
+        "id": "controls",
+        "title": "Operational Controls",
+        "source": "controls",
+        "fields": [
+          "actions",
+          "safety_mode",
+          "execution_mode",
+          "service_state"
+        ]
+      },
+      {
+        "id": "strategy",
+        "title": "Strategy Stack",
+        "source": "strategy",
+        "fields": [
+          "active_strategy",
+          "rotation_objective",
+          "decision_mode",
+          "current_reason"
+        ]
+      },
+      {
+        "id": "matrix",
+        "title": "Matrix / Tuning",
+        "source": "matrix",
+        "fields": [
+          "last_suite",
+          "best_candidate",
+          "candidate_count",
+          "last_updated"
+        ]
+      },
+      {
+        "id": "harness",
+        "title": "Harness / Replay",
+        "source": "harness",
+        "fields": [
+          "last_replay",
+          "scenario_count",
+          "audit_status",
+          "artifact_path"
+        ]
+      },
+      {
+        "id": "vigil-athena",
+        "title": "Vigil / Athena",
+        "source": "vigil_athena",
+        "fields": [
+          "vigil_status",
+          "athena_status",
+          "latest_note",
+          "alerts"
+        ]
+      },
+      {
+        "id": "results",
+        "title": "Test / Tune / Results",
+        "source": "results",
+        "fields": [
+          "last_result",
+          "eth_equiv_delta_units",
+          "eth_equiv_return_pct",
+          "status"
+        ]
+      },
+      {
+        "id": "recent-ledger",
+        "title": "Recent Ledger",
+        "source": "recent_ledger",
+        "fields": [
+          "ts",
+          "event_type",
+          "side_before",
+          "side_after",
+          "eth_equiv_delta_units",
+          "usd_delta",
+          "reason",
+          "tx_hash"
+        ]
+      }
+    ],
+    "navigation": [
+      "HQ",
+      "Portfolio",
+      "Controls",
+      "Strategy",
+      "Matrix",
+      "Harness",
+      "Vigil",
+      "Athena",
+      "Results",
+      "Ledger"
+    ]
+  },
+  "snapshot": {
+    "portfolio": {
+      "weth": 0.0,
+      "cbbtc": 0.0,
+      "usdc": 233.7,
+      "eth_price": 2340.0,
+      "cbbtc_price": 80800.0,
+      "portfolio_usd": 233.7,
+      "portfolio_eth_equiv": 0.09987179487179487
+    },
+    "performance": {
+      "current_side": "USDC",
+      "portfolio_usd": 233.7,
+      "portfolio_eth_equiv": 0.09987179487179487,
+      "last_transition_ts": "2026-05-07T06:38:52.806726Z",
+      "bars_since_flip": 0,
+      "risk_mode": "normal"
+    },
+    "controls": {
+      "actions": [
+        {
+          "id": "refresh",
+          "label": "Refresh Snapshot",
+          "type": "read"
+        },
+        {
+          "id": "dry_run_reconcile",
+          "label": "Dry Run Reconcile",
+          "type": "runtime"
+        },
+        {
+          "id": "quote_bridge_check",
+          "label": "Quote Bridge Check",
+          "type": "bridge"
+        },
+        {
+          "id": "deploy_hq",
+          "label": "Deploy HQ",
+          "type": "ops"
+        }
+      ],
+      "safety_mode": "normal",
+      "execution_mode": "legacy_bridge_dry_run",
+      "service_state": "active"
+    },
+    "strategy": {
+      "active_strategy": "UniSwap_Rotator canonical 3-state",
+      "rotation_objective": "maximize eth_equiv_delta_units",
+      "decision_mode": "rotator-native",
+      "current_reason": "matrix cbbtc to usdc"
+    },
+    "matrix": {
+      "last_suite": "eth_btc_rotator_tuning_v3",
+      "best_candidate": "r7",
+      "candidate_count": 8,
+      "last_updated": "2026-05-06T09:20:11.261083+00:00"
+    },
+    "harness": {
+      "last_replay": "eth_scalper/out_eth_market_chart_30d.json",
+      "scenario_count": 726,
+      "audit_status": "rotate_audit_loaded",
+      "artifact_path": "out/rotate_event_audit.json"
+    },
+    "vigil_athena": {
+      "vigil_status": "signal_probe_loaded",
+      "athena_status": "battery_loaded",
+      "latest_note": "# Three-State Rotation Replay Status",
+      "alerts": []
+    },
+    "results": {
+      "last_result": "r7",
+      "eth_equiv_delta_units": -0.006291923996052287,
+      "eth_equiv_return_pct": -8.576819466454943,
+      "status": "research-loaded"
+    },
+    "charts": {
+      "points": [
+        {
+          "ts": "2026-05-07T05:16:26.646291Z",
+          "eth_equiv_delta_units": -0.000995744680851049,
+          "usd_delta": -2.339999999999975,
+          "event_type": "ENTER",
+          "side_before": "USDC",
+          "side_after": "CBBTC"
+        },
+        {
+          "ts": "2026-05-07T05:41:50.230506Z",
+          "eth_equiv_delta_units": -0.0003276955602536935,
+          "usd_delta": -0.7749999999999773,
+          "event_type": "EXIT",
+          "side_before": "WETH",
+          "side_after": "USDC"
+        },
+        {
+          "ts": "2026-05-07T06:38:52.803998Z",
+          "eth_equiv_delta_units": -0.0006063829787233965,
+          "usd_delta": -1.424999999999983,
+          "event_type": "ENTER",
+          "side_before": "USDC",
+          "side_after": "WETH"
+        },
+        {
+          "ts": "2026-05-07T06:38:52.805323Z",
+          "eth_equiv_delta_units": -6.144067796610975e-05,
+          "usd_delta": -0.14500000000001023,
+          "event_type": "ROTATE",
+          "side_before": "WETH",
+          "side_after": "CBBTC"
+        },
+        {
+          "ts": "2026-05-07T06:38:52.806606Z",
+          "eth_equiv_delta_units": -0.0002649572649572607,
+          "usd_delta": -0.6200000000000045,
+          "event_type": "EXIT",
+          "side_before": "CBBTC",
+          "side_after": "USDC"
+        }
+      ],
+      "summary": {
+        "count": 5,
+        "eth_equiv_total": -0.0022562211627515094,
+        "usd_total": -5.30499999999995
+      }
+    },
+    "recent_ledger": [
+      {
+        "ts": "2026-05-07T05:16:26.646291Z",
+        "event_type": "ENTER",
+        "side_before": "USDC",
+        "side_after": "CBBTC",
+        "eth_equiv_delta_units": -0.000995744680851049,
+        "usd_delta": -2.339999999999975,
+        "reason": "sample dry-run rotate into CBBTC",
+        "tx_hash": "dryrun",
+        "meta": {
+          "mode": "dry_run",
+          "side_before": "USDC",
+          "side_after": "CBBTC",
+          "reason": "sample dry-run rotate into CBBTC"
+        }
+      },
+      {
+        "ts": "2026-05-07T05:41:50.230506Z",
+        "event_type": "EXIT",
+        "side_before": "WETH",
+        "side_after": "USDC",
+        "eth_equiv_delta_units": -0.0003276955602536935,
+        "usd_delta": -0.7749999999999773,
+        "reason": "sample runtime loop exit to USDC",
+        "tx_hash": "legacy-bridge-dryrun",
+        "meta": {
+          "mode": "legacy_bridge_dry_run",
+          "from_symbol": "WETH",
+          "to_symbol": "USDC",
+          "reason": "sample runtime loop exit to USDC"
+        }
+      },
+      {
+        "ts": "2026-05-07T06:38:52.803998Z",
+        "event_type": "ENTER",
+        "side_before": "USDC",
+        "side_after": "WETH",
+        "eth_equiv_delta_units": -0.0006063829787233965,
+        "usd_delta": -1.424999999999983,
+        "reason": "matrix usdc to weth",
+        "tx_hash": "legacy-bridge-dryrun",
+        "meta": {
+          "mode": "legacy_bridge_dry_run",
+          "from_symbol": "USDC",
+          "to_symbol": "WETH",
+          "reason": "matrix usdc to weth"
+        }
+      },
+      {
+        "ts": "2026-05-07T06:38:52.805323Z",
+        "event_type": "ROTATE",
+        "side_before": "WETH",
+        "side_after": "CBBTC",
+        "eth_equiv_delta_units": -6.144067796610975e-05,
+        "usd_delta": -0.14500000000001023,
+        "reason": "matrix weth to cbbtc",
+        "tx_hash": "legacy-bridge-dryrun",
+        "meta": {
+          "mode": "legacy_bridge_dry_run",
+          "from_symbol": "WETH",
+          "to_symbol": "CBBTC",
+          "reason": "matrix weth to cbbtc"
+        }
+      },
+      {
+        "ts": "2026-05-07T06:38:52.806606Z",
+        "event_type": "EXIT",
+        "side_before": "CBBTC",
+        "side_after": "USDC",
+        "eth_equiv_delta_units": -0.0002649572649572607,
+        "usd_delta": -0.6200000000000045,
+        "reason": "matrix cbbtc to usdc",
+        "tx_hash": "legacy-bridge-dryrun",
+        "meta": {
+          "mode": "legacy_bridge_dry_run",
+          "from_symbol": "CBBTC",
+          "to_symbol": "USDC",
+          "reason": "matrix cbbtc to usdc"
+        }
+      }
+    ]
+  }
+}

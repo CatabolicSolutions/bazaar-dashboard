@@ -5,7 +5,7 @@ from pathlib import Path
 from tradier_board_utils import parse_raw_tickets, save_json, top_leaders_by_strategy
 
 
-RUNS_DIR = Path.home() / '.openclaw' / 'workspace' / 'out' / 'tradier_runs'
+RUNS_DIR = Path.home() / '.openclaw' / 'workspace' / 'out' / 'tradier_runs_v2'
 
 
 def main():
@@ -22,13 +22,14 @@ def main():
     raw_text = Path(args.raw).read_text(encoding='utf-8')
     board_text = Path(args.board).read_text(encoding='utf-8')
     tickets = parse_raw_tickets(raw_text)
-    leaders = top_leaders_by_strategy(tickets, limit_per_strategy=3)
+    leaders = top_leaders_by_strategy(tickets, limit_per_strategy=2)
 
     (run_dir / 'raw.txt').write_text(raw_text, encoding='utf-8')
     (run_dir / 'board.txt').write_text(board_text, encoding='utf-8')
     save_json(
         run_dir / 'run.json',
         {
+            'version': 'tradier_v2_evidence_first',
             'run_id': run_id,
             'generated_at': generated_at.isoformat(),
             'ticket_count': len(tickets),

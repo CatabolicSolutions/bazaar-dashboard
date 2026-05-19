@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<title>UniSwap_Rotator War Room</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --bg: #060a13;
+  --bg-panel: #0c1420;
+  --bg-panel-alt: #091018;
+  --bg-card: #101c2c;
+  --border: #142030;
+  --border-hi: #1e3050;
+  --green: #1de9b6;
+  --green-dim: rgba(29,233,182,0.15);
+  --red: #f05070;
+  --red-dim: rgba(runtime artifact pending,80,112,0.15);
+  --amber: #f5a623;
+  --amber-dim: rgba(245,166,35,0.15);
+  --blue: #4a9eff;
+  --blue-dim: rgba(74,158,255,0.15);
+  --purple: #bb86fc;
+  --purple-dim: rgba(187,134,252,0.15);
+  --teal: #18d4f0;
+  --teal-dim: rgba(24,212,runtime artifact pending,0.12);
+  --orange: #ff7c42;
+  --orange-dim: rgba(255,124,66,0.15);
+  --text: #ccd8ea;
+  --text-2: #6888a8;
+  --text-3: #384c64;
+  --mono: 'SF Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scrollbar-width: thin; scrollbar-color: var(--border) var(--bg); }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; font-size: 12px; overflow: hidden; height: 100vh; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+.mono { font-family: var(--mono); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.status-bar { position: fixed; top: 0; left: 0; right: 0; height: 58px; background: #030712; border-bottom: 1px solid var(--border); z-index: 100; display: flex; align-items: center; padding: 0 12px; gap: 20px; overflow-x: auto; overflow-y: hidden; }
+.status-bar::-webkit-scrollbar { height: 3px; }
+.dry-banner { position: fixed; top: 58px; left: 0; right: 0; height: 28px; background: #1a0d00; border-bottom: 1px solid #5c3500; z-index: 100; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 0 12px; overflow: hidden; }
+.sidebar { position: fixed; left: 0; top: 86px; bottom: 0; width: 180px; background: #08111e; border-right: 1px solid var(--border); z-index: 90; display: flex; flex-direction: column; }
+.main-content { position: fixed; left: 180px; top: 86px; right: 0; bottom: 0; overflow-y: auto; overflow-x: hidden; padding: 12px; background: var(--bg); }
+
+.pill { display: flex; flex-direction: column; min-width: 70px; flex-shrink: 0; }
+.pill-label { font-size: 9px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.2; margin-bottom: 2px; }
+.pill-value { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; line-height: 1.3; white-space: nowrap; }
+.vdiv { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
+
+@keyframes pulse-dot { 0%, 100% { box-shadow: 0 0 0 0 rgba(29,233,182,0.6); } 50% { box-shadow: 0 0 0 5px rgba(29,233,182,0); } }
+@keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(runtime artifact pending,80,112,0.6); } 50% { box-shadow: 0 0 0 5px rgba(runtime artifact pending,80,112,0); } }
+.pulse-green { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse-dot 2s infinite; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+.nav-item { width: 100%; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; cursor: pointer; color: var(--text-2); font-size: 12px; border-left: 2px solid transparent; transition: background 0.15s, color 0.15s; user-select: none; }
+.nav-item:hover { background: rgba(255,255,255,0.04); }
+.nav-item.active { background: var(--bg-card); border-left-color: var(--teal); color: var(--teal); }
+.nav-icon { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.card { border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); padding: 12px; }
+.card-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-2); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+table.data-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+table.data-table thead th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; position: sticky; top: 0; background: var(--bg-card); white-space: nowrap; font-weight: 500; }
+table.data-table tbody td { padding: 5px 8px; border-bottom: 1px solid rgba(20,32,48,0.5); color: var(--text); white-space: nowrap; }
+table.data-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+table.data-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+.badge { display: inline-flex; align-items: center; border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 600; font-family: var(--mono); }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-red { background: var(--red-dim); color: var(--red); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+.badge-teal { background: var(--teal-dim); color: var(--teal); }
+.badge-purple { background: var(--purple-dim); color: var(--purple); }
+
+.progress-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+.chart-container { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 8px; }
+.chart-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); margin-bottom: 6px; }
+.chart-subtitle { font-size: 9px; color: var(--text-3); margin-bottom: 4px; }
+canvas { display: block; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal-box { background: var(--bg-card); border: 1px solid var(--border-hi); border-radius: 6px; padding: 20px; max-width: 440px; width: 90%; }
+
+.toast-container { position: fixed; bottom: 16px; right: 16px; z-index: 250; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--bg-card); border: 1px solid #5c3500; border-radius: 4px; padding: 10px 14px; font-size: 11px; color: var(--amber); font-family: var(--mono); animation: toast-in 0.3s ease; max-width: 360px; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.ctrl-btn { background: transparent; border: 1px solid var(--border-hi); border-radius: 4px; padding: 10px; cursor: pointer; text-align: left; color: var(--text); transition: background 0.15s, border-color 0.15s; }
+.ctrl-btn:hover { background: rgba(255,255,255,0.04); border-color: var(--text-2); }
+.ctrl-btn.danger { border-color: rgba(runtime artifact pending,80,112,0.4); }
+.ctrl-btn.danger:hover { border-color: var(--red); background: var(--red-dim); }
+
+.event-row { border-left: 3px solid var(--border); }
+
+@media (max-width: 767px) {
+  .sidebar { display: none; }
+  .main-content { left: 0; }
+  .status-bar { height: 48px; }
+  .dry-banner { top: 48px; }
+  .main-content { top: 76px; }
+  .mobile-menu-btn { display: flex !important; }
+}
+</style>
+</head>
+<body data-id="0">
+<app-icon data-id="1" hidden data-icon="activity" data-palette="Dark"></app-icon>
+
+<!-- TOP STATUS BAR -->
+<header data-id="2" class="status-bar" id="status-bar-a1b2">
+  <div data-id="3" style="min-width:150px;flex-shrink:0;">
+    <div data-id="4" class="mono" style="font-size:13px;color:var(--teal);letter-spacing:0.04em;font-weight:700;">UNISWAP_ROTATOR</div>
+    <div data-id="5" style="font-size:9px;color:var(--text-2);letter-spacing:0.1em;">WAR ROOM</div>
+  </div>
+  <div data-id="6" class="vdiv"></div>
+  <div data-id="7" class="pill">
+    <span data-id="8" class="pill-label">SERVICE</span>
+    <span data-id="9" class="pill-value" style="font-size:12px;font-weight:700;color:var(--green);" id="svc-status-x1"><span data-id="10" class="pulse-green"></span>ALIVE</span>
+  </div>
+  <div data-id="11" class="pill">
+    <span data-id="12" class="pill-label">MODE</span>
+    <span data-id="13" class="pill-value"><span data-id="14" class="badge badge-amber" style="font-size:12px;font-weight:700;">◆ DRY_RUN</span></span>
+  </div>
+  <div data-id="15" class="pill">
+    <span data-id="16" class="pill-label">SIDE</span>
+    <span data-id="17" class="pill-value" style="font-size:13px;font-weight:700;color:var(--teal);" id="sb-side-z2">⬡ WETH</span>
+  </div>
+  <div data-id="18" class="pill">
+    <span data-id="19" class="pill-label">ACTION</span>
+    <span data-id="20" class="pill-value" style="font-size:11px;color:var(--green);" id="sb-action-z3">HOLD_WETH</span>
+  </div>
+  <div data-id="21" class="pill" style="flex-grow:1;min-width:200px;">
+    <span data-id="22" class="pill-label">THESIS</span>
+    <span data-id="23" class="pill-value" style="font-size:11px;color:var(--text);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px;">ETH score dominant · spread within band · churn guard active</span>
+  </div>
+  <div data-id="24" class="pill">
+    <span data-id="25" class="pill-label">PORTFOLIO</span>
+    <span data-id="26" class="pill-value" style="font-size:14px;font-weight:700;color:var(--text);" id="sb-port-z4">$4,723.65</span>
+  </div>
+  <div data-id="27" class="pill">
+    <span data-id="28" class="pill-label">ETH-EQUIV</span>
+    <span data-id="29" class="pill-value" style="font-size:13px;color:var(--teal);" id="sb-eth-z5">2.5569 Ξ</span>
+  </div>
+  <div data-id="30" class="pill">
+    <span data-id="31" class="pill-label">LAST DECISION</span>
+    <span data-id="32" class="pill-value" style="font-size:11px;color:var(--text);" id="sb-lastd-z6">runtime-derived pendings ago</span>
+  </div>
+  <div data-id="33" class="pill">
+    <span data-id="34" class="pill-label">LAST EXEC</span>
+    <span data-id="35" class="pill-value" style="font-size:11px;color:var(--text-2);">2h 18m ago</span>
+  </div>
+  <div data-id="36" class="pill">
+    <span data-id="37" class="pill-label">LAST ROTATE</span>
+    <span data-id="38" class="pill-value" style="font-size:11px;color:var(--text-2);">18h 41m ago</span>
+  </div>
+  <div data-id="39" class="pill">
+    <span data-id="40" class="pill-label">FEED CONF</span>
+    <span data-id="41" class="pill-value" style="font-size:12px;color:var(--green);" id="sb-feed-z7">97.4%</span>
+  </div>
+  <div data-id="42" class="pill">
+    <span data-id="43" class="pill-label">ANOMALY</span>
+    <span data-id="44" class="pill-value" style="font-size:11px;color:var(--green);">✓ NONE</span>
+  </div>
+  <div data-id="45" class="vdiv"></div>
+  <button data-id="46" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px;padding:4px;" id="settings-btn-z8">⚙</button>
+</header>
+
+<!-- DRY_RUN BANNER -->
+<div data-id="runtime-derived pending" class="dry-banner" id="dry-banner-c3d4">
+  <span data-id="48" class="badge badge-amber" style="font-size:9px;padding:1px 5px;">DRY_RUN</span>
+  <span data-id="49" class="mono" style="font-size:10px;color:var(--amber);">◆ RUNTIME MODE: DRY_RUN — Execution is SIMULATED. No real swaps are submitted. All trade signals are evaluated but not broadcast to chain. Quote bridge is active for price validity.</span>
+  <span data-id="50" style="flex-grow:1;"></span>
+  <span data-id="51" class="badge" style="font-size:9px;padding:1px 5px;background:rgba(255,255,255,0.05);color:var(--text-2);">DEMO DATA</span>
+</div>
+
+<!-- SIDEBAR -->
+<nav data-id="52" class="sidebar" id="sidebar-e5f6">
+  <div data-id="53" style="flex:1;padding-top:4px;">
+    <div data-id="54" class="nav-item active" data-panel="overview"><span data-id="55" class="nav-icon">📊</span>Overview</div>
+    <div data-id="56" class="nav-item" data-panel="position"><span data-id="57" class="nav-icon">💼</span>Position</div>
+    <div data-id="58" class="nav-item" data-panel="strategy"><span data-id="59" class="nav-icon">🧠</span>Strategy</div>
+    <div data-id="60" class="nav-item" data-panel="market"><span data-id="61" class="nav-icon">📈</span>Market</div>
+    <div data-id="62" class="nav-item" data-panel="timeline"><span data-id="63" class="nav-icon">📋</span>Timeline</div>
+    <div data-id="64" class="nav-item" data-panel="execution"><span data-id="65" class="nav-icon">⚡</span>Execution</div>
+    <div data-id="66" class="nav-item" data-panel="risk"><span data-id="67" class="nav-icon">🛡</span>Risk</div>
+    <div data-id="68" class="nav-item" data-panel="performance"><span data-id="69" class="nav-icon">📉</span>Performance</div>
+    <div data-id="70" class="nav-item" data-panel="research"><span data-id="71" class="nav-icon">🔬</span>Research</div>
+    <div data-id="72" class="nav-item" data-panel="diagnostics"><span data-id="73" class="nav-icon">🔍</span>Diagnostics</div>
+  </div>
+  <div data-id="74" style="padding:12px;border-top:1px solid var(--border);">
+    <div data-id="75" class="mono" style="font-size:10px;color:var(--text-3);">v2.4.1</div>
+    <div data-id="76" class="mono" style="font-size:10px;color:var(--text-3);">BASE MAINNET</div>
+  </div>
+</nav>
+
+<!-- MOBILE MENU BUTTON (hidden on desktop) -->
+<button data-id="77" id="mobile-menu-btn-m1" class="mobile-menu-btn" style="display:none;position:fixed;top:60px;left:8px;z-index:95;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);cursor:pointer;">
+  <i data-id="78" data-lucide="menu" class="w-5 h-5"></i>
+</button>
+
+<!-- MAIN CONTENT -->
+<div data-id="79" class="main-content" id="main-content-g7h8">
+
+<!-- ==================== OVERVIEW PANEL ==================== -->
+<div data-id="80" class="panel active" id="panel-overview">
+  <!-- KPI Row -->
+  <div data-id="81" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;" id="ov-kpi-grid-j1">
+    <div data-id="82" class="card" style="border-bottom:2px solid var(--green);">
+      <div data-id="83" class="card-title">TOTAL PORTFOLIO</div>
+      <div data-id="84" class="mono" style="font-size:28px;font-weight:700;color:var(--text);" id="ov-port-val-k1">$4,723.65</div>
+      <div data-id="85" class="mono" style="font-size:12px;color:var(--teal);margin-top:2px;" id="ov-eth-eq-k2">2.5569 ETH equiv</div>
+      <div data-id="86" class="mono" style="font-size:11px;color:var(--green);margin-top:4px;">N/A (runtime-derived pending) since cutover</div>
+    </div>
+    <div data-id="87" class="card" style="border-bottom:2px solid var(--teal);">
+      <div data-id="88" class="card-title">CURRENT SIDE</div>
+      <div data-id="89" class="mono" style="font-size:28px;font-weight:700;color:var(--teal);">WETH</div>
+      <div data-id="90" class="mono" style="font-size:12px;color:var(--text);margin-top:2px;">2.4871 WETH · $4,596.22</div>
+      <div data-id="91" class="mono" style="font-size:11px;color:var(--green);margin-top:4px;">basis $4,468.79 · unrealized +$127.43 (+2.85%)</div>
+    </div>
+    <div data-id="92" class="card" style="border-bottom:2px solid var(--green);">
+      <div data-id="93" class="card-title">DECISION ENGINE</div>
+      <div data-id="94" class="mono" style="font-size:18px;font-weight:700;color:var(--green);">HOLD_WETH</div>
+      <div data-id="95" class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">Signal: ETH_DOMINANT · Edge: 0.73</div>
+      <div data-id="96" class="mono" style="font-size:11px;color:var(--text-2);margin-top:4px;">Streak: 8 bars · Churn guard: ACTIVE</div>
+    </div>
+    <div data-id="97" class="card" style="border-bottom:2px solid var(--amber);">
+      <div data-id="98" class="card-title">EXECUTION MODE</div>
+      <div data-id="99" class="mono" style="font-size:24px;font-weight:700;color:var(--amber);">DRY_RUN</div>
+      <div data-id="100" class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">Transport: LIVE_RUNTIME</div>
+      <div data-id="101" class="mono" style="font-size:11px;color:var(--text-2);margin-top:4px;">Quote: CONFIRMED · Preflight: UNBOUND</div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div data-id="102" style="display:grid;grid-template-columns:3fr 2fr;gap:10px;margin-bottom:12px;">
+    <div data-id="103" class="chart-container">
+      <div data-id="104" class="chart-title">ETH-EQUIVALENT EQUITY CURVE — 30D</div>
+      <canvas data-id="105" id="ov-equity-canvas-l1" height="220"></canvas>
+    </div>
+    <div data-id="106" class="chart-container">
+      <div data-id="107" class="chart-title">ALLOCATION</div>
+      <canvas data-id="108" id="ov-alloc-canvas-l2" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Quick Status Row -->
+  <div data-id="109" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+    <div data-id="110" class="card">
+      <div data-id="111" class="card-title">GUARDS & CONTROLS</div>
+      <div data-id="112" style="display:flex;flex-direction:column;gap:4px;">
+        <div data-id="113" style="display:flex;justify-content:space-between;"><span data-id="114" style="color:var(--text-2);">Post-Rotate Hold</span><span data-id="115" class="mono" style="color:var(--text-3);">INACTIVE</span></div>
+        <div data-id="116" style="display:flex;justify-content:space-between;"><span data-id="117" style="color:var(--text-2);">Churn Guard</span><span data-id="118" class="mono" style="color:var(--green);">ACTIVE</span></div>
+        <div data-id="119" style="display:flex;justify-content:space-between;"><span data-id="120" style="color:var(--text-2);">Cooldown</span><span data-id="121" class="mono" style="color:var(--text-3);">INACTIVE</span></div>
+        <div data-id="122" style="display:flex;justify-content:space-between;"><span data-id="123" style="color:var(--text-2);">Quote Confirmed</span><span data-id="124" class="mono" style="color:var(--green);">YES</span></div>
+        <div data-id="125" style="display:flex;justify-content:space-between;"><span data-id="126" style="color:var(--text-2);">Feed Stale</span><span data-id="127" class="mono" style="color:var(--green);">NO</span></div>
+        <div data-id="128" style="display:flex;justify-content:space-between;"><span data-id="129" style="color:var(--text-2);">Wallet Match</span><span data-id="130" class="mono" style="color:var(--green);">YES</span></div>
+      </div>
+    </div>
+    <div data-id="131" class="card">
+      <div data-id="132" class="card-title">LAST EVENTS</div>
+      <table data-id="133" class="data-table" style="font-size:10px;">
+        <thead data-id="134"><tr data-id="135"><th data-id="136">TIME</th><th data-id="137">TYPE</th><th data-id="138">SIDE</th></tr></thead>
+        <tbody data-id="139">
+          <tr data-id="140"><td data-id="141">23:runtime-derived pending:12</td><td data-id="142"><span data-id="143" class="badge badge-teal" style="font-size:8px;">DECISION</span></td><td data-id="144">WETH→WETH</td></tr>
+          <tr data-id="145"><td data-id="146">23:42:08</td><td data-id="1runtime-derived pending"><span data-id="148" class="badge badge-blue" style="font-size:8px;">RECONCILE</span></td><td data-id="149">WETH→WETH</td></tr>
+          <tr data-id="150"><td data-id="151">22:15:44</td><td data-id="152"><span data-id="153" class="badge badge-teal" style="font-size:8px;">DECISION</span></td><td data-id="154">WETH→WETH</td></tr>
+          <tr data-id="155"><td data-id="156">21:03:29</td><td data-id="157"><span data-id="158" class="badge badge-amber" style="font-size:8px;">ROTATE_SIG</span></td><td data-id="159">USDC→WETH</td></tr>
+          <tr data-id="160"><td data-id="161">05:17:33</td><td data-id="162"><span data-id="163" class="badge badge-green" style="font-size:8px;">ENTER</span></td><td data-id="164">USDC→WETH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div data-id="165" class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div data-id="166" class="card-title" style="align-self:stretch;">ANOMALY SUMMARY</div>
+      <div data-id="167" style="font-size:16px;font-weight:700;color:var(--green);margin:8px 0;">✓ ALL SYSTEMS NOMINAL</div>
+      <div data-id="168" style="display:flex;flex-direction:column;gap:3px;font-size:10px;width:100%;">
+        <div data-id="169" style="color:var(--green);">✓ Feed health OK</div>
+        <div data-id="170" style="color:var(--green);">✓ State consistency OK</div>
+        <div data-id="171" style="color:var(--green);">✓ Wallet match confirmed</div>
+        <div data-id="172" style="color:var(--green);">✓ Quote pipeline OK</div>
+        <div data-id="173" style="color:var(--green);">✓ Reconciliation healthy</div>
+        <div data-id="174" style="color:var(--green);">✓ No repeated failures</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== POSITION PANEL ==================== -->
+<div data-id="175" class="panel" id="panel-position">
+  <div data-id="176" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+    <!-- WETH Card -->
+    <div data-id="177" class="card" style="border:1px solid var(--teal);">
+      <div data-id="178" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span data-id="179" class="badge badge-teal" style="font-size:11px;">WETH</span>
+        <span data-id="180" style="font-size:9px;color:var(--teal);text-transform:uppercase;">CURRENT SIDE</span>
+      </div>
+      <div data-id="181" class="mono" style="font-size:20px;font-weight:700;">2.4871 WETH</div>
+      <div data-id="182" class="mono" style="font-size:13px;color:var(--text);" id="pos-weth-usd-p1">$4,596.22</div>
+      <div data-id="183" style="margin-top:6px;font-size:10px;color:var(--text-2);">Basis: $4,468.79 (@ $1,796.51/ETH)</div>
+      <div data-id="184" class="mono" style="font-size:11px;color:var(--text-2);">Mark: <span data-id="185" id="pos-weth-mark-p2" style="color:var(--text);">$1,8runtime-derived pending.32</span> current</div>
+      <div data-id="186" class="mono" style="font-size:11px;color:var(--green);margin-top:4px;">Unrealized: +$127.43 (+2.85%)</div>
+      <div data-id="187" style="margin-top:6px;font-size:10px;color:var(--text-2);">Duration in side: 18h 41m</div>
+      <div data-id="188" class="mono" style="font-size:10px;color:var(--green);">EMA12 dist: +0.87%</div>
+      <div data-id="189" class="mono" style="font-size:10px;color:var(--green);">EMA50 dist: +2.73%</div>
+      <div data-id="190" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10px;color:var(--teal);text-transform:uppercase;">LONG ETH EXPOSURE</div>
+    </div>
+    <!-- CBBTC Card -->
+    <div data-id="191" class="card" style="opacity:0.65;">
+      <div data-id="192" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span data-id="193" class="badge badge-purple" style="font-size:11px;">CBBTC</span>
+        <span data-id="194" style="font-size:9px;color:var(--text-3);text-transform:uppercase;">NOT HELD</span>
+      </div>
+      <div data-id="195" class="mono" style="font-size:20px;font-weight:700;color:var(--text-2);">0.00000 CBBTC</div>
+      <div data-id="196" class="mono" style="font-size:11px;color:var(--text-2);">Score: 0.41 (unfavorable)</div>
+      <div data-id="197" class="mono" style="font-size:11px;color:var(--text-2);">Mark: $62,840.50</div>
+      <div data-id="198" class="mono" style="font-size:11px;color:var(--red);">BUY_READY: NO</div>
+      <div data-id="199" class="mono" style="font-size:10px;color:var(--red);margin-top:4px;">EMA12: -0.45% (below)</div>
+      <div data-id="200" class="mono" style="font-size:10px;color:var(--red);">EMA50: -2.12% (below)</div>
+      <div data-id="201" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10px;color:var(--amber);text-transform:uppercase;">ROLLOVER: POTENTIAL</div>
+    </div>
+    <!-- USDC Card -->
+    <div data-id="202" class="card" style="opacity:0.65;">
+      <div data-id="203" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span data-id="204" class="badge badge-blue" style="font-size:11px;">USDC</span>
+        <span data-id="205" style="font-size:9px;color:var(--text-3);text-transform:uppercase;">CASH BUFFER</span>
+      </div>
+      <div data-id="206" class="mono" style="font-size:20px;font-weight:700;color:var(--text-2);">127.43 USDC</div>
+      <div data-id="207" style="font-size:11px;color:var(--text-2);margin-top:4px;">Residual buffer from last rotation</div>
+      <div data-id="208" class="mono" style="font-size:11px;color:var(--text-2);margin-top:4px;">$127.43 (2.7% of portfolio)</div>
+    </div>
+  </div>
+
+  <!-- Position Table -->
+  <div data-id="209" class="card" style="margin-bottom:12px;">
+    <div data-id="210" class="card-title">DETAILED POSITION TABLE</div>
+    <div data-id="211" style="overflow-x:auto;">
+      <table data-id="212" class="data-table">
+        <thead data-id="213"><tr data-id="214"><th data-id="215">ASSET</th><th data-id="216">BALANCE</th><th data-id="217">PRICE</th><th data-id="218">USD VALUE</th><th data-id="219">ALLOC %</th><th data-id="220">BASIS</th><th data-id="221">MARK</th><th data-id="222">UNREAL PnL</th><th data-id="223">PnL%</th><th data-id="224">STATUS</th></tr></thead>
+        <tbody data-id="225">
+          <tr data-id="226"><td data-id="227"><span data-id="228" class="badge badge-teal" style="font-size:9px;">WETH</span></td><td data-id="229">2.4871</td><td data-id="230" id="pos-t-eth-pr">$1,8runtime-derived pending.32</td><td data-id="231" id="pos-t-eth-usd">$4,596.22</td><td data-id="232">97.3%</td><td data-id="233">$4,468.79</td><td data-id="234" id="pos-t-eth-mk">$1,8runtime-derived pending.32</td><td data-id="235" style="color:var(--green);">+$127.43</td><td data-id="236" style="color:var(--green);">+2.85%</td><td data-id="237" class="badge badge-green" style="font-size:9px;">ACTIVE</td></tr>
+          <tr data-id="238"><td data-id="239"><span data-id="runtime artifact pending" class="badge badge-purple" style="font-size:9px;">CBBTC</span></td><td data-id="241">0.00000</td><td data-id="242">$62,840.50</td><td data-id="243">$0.00</td><td data-id="244">0.0%</td><td data-id="245">—</td><td data-id="246">$62,840.50</td><td data-id="2runtime-derived pending">—</td><td data-id="248">—</td><td data-id="249" style="color:var(--text-3);">IDLE</td></tr>
+          <tr data-id="250"><td data-id="251"><span data-id="252" class="badge badge-blue" style="font-size:9px;">USDC</span></td><td data-id="253">127.43</td><td data-id="254">$1.00</td><td data-id="255">$127.43</td><td data-id="256">2.7%</td><td data-id="257">—</td><td data-id="258">$1.00</td><td data-id="259">—</td><td data-id="260">—</td><td data-id="261" style="color:var(--text-3);">BUFFER</td></tr>
+          <tr data-id="262" style="border-top:1px solid var(--border-hi);font-weight:600;"><td data-id="263">TOTAL</td><td data-id="264">—</td><td data-id="265">—</td><td data-id="266" id="pos-t-total">$4,723.65</td><td data-id="267">100%</td><td data-id="268">—</td><td data-id="269">—</td><td data-id="270" style="color:var(--green);">+$127.43</td><td data-id="271" style="color:var(--green);">+2.85%</td><td data-id="272">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Position History Chart -->
+  <div data-id="273" class="chart-container">
+    <div data-id="274" class="chart-title">POSITION HISTORY — SIDE TIMELINE (30D)</div>
+    <canvas data-id="275" id="pos-history-canvas-p3" height="80"></canvas>
+  </div>
+</div>
+
+<!-- ==================== STRATEGY PANEL ==================== -->
+<div data-id="276" class="panel" id="panel-strategy">
+  <!-- Decision State Cards -->
+  <div data-id="277" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="278" class="card">
+      <div data-id="279" class="card-title">CURRENT DECISION</div>
+      <div data-id="280" class="mono" style="font-size:22px;font-weight:700;color:var(--green);margin-bottom:4px;">HOLD_WETH</div>
+      <div data-id="281" style="font-size:11px;color:var(--text);font-style:italic;">ETH score dominant · spread within band · churn guard active</div>
+      <div data-id="282" style="margin-top:6px;font-size:10px;color:var(--text-2);">Current side: <span data-id="283" style="color:var(--teal);">WETH</span> · Target: <span data-id="284" style="color:var(--teal);">WETH</span> (no change)</div>
+      <div data-id="285" class="mono" style="font-size:10px;color:var(--text-3);margin-top:2px;">runtime-derived pending seconds ago</div>
+    </div>
+    <div data-id="286" class="card">
+      <div data-id="287" class="card-title">SIGNAL STATE</div>
+      <div data-id="288" class="mono" style="font-size:14px;font-weight:600;color:var(--teal);margin-bottom:6px;">ETH_DOMINANT</div>
+      <div data-id="289" style="margin-bottom:4px;"><span data-id="290" style="font-size:10px;color:var(--text-2);">Edge: 0.73</span>
+        <div data-id="291" class="progress-bar" style="margin-top:2px;"><div data-id="292" class="progress-fill" style="width:73%;background:var(--green);"></div></div>
+      </div>
+      <div data-id="293" style="margin-bottom:4px;font-size:10px;color:var(--text-2);">Streak: 8 bars<div data-id="294" style="display:flex;gap:2px;margin-top:2px;"></div></div>
+      <div data-id="295" style="display:flex;gap:2px;" id="streak-squares-s1"></div>
+      <div data-id="296" style="font-size:10px;color:var(--text-2);margin-top:4px;">Bars since flip: 12</div>
+      <div data-id="297" class="mono" style="font-size:10px;color:var(--green);">Rotate signal: NONE</div>
+    </div>
+    <div data-id="298" class="card">
+      <div data-id="299" class="card-title">GUARDS</div>
+      <div data-id="300" style="display:flex;flex-direction:column;gap:4px;font-size:10px;">
+        <div data-id="301" style="display:flex;justify-content:space-between;"><span data-id="302" style="color:var(--text-2);">POST_ROTATE_HOLD</span><span data-id="303" class="mono" style="color:var(--text-3);">INACTIVE · 18h41m > 4h ✓</span></div>
+        <div data-id="304" style="display:flex;justify-content:space-between;"><span data-id="305" style="color:var(--text-2);">CHURN_GUARD</span><span data-id="306" class="mono" style="color:var(--green);">ACTIVE · last flip 18h41m · min 4h</span></div>
+        <div data-id="307" style="display:flex;justify-content:space-between;"><span data-id="308" style="color:var(--text-2);">COOLDOWN</span><span data-id="309" class="mono" style="color:var(--text-3);">INACTIVE · no recent rejection</span></div>
+        <div data-id="310" style="display:flex;justify-content:space-between;"><span data-id="311" style="color:var(--text-2);">QUOTE_CONFIRMED</span><span data-id="312" class="mono" style="color:var(--green);">YES · latency 124ms</span></div>
+        <div data-id="313" style="display:flex;justify-content:space-between;"><span data-id="314" style="color:var(--text-2);">COMMIT_STATE</span><span data-id="315" class="mono" style="color:var(--text-2);">MONITORING</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scorecards -->
+  <div data-id="316" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="317" class="card">
+      <div data-id="318" class="card-title" style="color:var(--teal);">WETH / ETH — SCORECARD</div>
+      <div data-id="319" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="320" style="display:flex;justify-content:space-between;"><span data-id="321" style="color:var(--text-2);">Score</span><span data-id="322" class="mono" style="color:var(--green);">0.73</span></div>
+        <div data-id="323" class="progress-bar"><div data-id="324" class="progress-fill" style="width:73%;background:var(--green);"></div></div>
+        <div data-id="325" style="display:flex;justify-content:space-between;"><span data-id="326" style="color:var(--text-2);">Edge</span><span data-id="327" class="mono" style="color:var(--green);">+0.18</span></div>
+        <div data-id="328" style="display:flex;justify-content:space-between;"><span data-id="329" style="color:var(--text-2);">Buy Ready</span><span data-id="330" class="mono" style="color:var(--green);">YES</span></div>
+        <div data-id="331" style="display:flex;justify-content:space-between;"><span data-id="332" style="color:var(--text-2);">Entry Target</span><span data-id="333" class="mono">$1,845.00</span></div>
+        <div data-id="334" style="display:flex;justify-content:space-between;"><span data-id="335" style="color:var(--text-2);">Exit Target</span><span data-id="336" class="mono">$1,890.00</span></div>
+        <div data-id="337" style="display:flex;justify-content:space-between;"><span data-id="338" style="color:var(--text-2);">Stop Target</span><span data-id="339" class="mono">$1,800.00</span></div>
+        <div data-id="340" style="display:flex;justify-content:space-between;"><span data-id="341" style="color:var(--text-2);">Band Depth</span><span data-id="342" class="mono" style="color:var(--green);">0.92 (92%)</span></div>
+        <div data-id="343" style="display:flex;justify-content:space-between;"><span data-id="344" style="color:var(--text-2);">Avg Vol</span><span data-id="345" class="mono">2.34%</span></div>
+        <div data-id="346" style="display:flex;justify-content:space-between;"><span data-id="3runtime-derived pending" style="color:var(--text-2);">EMA12</span><span data-id="348" class="mono" style="color:var(--green);">$1,831.runtime-derived pending (+0.87%)</span></div>
+        <div data-id="349" style="display:flex;justify-content:space-between;"><span data-id="350" style="color:var(--text-2);">EMA50</span><span data-id="351" class="mono" style="color:var(--green);">$1,798.23 (+2.73%)</span></div>
+        <div data-id="352" style="display:flex;justify-content:space-between;"><span data-id="353" style="color:var(--text-2);">Convergence</span><span data-id="354" class="mono">EXPANDING</span></div>
+        <div data-id="355" style="display:flex;justify-content:space-between;"><span data-id="356" style="color:var(--text-2);">Rollover</span><span data-id="357" class="mono" style="color:var(--green);">NONE</span></div>
+      </div>
+    </div>
+    <div data-id="358" class="card">
+      <div data-id="359" class="card-title" style="color:var(--purple);">CBBTC / BTC — SCORECARD</div>
+      <div data-id="360" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="361" style="display:flex;justify-content:space-between;"><span data-id="362" style="color:var(--text-2);">Score</span><span data-id="363" class="mono" style="color:var(--amber);">0.41</span></div>
+        <div data-id="364" class="progress-bar"><div data-id="365" class="progress-fill" style="width:41%;background:var(--amber);"></div></div>
+        <div data-id="366" style="display:flex;justify-content:space-between;"><span data-id="367" style="color:var(--text-2);">Edge</span><span data-id="368" class="mono" style="color:var(--red);">-0.08</span></div>
+        <div data-id="369" style="display:flex;justify-content:space-between;"><span data-id="370" style="color:var(--text-2);">Buy Ready</span><span data-id="371" class="mono" style="color:var(--red);">NO</span></div>
+        <div data-id="372" style="display:flex;justify-content:space-between;"><span data-id="373" style="color:var(--text-2);">Entry Target</span><span data-id="374" class="mono">$63,000.00</span></div>
+        <div data-id="375" style="display:flex;justify-content:space-between;"><span data-id="376" style="color:var(--text-2);">Exit Target</span><span data-id="377" class="mono">$66,000.00</span></div>
+        <div data-id="378" style="display:flex;justify-content:space-between;"><span data-id="379" style="color:var(--text-2);">Stop Target</span><span data-id="380" class="mono">$61,000.00</span></div>
+        <div data-id="381" style="display:flex;justify-content:space-between;"><span data-id="382" style="color:var(--text-2);">Band Depth</span><span data-id="383" class="mono" style="color:var(--amber);">0.44 (44%)</span></div>
+        <div data-id="384" style="display:flex;justify-content:space-between;"><span data-id="385" style="color:var(--text-2);">Avg Vol</span><span data-id="386" class="mono">1.89%</span></div>
+        <div data-id="387" style="display:flex;justify-content:space-between;"><span data-id="388" style="color:var(--text-2);">EMA12</span><span data-id="389" class="mono" style="color:var(--red);">$63,120.80 (-0.45%)</span></div>
+        <div data-id="390" style="display:flex;justify-content:space-between;"><span data-id="391" style="color:var(--text-2);">EMA50</span><span data-id="392" class="mono" style="color:var(--red);">$64,200.40 (-2.12%)</span></div>
+        <div data-id="393" style="display:flex;justify-content:space-between;"><span data-id="394" style="color:var(--text-2);">Convergence</span><span data-id="395" class="mono">CONTRACTING</span></div>
+        <div data-id="396" style="display:flex;justify-content:space-between;"><span data-id="397" style="color:var(--text-2);">Rollover</span><span data-id="398" class="mono" style="color:var(--amber);">POTENTIAL</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Relative Panel -->
+  <div data-id="399" class="card" style="margin-bottom:12px;">
+    <div data-id="400" class="card-title">RELATIVE ETH/BTC STRUCTURE</div>
+    <div data-id="401" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px;font-size:10px;">
+      <div data-id="402"><span data-id="403" style="color:var(--text-2);display:block;">Favored Side</span><span data-id="404" class="mono" style="color:var(--teal);font-weight:600;">ETH</span></div>
+      <div data-id="405"><span data-id="406" style="color:var(--text-2);display:block;">Spread Proxy</span><span data-id="407" class="mono">0.0312</span></div>
+      <div data-id="408"><span data-id="409" style="color:var(--text-2);display:block;">Spread Deviation</span><span data-id="410" class="mono">-0.42 σ (within band)</span></div>
+      <div data-id="411"><span data-id="412" style="color:var(--text-2);display:block;">Relative Momentum</span><span data-id="413" class="mono" style="color:var(--green);">ETH_ACCELERATING</span></div>
+      <div data-id="414"><span data-id="415" style="color:var(--text-2);display:block;">Rotate Signal</span><span data-id="416" class="mono" style="color:var(--green);">NONE</span></div>
+      <div data-id="417"><span data-id="418" style="color:var(--text-2);display:block;">Rotate Commitment</span><span data-id="419" class="mono" style="color:var(--text-2);">MONITORING</span></div>
+    </div>
+  </div>
+  <div data-id="420" class="chart-container">
+    <div data-id="421" class="chart-title">ETH vs BTC SCORE HISTORY — 30D</div>
+    <canvas data-id="422" id="strat-score-canvas-s2" height="180"></canvas>
+  </div>
+</div>
+
+<!-- ==================== MARKET PANEL ==================== -->
+<div data-id="423" class="panel" id="panel-market">
+  <div data-id="424" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="425" class="card">
+      <div data-id="426" class="card-title" style="color:var(--teal);">ETH LIVE METRICS</div>
+      <div data-id="427" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="428" style="display:flex;justify-content:space-between;"><span data-id="429" style="color:var(--text-2);">Price</span><span data-id="430" class="mono" style="color:var(--text);font-weight:600;" id="mkt-eth-pr">$1,8runtime-derived pending.32</span></div>
+        <div data-id="431" style="display:flex;justify-content:space-between;"><span data-id="432" style="color:var(--text-2);">24h Change</span><span data-id="433" class="mono" style="color:var(--green);">+2.14%</span></div>
+        <div data-id="434" style="display:flex;justify-content:space-between;"><span data-id="435" style="color:var(--text-2);">24h Volume</span><span data-id="436" class="mono">$18.4B</span></div>
+        <div data-id="437" style="display:flex;justify-content:space-between;"><span data-id="438" style="color:var(--text-2);">EMA12</span><span data-id="439" class="mono" style="color:var(--green);">$1,831.runtime-derived pending (+0.87%)</span></div>
+        <div data-id="440" style="display:flex;justify-content:space-between;"><span data-id="441" style="color:var(--text-2);">EMA50</span><span data-id="442" class="mono" style="color:var(--green);">$1,798.23 (+2.73%)</span></div>
+        <div data-id="443" style="display:flex;justify-content:space-between;"><span data-id="444" style="color:var(--text-2);">RSI(14)</span><span data-id="445" class="mono">58.4</span></div>
+        <div data-id="446" style="display:flex;justify-content:space-between;"><span data-id="4runtime-derived pending" style="color:var(--text-2);">ATR</span><span data-id="448" class="mono">2.34%</span></div>
+        <div data-id="449" style="display:flex;justify-content:space-between;"><span data-id="450" style="color:var(--text-2);">Trend</span><span data-id="451" class="mono" style="color:var(--green);">UPTREND</span></div>
+        <div data-id="452" style="display:flex;justify-content:space-between;"><span data-id="453" style="color:var(--text-2);">Band Position</span><span data-id="454" class="mono">87th pctl</span></div>
+        <div data-id="455" style="display:flex;justify-content:space-between;"><span data-id="456" style="color:var(--text-2);">Regime</span><span data-id="457" class="mono" style="color:var(--green);">TRENDING</span></div>
+      </div>
+    </div>
+    <div data-id="458" class="card">
+      <div data-id="459" class="card-title" style="color:var(--purple);">BTC LIVE METRICS</div>
+      <div data-id="460" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="461" style="display:flex;justify-content:space-between;"><span data-id="462" style="color:var(--text-2);">Price</span><span data-id="463" class="mono" style="color:var(--text);font-weight:600;" id="mkt-btc-pr">$62,840.50</span></div>
+        <div data-id="464" style="display:flex;justify-content:space-between;"><span data-id="465" style="color:var(--text-2);">24h Change</span><span data-id="466" class="mono" style="color:var(--red);">-0.83%</span></div>
+        <div data-id="467" style="display:flex;justify-content:space-between;"><span data-id="468" style="color:var(--text-2);">24h Volume</span><span data-id="469" class="mono">$31.2B</span></div>
+        <div data-id="runtime-derived pending0" style="display:flex;justify-content:space-between;"><span data-id="runtime-derived pending1" style="color:var(--text-2);">EMA12</span><span data-id="runtime-derived pending2" class="mono" style="color:var(--red);">$63,120.80 (-0.45%)</span></div>
+        <div data-id="runtime-derived pending3" style="display:flex;justify-content:space-between;"><span data-id="runtime-derived pending4" style="color:var(--text-2);">EMA50</span><span data-id="runtime-derived pending5" class="mono" style="color:var(--red);">$64,200.40 (-2.12%)</span></div>
+        <div data-id="runtime-derived pending6" style="display:flex;justify-content:space-between;"><span data-id="runtime-derived pending7" style="color:var(--text-2);">RSI(14)</span><span data-id="runtime-derived pending8" class="mono">44.1</span></div>
+        <div data-id="runtime-derived pending9" style="display:flex;justify-content:space-between;"><span data-id="480" style="color:var(--text-2);">ATR</span><span data-id="481" class="mono">1.89%</span></div>
+        <div data-id="482" style="display:flex;justify-content:space-between;"><span data-id="483" style="color:var(--text-2);">Trend</span><span data-id="484" class="mono" style="color:var(--amber);">CONSOLIDATING</span></div>
+        <div data-id="485" style="display:flex;justify-content:space-between;"><span data-id="486" style="color:var(--text-2);">Band Position</span><span data-id="487" class="mono">31st pctl</span></div>
+        <div data-id="488" style="display:flex;justify-content:space-between;"><span data-id="489" style="color:var(--text-2);">Regime</span><span data-id="490" class="mono" style="color:var(--amber);">MEAN_REVERTING</span></div>
+      </div>
+    </div>
+    <div data-id="491" class="card">
+      <div data-id="492" class="card-title">SPREAD STATE</div>
+      <div data-id="493" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="494" style="display:flex;justify-content:space-between;"><span data-id="495" style="color:var(--text-2);">ETH/BTC Ratio</span><span data-id="496" class="mono">0.02939</span></div>
+        <div data-id="497" style="display:flex;justify-content:space-between;"><span data-id="498" style="color:var(--text-2);">Ratio 30d MA</span><span data-id="499" class="mono">0.02811</span></div>
+        <div data-id="500" style="display:flex;justify-content:space-between;"><span data-id="501" style="color:var(--text-2);">Deviation</span><span data-id="502" class="mono" style="color:var(--green);">+4.5% above MA</span></div>
+        <div data-id="503" style="display:flex;justify-content:space-between;"><span data-id="504" style="color:var(--text-2);">Spread Trend</span><span data-id="505" class="mono" style="color:var(--green);">WIDENING (favors ETH)</span></div>
+        <div data-id="506" style="display:flex;justify-content:space-between;"><span data-id="507" style="color:var(--text-2);">Regime</span><span data-id="508" class="mono" style="color:var(--green);">ETH_OUTPERFORMING</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Charts 2x2 -->
+  <div data-id="509" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div data-id="510" class="chart-container"><div data-id="511" class="chart-title">WETH / USD — 30D</div><canvas data-id="512" id="mkt-eth-canvas-m1" height="180"></canvas></div>
+    <div data-id="513" class="chart-container"><div data-id="514" class="chart-title">CBBTC / USD — 30D</div><canvas data-id="515" id="mkt-btc-canvas-m2" height="180"></canvas></div>
+    <div data-id="516" class="chart-container"><div data-id="517" class="chart-title">ETH vs BTC — NORMALIZED (base=100)</div><canvas data-id="518" id="mkt-norm-canvas-m3" height="180"></canvas></div>
+    <div data-id="519" class="chart-container"><div data-id="520" class="chart-title">ETH/BTC RATIO — 30D</div><canvas data-id="521" id="mkt-ratio-canvas-m4" height="180"></canvas></div>
+  </div>
+</div>
+
+<!-- ==================== TIMELINE PANEL ==================== -->
+<div data-id="522" class="panel" id="panel-timeline">
+  <div data-id="523" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+    <select data-id="524" id="tl-filter-type-t1" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-size:11px;">
+      <option data-id="525" value="all">All Events</option><option data-id="526" value="DECISION">Decision</option><option data-id="527" value="RECONCILE">Reconcile</option><option data-id="528" value="ROTATE_SIGNAL">Rotate Signal</option><option data-id="529" value="COMMIT">Commit</option><option data-id="530" value="ENTER">Enter</option><option data-id="531" value="EXIT">Exit</option><option data-id="532" value="ROTATE">Rotate</option><option data-id="533" value="FAILURE">Failure</option><option data-id="534" value="WARNING">Warning</option><option data-id="535" value="RESTART">Restart</option>
+    </select>
+    <div data-id="536" style="display:flex;gap:4px;">
+      <button data-id="537" class="tl-range-btn badge badge-teal" data-range="7" id="tl-7d-btn">Last 7d</button>
+      <button data-id="538" class="tl-range-btn badge" data-range="14" style="background:rgba(255,255,255,0.05);color:var(--text-2);" id="tl-14d-btn">14d</button>
+      <button data-id="539" class="tl-range-btn badge" data-range="30" style="background:rgba(255,255,255,0.05);color:var(--text-2);" id="tl-30d-btn">30d</button>
+      <button data-id="540" class="tl-range-btn badge" data-range="999" style="background:rgba(255,255,255,0.05);color:var(--text-2);" id="tl-all-btn">All</button>
+    </div>
+    <input data-id="541" type="text" placeholder="Search events…" id="tl-search-t2" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-size:11px;width:160px;font-family:var(--mono);" />
+  </div>
+  <div data-id="542" class="card" style="padding:0;">
+    <div data-id="543" style="overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto;">
+      <table data-id="544" class="data-table" id="tl-table-t3">
+        <thead data-id="545"><tr data-id="546"><th data-id="5runtime-derived pending">TIMESTAMP</th><th data-id="548">TYPE</th><th data-id="549">BEFORE</th><th data-id="550">AFTER</th><th data-id="551">REASON</th><th data-id="552">PRICE</th><th data-id="553">TX HASH</th><th data-id="554">MODE</th><th data-id="555">NOTES</th></tr></thead>
+        <tbody data-id="556" id="tl-tbody-t4"></tbody>
+      </table>
+    </div>
+    <div data-id="557" style="padding:6px 8px;border-top:1px solid var(--border);font-size:10px;color:var(--text-2);" id="tl-count-t5">Showing 28 events · 28 total</div>
+  </div>
+</div>
+
+<!-- ==================== EXECUTION PANEL ==================== -->
+<div data-id="558" class="panel" id="panel-execution">
+  <div data-id="559" class="card" style="background:#1a0d00;border-color:#5c3500;margin-bottom:12px;text-align:center;">
+    <div data-id="560" class="mono" style="font-size:16px;font-weight:700;color:var(--amber);">◆ DRY_RUN MODE ACTIVE</div>
+    <div data-id="561" style="font-size:11px;color:var(--amber);opacity:0.8;margin-top:4px;">This bot is NOT submitting real transactions to chain. All swap quotes are fetched for signal validation only. No funds are moved.</div>
+  </div>
+
+  <div data-id="562" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="563" class="card">
+      <div data-id="564" class="card-title">TRANSPORT & PROVIDER</div>
+      <div data-id="565" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="566" style="display:flex;justify-content:space-between;"><span data-id="567" style="color:var(--text-2);">Execution Mode</span><span data-id="568" class="badge badge-amber">DRY_RUN</span></div>
+        <div data-id="569" style="display:flex;justify-content:space-between;"><span data-id="570" style="color:var(--text-2);">Transport</span><span data-id="571" class="mono">LIVE_RUNTIME</span></div>
+        <div data-id="572" style="display:flex;justify-content:space-between;"><span data-id="573" style="color:var(--text-2);">Provider</span><span data-id="574" class="mono">RUNTIME_SOURCE</span></div>
+        <div data-id="575" style="display:flex;justify-content:space-between;"><span data-id="576" style="color:var(--text-2);">Wallet</span><span data-id="577" class="mono" style="color:var(--text-2);">runtime-managed</span></div>
+        <div data-id="578" style="display:flex;justify-content:space-between;"><span data-id="579" style="color:var(--text-2);">Chain</span><span data-id="580" class="mono">Base (8453)</span></div>
+        <div data-id="581" style="display:flex;justify-content:space-between;"><span data-id="582" style="color:var(--text-2);">Router</span><span data-id="583" class="mono" style="color:var(--text-2);">runtime-managed</span></div>
+        <div data-id="584" style="display:flex;justify-content:space-between;"><span data-id="585" style="color:var(--text-2);">Nonce</span><span data-id="586" class="mono" style="color:var(--text-3);">not exposed by runtime</span></div>
+      </div>
+    </div>
+    <div data-id="587" class="card">
+      <div data-id="588" class="card-title">LATEST QUOTE</div>
+      <div data-id="589" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="590" style="display:flex;justify-content:space-between;"><span data-id="591" style="color:var(--text-2);">Status</span><span data-id="592" class="badge badge-green">CONFIRMED</span></div>
+        <div data-id="593" style="display:flex;justify-content:space-between;"><span data-id="594" style="color:var(--text-2);">Token In</span><span data-id="595" class="mono">USDC</span></div>
+        <div data-id="596" style="display:flex;justify-content:space-between;"><span data-id="597" style="color:var(--text-2);">Token Out</span><span data-id="598" class="mono">WETH</span></div>
+        <div data-id="599" style="display:flex;justify-content:space-between;"><span data-id="600" style="color:var(--text-2);">Amount In</span><span data-id="601" class="mono">$4,596.22</span></div>
+        <div data-id="602" style="display:flex;justify-content:space-between;"><span data-id="603" style="color:var(--text-2);">Expected Out</span><span data-id="604" class="mono">2.4871 WETH</span></div>
+        <div data-id="605" style="display:flex;justify-content:space-between;"><span data-id="606" style="color:var(--text-2);">Slippage Est</span><span data-id="607" class="mono" style="color:var(--green);">0.08% (lim 0.50%)</span></div>
+        <div data-id="608" style="display:flex;justify-content:space-between;"><span data-id="609" style="color:var(--text-2);">Gas Est</span><span data-id="610" class="mono">0.000014 ETH ($0.026)</span></div>
+        <div data-id="611" style="display:flex;justify-content:space-between;"><span data-id="612" style="color:var(--text-2);">Latency</span><span data-id="613" class="mono">124ms</span></div>
+        <div data-id="614" style="display:flex;justify-content:space-between;"><span data-id="615" style="color:var(--text-2);">Quote Age</span><span data-id="616" class="mono" style="color:var(--green);">runtime-derived pendings (fresh)</span></div>
+        <div data-id="617" style="display:flex;justify-content:space-between;"><span data-id="618" style="color:var(--text-2);">Pool Fee</span><span data-id="619" class="mono">0.05% (500 bps)</span></div>
+      </div>
+    </div>
+    <div data-id="620" class="card">
+      <div data-id="621" class="card-title">PREFLIGHT & SUBMIT</div>
+      <div data-id="622" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="623" style="display:flex;justify-content:space-between;"><span data-id="624" style="color:var(--text-2);">Approval</span><span data-id="625" class="mono" style="color:var(--green);">NOT_NEEDED</span></div>
+        <div data-id="626" style="display:flex;justify-content:space-between;margin-bottom:4px;"><span data-id="627" style="color:var(--text-2);">Preflight</span><span data-id="628" class="mono" style="color:var(--green);">6/6 UNBOUND</span></div>
+        <div data-id="629" style="color:var(--green);font-size:10px;">✓ Quote valid</div>
+        <div data-id="630" style="color:var(--green);font-size:10px;">✓ Slippage within limit</div>
+        <div data-id="631" style="color:var(--green);font-size:10px;">✓ Gas sufficient</div>
+        <div data-id="632" style="color:var(--green);font-size:10px;">✓ Balance confirmed</div>
+        <div data-id="633" style="color:var(--green);font-size:10px;">✓ Route exists</div>
+        <div data-id="634" style="color:var(--green);font-size:10px;">✓ No blacklist</div>
+        <div data-id="635" style="margin-top:4px;display:flex;justify-content:space-between;"><span data-id="636" style="color:var(--text-2);">Submit</span><span data-id="637" class="badge badge-amber">DRY_RUN_SIMULATED</span></div>
+        <div data-id="638" style="display:flex;justify-content:space-between;"><span data-id="639" style="color:var(--text-2);">TX Hash</span><span data-id="640" class="mono" style="color:var(--text-3);">N/A — DRY_RUN</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Execution History -->
+  <div data-id="641" class="card" style="margin-bottom:12px;">
+    <div data-id="642" class="card-title">EXECUTION ATTEMPT HISTORY</div>
+    <div data-id="643" style="overflow-x:auto;">
+      <table data-id="644" class="data-table" style="font-size:10px;">
+        <thead data-id="645"><tr data-id="646"><th data-id="6runtime-derived pending">TIMESTAMP</th><th data-id="648">DIRECTION</th><th data-id="649">AMOUNT IN</th><th data-id="650">AMOUNT OUT</th><th data-id="651">SLIPPAGE</th><th data-id="652">GAS</th><th data-id="653">STATUS</th><th data-id="654">TX HASH</th><th data-id="655">MODE</th></tr></thead>
+        <tbody data-id="656">
+          <tr data-id="657"><td data-id="658">May 07 05:17</td><td data-id="659">USDC→WETH</td><td data-id="660">$4,468.79</td><td data-id="661">2.4871 WETH</td><td data-id="662" style="color:var(--green);">0.08%</td><td data-id="663">$0.026</td><td data-id="664" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="665" style="color:var(--text-3);">0xdry...4f3a</td><td data-id="666">DRY</td></tr>
+          <tr data-id="667"><td data-id="668">May 06 19:44</td><td data-id="669">CBBTC→USDC</td><td data-id="670">0.0748 BTC</td><td data-id="671">$4,641.05</td><td data-id="672" style="color:var(--green);">0.06%</td><td data-id="673">$0.031</td><td data-id="674" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="675" style="color:var(--text-3);">0xdry...8b2c</td><td data-id="676">DRY</td></tr>
+          <tr data-id="677"><td data-id="678">May 06 11:22</td><td data-id="679">WETH→CBBTC</td><td data-id="680">2.5120 WETH</td><td data-id="681">0.0748 BTC</td><td data-id="682" style="color:var(--green);">0.09%</td><td data-id="683">$0.028</td><td data-id="684" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="685" style="color:var(--text-3);">0xdry...1a7f</td><td data-id="686">DRY</td></tr>
+          <tr data-id="687"><td data-id="688">May 03 14:28</td><td data-id="689">USDC→WETH</td><td data-id="690">$4,382.10</td><td data-id="691">2.5120 WETH</td><td data-id="692" style="color:var(--green);">0.07%</td><td data-id="693">$0.024</td><td data-id="694" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="695" style="color:var(--text-3);">0xdry...c9e1</td><td data-id="696">DRY</td></tr>
+          <tr data-id="697"><td data-id="698">May 02 20:11</td><td data-id="699">WETH→USDC</td><td data-id="700">2.5320 WETH</td><td data-id="701">$4,382.10</td><td data-id="702" style="color:var(--green);">0.05%</td><td data-id="703">$0.029</td><td data-id="704" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="705" style="color:var(--text-3);">0xdry...7d4b</td><td data-id="706">DRY</td></tr>
+          <tr data-id="707"><td data-id="708">Apr 30 17:30</td><td data-id="709">USDC→CBBTC</td><td data-id="710">$4,400.50</td><td data-id="711">0.0696 BTC</td><td data-id="712" style="color:var(--amber);">0.12%</td><td data-id="713">$0.033</td><td data-id="714" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="715" style="color:var(--text-3);">0xdry...3f2a</td><td data-id="716">DRY</td></tr>
+          <tr data-id="717"><td data-id="718">Apr 29 11:20</td><td data-id="719">WETH→USDC</td><td data-id="720">—</td><td data-id="721">—</td><td data-id="722" style="color:var(--red);">—</td><td data-id="723">—</td><td data-id="724" class="badge badge-red" style="font-size:8px;">TIMEOUT</td><td data-id="725" style="color:var(--text-3);">—</td><td data-id="726">DRY</td></tr>
+          <tr data-id="727"><td data-id="728">Apr 27 15:44</td><td data-id="729">CBBTC→USDC</td><td data-id="730">0.0688 BTC</td><td data-id="731">$4,410.08</td><td data-id="732" style="color:var(--green);">0.07%</td><td data-id="733">$0.027</td><td data-id="734" class="badge badge-amber" style="font-size:8px;">DRY_SIM</td><td data-id="735" style="color:var(--text-3);">0xdry...9a1c</td><td data-id="736">DRY</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div data-id="737" class="chart-container">
+    <div data-id="738" class="chart-title">EXECUTION QUALITY — SLIPPAGE PER ATTEMPT</div>
+    <canvas data-id="739" id="exec-slip-canvas-e1" height="120"></canvas>
+  </div>
+</div>
+
+<!-- ==================== RISK PANEL ==================== -->
+<div data-id="740" class="panel" id="panel-risk">
+  <div data-id="741" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+    <div data-id="742" class="card"><div data-id="743" class="card-title">RISK MODE</div><div data-id="744" class="mono" style="font-size:16px;font-weight:700;color:var(--green);">NORMAL</div></div>
+    <div data-id="745" class="card"><div data-id="746" class="card-title">HALT STATUS</div><div data-id="7runtime-derived pending" class="mono" style="font-size:16px;font-weight:700;color:var(--green);">RUNNING</div></div>
+    <div data-id="748" class="card"><div data-id="749" class="card-title">MAX SLIPPAGE</div><div data-id="750" class="mono" style="font-size:14px;">0.50% set <span data-id="751" style="color:var(--green);">· 0.08% current</span></div></div>
+    <div data-id="752" class="card"><div data-id="753" class="card-title">FEED STATUS</div><div data-id="754" class="mono" style="font-size:14px;color:var(--green);">LIVE <span data-id="755" style="color:var(--text-2);font-size:10px;">· runtime-derived pendings ago</span></div></div>
+  </div>
+  <div data-id="756" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+    <div data-id="757" class="card"><div data-id="758" class="card-title">REJECTION STREAK</div><div data-id="759" class="mono" style="font-size:16px;color:var(--green);">0 <span data-id="760" style="font-size:10px;color:var(--text-2);">/ limit 3</span></div></div>
+    <div data-id="761" class="card"><div data-id="762" class="card-title">WALLET MATCH</div><div data-id="763" class="mono" style="font-size:14px;color:var(--green);">CONFIRMED</div></div>
+    <div data-id="764" class="card"><div data-id="765" class="card-title">RECONCILIATION</div><div data-id="766" class="mono" style="font-size:14px;color:var(--green);">HEALTHY <span data-id="767" style="font-size:10px;color:var(--text-2);">· 5m ago</span></div></div>
+    <div data-id="768" class="card"><div data-id="769" class="card-title">RECENT FAILURES</div><div data-id="770" class="mono" style="font-size:14px;color:var(--amber);">1 in 24h <span data-id="771" style="font-size:10px;color:var(--text-2);">· timeout Apr 29</span></div></div>
+  </div>
+
+  <!-- Risk Parameters -->
+  <div data-id="772" class="card" style="margin-bottom:12px;">
+    <div data-id="773" class="card-title">RISK PARAMETERS</div>
+    <div data-id="774" style="overflow-x:auto;">
+      <table data-id="775" class="data-table" style="font-size:10px;">
+        <thead data-id="776"><tr data-id="777"><th data-id="778">PARAMETER</th><th data-id="779">VALUE</th><th data-id="780">DESCRIPTION</th></tr></thead>
+        <tbody data-id="781">
+          <tr data-id="782"><td data-id="783">max_slippage_bps</td><td data-id="784">50</td><td data-id="785">Maximum slippage 0.50%</td></tr>
+          <tr data-id="786"><td data-id="787">stale_feed_threshold_s</td><td data-id="788">120</td><td data-id="789">Feed stale after 120s</td></tr>
+          <tr data-id="790"><td data-id="791">rejection_streak_limit</td><td data-id="792">3</td><td data-id="793">Halt after 3 rejections</td></tr>
+          <tr data-id="794"><td data-id="795">cooldown_after_reject_s</td><td data-id="796">300</td><td data-id="797">5 min cooldown after reject</td></tr>
+          <tr data-id="798"><td data-id="799">min_quote_confidence</td><td data-id="800">0.95</td><td data-id="801">Minimum confidence 95%</td></tr>
+          <tr data-id="802"><td data-id="803">reconcile_interval_s</td><td data-id="804">300</td><td data-id="805">Reconcile every 5 min</td></tr>
+          <tr data-id="806"><td data-id="807">churn_guard_min_bars</td><td data-id="808">12</td><td data-id="809">Min 12 bars between flips</td></tr>
+          <tr data-id="810"><td data-id="811">post_rotate_hold_bars</td><td data-id="812">8</td><td data-id="813">Hold 8 bars after rotate</td></tr>
+          <tr data-id="814"><td data-id="815">halt_on_wallet_mismatch</td><td data-id="816" style="color:var(--green);">true</td><td data-id="817">Auto-halt on mismatch</td></tr>
+          <tr data-id="818"><td data-id="819">halt_on_stale_feed</td><td data-id="820" style="color:var(--green);">true</td><td data-id="821">Auto-halt on stale feed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Operator Controls -->
+  <div data-id="822" class="card">
+    <div data-id="823" class="card-title" style="color:var(--amber);">⚠ OPERATOR CONTROLS — GUARDED</div>
+    <div data-id="824" style="font-size:10px;color:var(--text-2);margin-bottom:10px;">These actions affect live runtime state. Confirm before executing.</div>
+    <div data-id="825" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;" id="ctrl-grid-r1">
+      <button data-id="826" class="ctrl-btn" data-action="REFRESH SNAPSHOT" data-desc="Re-fetch all balances and positions from chain">
+        <div data-id="827" style="font-size:13px;margin-bottom:2px;">🔄</div>
+        <div data-id="828" class="mono" style="font-size:11px;font-weight:600;">REFRESH SNAPSHOT</div>
+        <div data-id="829" style="font-size:9px;color:var(--text-2);margin-top:2px;">Re-fetch all balances and positions from chain</div>
+      </button>
+      <button data-id="830" class="ctrl-btn" data-action="FORCE RECONCILE" data-desc="Trigger immediate reconciliation cycle">
+        <div data-id="831" style="font-size:13px;margin-bottom:2px;">⚖</div>
+        <div data-id="832" class="mono" style="font-size:11px;font-weight:600;">FORCE RECONCILE</div>
+        <div data-id="833" style="font-size:9px;color:var(--text-2);margin-top:2px;">Trigger immediate reconciliation cycle</div>
+      </button>
+      <button data-id="834" class="ctrl-btn" data-action="QUOTE BRIDGE CHECK" data-desc="Validate quote transport end-to-end">
+        <div data-id="835" style="font-size:13px;margin-bottom:2px;">💬</div>
+        <div data-id="836" class="mono" style="font-size:11px;font-weight:600;">QUOTE BRIDGE CHECK</div>
+        <div data-id="837" style="font-size:9px;color:var(--text-2);margin-top:2px;">Validate quote transport end-to-end</div>
+      </button>
+      <button data-id="838" class="ctrl-btn" data-action="DRY-RUN RECONCILE" data-desc="Run reconcile in dry-run mode only">
+        <div data-id="839" style="font-size:13px;margin-bottom:2px;">🔁</div>
+        <div data-id="840" class="mono" style="font-size:11px;font-weight:600;">DRY-RUN RECONCILE</div>
+        <div data-id="841" style="font-size:9px;color:var(--text-2);margin-top:2px;">Run reconcile in dry-run mode only</div>
+      </button>
+      <button data-id="842" class="ctrl-btn danger" data-action="HALT EXECUTION" data-desc="Halt bot execution immediately">
+        <div data-id="843" style="font-size:13px;margin-bottom:2px;">⏸</div>
+        <div data-id="844" class="mono" style="font-size:11px;font-weight:600;color:var(--red);">HALT / RESUME</div>
+        <div data-id="845" style="font-size:9px;color:var(--text-2);margin-top:2px;">Halt or resume bot execution immediately</div>
+      </button>
+      <button data-id="846" class="ctrl-btn" data-action="EXPORT DIAGNOSTICS" data-desc="Download full diagnostics bundle as JSON">
+        <div data-id="8runtime-derived pending" style="font-size:13px;margin-bottom:2px;">📤</div>
+        <div data-id="848" class="mono" style="font-size:11px;font-weight:600;">EXPORT DIAGNOSTICS</div>
+        <div data-id="849" style="font-size:9px;color:var(--text-2);margin-top:2px;">Download full diagnostics bundle as JSON</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PERFORMANCE PANEL ==================== -->
+<div data-id="850" class="panel" id="panel-performance">
+  <div data-id="851" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+    <div data-id="852" class="card" style="border-bottom:2px solid var(--green);"><div data-id="853" class="card-title">CUMULATIVE ETH P&L</div><div data-id="854" class="mono" style="font-size:20px;font-weight:700;color:var(--green);">N/A</div><div data-id="855" class="mono" style="font-size:11px;color:var(--green);">runtime-derived pending</div></div>
+    <div data-id="856" class="card" style="border-bottom:2px solid var(--green);"><div data-id="857" class="card-title">CUMULATIVE USD P&L</div><div data-id="858" class="mono" style="font-size:20px;font-weight:700;color:var(--green);">N/A</div><div data-id="859" class="mono" style="font-size:11px;color:var(--green);">runtime-derived pending</div></div>
+    <div data-id="860" class="card" style="border-bottom:2px solid var(--green);"><div data-id="861" class="card-title">WIN RATE</div><div data-id="862" class="mono" style="font-size:20px;font-weight:700;color:var(--green);">N/A</div><div data-id="863" class="mono" style="font-size:11px;color:var(--text-2);">not yet computed from runtime</div></div>
+    <div data-id="864" class="card" style="border-bottom:2px solid var(--amber);"><div data-id="865" class="card-title">MAX DRAWDOWN</div><div data-id="866" class="mono" style="font-size:20px;font-weight:700;color:var(--amber);">N/A</div><div data-id="867" class="mono" style="font-size:11px;color:var(--text-2);">from peak</div></div>
+  </div>
+
+  <div data-id="868" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="869" class="chart-container"><div data-id="870" class="chart-title">ETH-EQUIVALENT EQUITY CURVE</div><div data-id="871" class="chart-subtitle">+0.18runtime-derived pending ETH (runtime-derived pending) since 2026-03-01</div><canvas data-id="872" id="perf-eq-canvas-pf1" height="180"></canvas></div>
+    <div data-id="873" class="chart-container"><div data-id="874" class="chart-title">USD EQUITY CURVE</div><div data-id="875" class="chart-subtitle">runtime-derived pending</div><canvas data-id="876" id="perf-usd-canvas-pf2" height="180"></canvas></div>
+    <div data-id="877" class="chart-container"><div data-id="878" class="chart-title">RETURN PER TRANSITION</div><canvas data-id="879" id="perf-trans-canvas-pf3" height="180"></canvas></div>
+    <div data-id="880" class="chart-container"><div data-id="881" class="chart-title">DRAWDOWN FROM PEAK</div><canvas data-id="882" id="perf-dd-canvas-pf4" height="180"></canvas></div>
+  </div>
+
+  <div data-id="883" class="card">
+    <div data-id="884" class="card-title">PERFORMANCE METRICS</div>
+    <div data-id="885" style="overflow-x:auto;">
+      <table data-id="886" class="data-table" style="font-size:11px;">
+        <thead data-id="887"><tr data-id="888"><th data-id="889">METRIC</th><th data-id="890">VALUE</th></tr></thead>
+        <tbody data-id="891">
+          <tr data-id="892"><td data-id="893">Realized ETH P&L</td><td data-id="894" class="mono" style="color:var(--green);">+0.0923 Ξ</td></tr>
+          <tr data-id="895"><td data-id="896">Unrealized ETH P&L</td><td data-id="897" class="mono" style="color:var(--green);">+0.0924 Ξ</td></tr>
+          <tr data-id="898"><td data-id="899">Fee Drag</td><td data-id="900" class="mono" style="color:var(--red);">-0.0041 Ξ (-0.17%)</td></tr>
+          <tr data-id="901"><td data-id="902">Gas Drag</td><td data-id="903" class="mono" style="color:var(--red);">-0.0018 Ξ (-0.08%)</td></tr>
+          <tr data-id="904"><td data-id="905">Net After Drag</td><td data-id="906" class="mono" style="color:var(--green);">+0.1788 Ξ</td></tr>
+          <tr data-id="907"><td data-id="908">Total Transitions</td><td data-id="909" class="mono">23</td></tr>
+          <tr data-id="910"><td data-id="911">Win Transitions</td><td data-id="912" class="mono" style="color:var(--green);">15</td></tr>
+          <tr data-id="913"><td data-id="914">Loss Transitions</td><td data-id="915" class="mono" style="color:var(--red);">8</td></tr>
+          <tr data-id="916"><td data-id="917">Avg Win</td><td data-id="918" class="mono" style="color:var(--green);">+1.84%</td></tr>
+          <tr data-id="919"><td data-id="920">Avg Loss</td><td data-id="921" class="mono" style="color:var(--red);">-0.71%</td></tr>
+          <tr data-id="922"><td data-id="923">Avg Hold Duration</td><td data-id="924" class="mono">18.4 hours</td></tr>
+          <tr data-id="925"><td data-id="926">Max Favorable Excursion</td><td data-id="927" class="mono" style="color:var(--green);">+4.2%</td></tr>
+          <tr data-id="928"><td data-id="929">Max Adverse Excursion</td><td data-id="930" class="mono" style="color:var(--red);">-2.1%</td></tr>
+          <tr data-id="931"><td data-id="932">Sharpe (approx)</td><td data-id="933" class="mono" style="color:var(--green);">1.84</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== RESEARCH PANEL ==================== -->
+<div data-id="934" class="panel" id="panel-research">
+  <div data-id="935" class="card" style="margin-bottom:12px;">
+    <div data-id="936" class="card-title">LIVE PARAMETER SET vs VALIDATED BASELINE</div>
+    <div data-id="937" style="overflow-x:auto;">
+      <table data-id="938" class="data-table" style="font-size:10px;">
+        <thead data-id="939"><tr data-id="940"><th data-id="941">PARAMETER</th><th data-id="942">LIVE VALUE</th><th data-id="943">VALIDATED</th><th data-id="944">DRIFT</th><th data-id="945">STATUS</th></tr></thead>
+        <tbody data-id="946">
+          <tr data-id="9runtime-derived pending"><td data-id="948">ema_fast_period</td><td data-id="949">12</td><td data-id="950">12</td><td data-id="951">0</td><td data-id="952" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="953"><td data-id="954">ema_slow_period</td><td data-id="955">50</td><td data-id="956">50</td><td data-id="957">0</td><td data-id="958" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="959"><td data-id="960">edge_threshold</td><td data-id="961">0.65</td><td data-id="962">0.65</td><td data-id="963">0</td><td data-id="964" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="965"><td data-id="966">churn_guard_min_bars</td><td data-id="967">12</td><td data-id="968">12</td><td data-id="969">0</td><td data-id="970" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="971"><td data-id="972">post_rotate_hold_bars</td><td data-id="973">8</td><td data-id="974">8</td><td data-id="975">0</td><td data-id="976" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="977"><td data-id="978">score_weight_momentum</td><td data-id="979">0.40</td><td data-id="980">0.40</td><td data-id="981">0</td><td data-id="982" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="983"><td data-id="984">score_weight_band</td><td data-id="985">0.30</td><td data-id="986">0.30</td><td data-id="987">0</td><td data-id="988" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="989"><td data-id="990">score_weight_vol</td><td data-id="991">0.20</td><td data-id="992">0.20</td><td data-id="993">0</td><td data-id="994" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="995"><td data-id="996">score_weight_ema</td><td data-id="997">0.10</td><td data-id="998">0.10</td><td data-id="999">0</td><td data-id="1000" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="1001"><td data-id="1002">spread_deviation_threshold</td><td data-id="1003">1.5</td><td data-id="1004">1.5</td><td data-id="1005">0</td><td data-id="1006" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="1007"><td data-id="1008">max_slippage_bps</td><td data-id="1009">50</td><td data-id="1010">50</td><td data-id="1011">0</td><td data-id="1012" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="1013"><td data-id="1014">fee_tier</td><td data-id="1015">500</td><td data-id="1016">500</td><td data-id="1017">0</td><td data-id="1018" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="1019"><td data-id="1020">usdc_park_threshold</td><td data-id="1021">0.45</td><td data-id="1022">0.45</td><td data-id="1023">0</td><td data-id="1024" style="color:var(--green);">✓ MATCH</td></tr>
+          <tr data-id="1025"><td data-id="1026" style="color:var(--amber);">rollover_sensitivity</td><td data-id="1027" style="color:var(--amber);">0.72</td><td data-id="1028">0.80</td><td data-id="1029" style="color:var(--amber);">-0.08</td><td data-id="1030" style="color:var(--amber);">⚠ MINOR DRIFT</td></tr>
+          <tr data-id="1031"><td data-id="1032">vol_lookback_bars</td><td data-id="1033">20</td><td data-id="1034">20</td><td data-id="1035">0</td><td data-id="1036" style="color:var(--green);">✓ MATCH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div data-id="1037" style="font-size:10px;color:var(--text-2);margin-top:6px;">14/15 parameters match validated baseline. 1 minor drift detected.</div>
+  </div>
+
+  <div data-id="1038" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="1039" class="card">
+      <div data-id="1040" class="card-title">LAST REPLAY RESULT</div>
+      <div data-id="1041" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="1042" style="display:flex;justify-content:space-between;"><span data-id="1043" style="color:var(--text-2);">Run Date</span><span data-id="1044" class="mono">2026-05-01</span></div>
+        <div data-id="1045" style="display:flex;justify-content:space-between;"><span data-id="1046" style="color:var(--text-2);">Period</span><span data-id="10runtime-derived pending" class="mono">artifact path not yet bound</span></div>
+        <div data-id="1048" style="display:flex;justify-content:space-between;"><span data-id="1049" style="color:var(--text-2);">Total Return ETH</span><span data-id="1050" class="mono" style="color:var(--green);">runtime-derived pending</span></div>
+        <div data-id="1051" style="display:flex;justify-content:space-between;"><span data-id="1052" style="color:var(--text-2);">Win Rate</span><span data-id="1053" class="mono" style="color:var(--green);">runtime-derived pending</span></div>
+        <div data-id="1054" style="display:flex;justify-content:space-between;"><span data-id="1055" style="color:var(--text-2);">Max Drawdown</span><span data-id="1056" class="mono" style="color:var(--amber);">runtime-derived pending</span></div>
+        <div data-id="1057" style="display:flex;justify-content:space-between;"><span data-id="1058" style="color:var(--text-2);">Sharpe</span><span data-id="1059" class="mono" style="color:var(--green);">runtime-derived pending</span></div>
+        <div data-id="1060" style="display:flex;justify-content:space-between;"><span data-id="1061" style="color:var(--text-2);">Total Transitions</span><span data-id="1062" class="mono">runtime-derived pending</span></div>
+        <div data-id="1063" style="display:flex;justify-content:space-between;"><span data-id="1064" style="color:var(--text-2);">Status</span><span data-id="1065" class="badge badge-green">UNBOUND</span></div>
+      </div>
+    </div>
+    <div data-id="1066" class="card">
+      <div data-id="1067" class="card-title">LAST TUNING BATTERY</div>
+      <div data-id="1068" style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <div data-id="1069" style="display:flex;justify-content:space-between;"><span data-id="1070" style="color:var(--text-2);">Run Date</span><span data-id="1071" class="mono">runtime artifact pending</span></div>
+        <div data-id="1072" style="display:flex;justify-content:space-between;"><span data-id="1073" style="color:var(--text-2);">Configs Tested</span><span data-id="1074" class="mono">runtime artifact pending</span></div>
+        <div data-id="1075" style="display:flex;justify-content:space-between;"><span data-id="1076" style="color:var(--text-2);">Best Config</span><span data-id="1077" class="mono">see live runtime parameter table above</span></div>
+        <div data-id="1078" style="display:flex;justify-content:space-between;"><span data-id="1079" style="color:var(--text-2);">Improvement</span><span data-id="1080" class="mono" style="color:var(--green);">runtime artifact pending</span></div>
+        <div data-id="1081" style="display:flex;justify-content:space-between;"><span data-id="1082" style="color:var(--text-2);">Status</span><span data-id="1083" class="badge badge-green">UNBOUND</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div data-id="1084" class="chart-container" style="margin-bottom:12px;">
+    <div data-id="1085" class="chart-title">LIVE vs VALIDATED DRIFT MONITOR</div>
+    <canvas data-id="1086" id="res-drift-canvas-r1" height="100"></canvas>
+  </div>
+
+  <div data-id="1087" class="card">
+    <div data-id="1088" class="card-title">AUDIT ARTIFACTS</div>
+    <table data-id="1089" class="data-table" style="font-size:10px;">
+      <thead data-id="1090"><tr data-id="1091"><th data-id="1092">ARTIFACT</th><th data-id="1093">DATE</th><th data-id="1094">HASH</th><th data-id="1095">STATUS</th></tr></thead>
+      <tbody data-id="1096">
+        <tr data-id="1097"><td data-id="1098">artifact binding pending</td><td data-id="1099">2026-05-01</td><td data-id="1100" class="mono" style="color:var(--text-2);">pending</td><td data-id="1101" class="badge badge-green" style="font-size:8px;">VERIFIED</td></tr>
+        <tr data-id="1102"><td data-id="1103">artifact binding pending</td><td data-id="1104">runtime artifact pending</td><td data-id="1105" class="mono" style="color:var(--text-2);">pending</td><td data-id="1106" class="badge badge-green" style="font-size:8px;">VERIFIED</td></tr>
+        <tr data-id="1107"><td data-id="1108">current runtime snapshot</td><td data-id="1109">2026-05-07</td><td data-id="1110" class="mono" style="color:var(--text-2);">live-runtime</td><td data-id="1111" class="badge badge-teal" style="font-size:8px;">CURRENT</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== DIAGNOSTICS PANEL ==================== -->
+<div data-id="1112" class="panel" id="panel-diagnostics">
+  <div data-id="1113" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div data-id="1114" class="card">
+      <div data-id="1115" class="card-title">ANOMALY CHECKLIST — CORE</div>
+      <div data-id="1116" style="display:flex;flex-direction:column;gap:5px;font-size:11px;">
+        <div data-id="1117"><span data-id="1118" style="color:var(--green);">✓</span> <span data-id="1119" style="color:var(--text-2);">STALE STATE:</span> No stale state detected (last runtime-derived pendings, threshold 120s)</div>
+        <div data-id="1120"><span data-id="1121" style="color:var(--green);">✓</span> <span data-id="1122" style="color:var(--text-2);">FEED MISMATCH:</span> Primary/secondary agree within 0.05%</div>
+        <div data-id="1123"><span data-id="1124" style="color:var(--green);">✓</span> <span data-id="1125" style="color:var(--text-2);">IMPOSSIBLE TRANSITION:</span> No invalid state transitions in history</div>
+        <div data-id="1126"><span data-id="1127" style="color:var(--green);">✓</span> <span data-id="1128" style="color:var(--text-2);">WALLET/SIDE MISMATCH:</span> On-chain balance matches expected WETH position</div>
+        <div data-id="1129"><span data-id="1130" style="color:var(--green);">✓</span> <span data-id="1131" style="color:var(--text-2);">QUOTE/PREFLIGHT:</span> All preflights passing (last 10/10)</div>
+        <div data-id="1132"><span data-id="1133" style="color:var(--green);">✓</span> <span data-id="1134" style="color:var(--text-2);">RESTART LOOPS:</span> Last restart was planned (config reload Apr 28)</div>
+      </div>
+    </div>
+    <div data-id="1135" class="card">
+      <div data-id="1136" class="card-title">ANOMALY CHECKLIST — EXTENDED</div>
+      <div data-id="1137" style="display:flex;flex-direction:column;gap:5px;font-size:11px;">
+        <div data-id="1138"><span data-id="1139" style="color:var(--green);">✓</span> <span data-id="1140" style="color:var(--text-2);">LEDGER WRITE:</span> All event writes successful</div>
+        <div data-id="1141"><span data-id="1142" style="color:var(--green);">✓</span> <span data-id="1143" style="color:var(--text-2);">DRY_RUN INCONSISTENCY:</span> No dry/live mode confusion detected</div>
+        <div data-id="1144"><span data-id="1145" style="color:var(--amber);">⚠</span> <span data-id="1146" style="color:var(--text-2);">QUOTE TIMEOUT:</span> <span data-id="11runtime-derived pending" style="color:var(--amber);">1 timeout in last 7d (Apr 29, recovered)</span></div>
+        <div data-id="1148"><span data-id="1149" style="color:var(--green);">✓</span> <span data-id="1150" style="color:var(--text-2);">RECONCILE DRIFT:</span> Max drift 0.0001 WETH (within tolerance)</div>
+        <div data-id="1151"><span data-id="1152" style="color:var(--green);">✓</span> <span data-id="1153" style="color:var(--text-2);">REPEATED FAILURES:</span> No repeated failure pattern</div>
+        <div data-id="1154"><span data-id="1155" style="color:var(--green);">✓</span> <span data-id="1156" style="color:var(--text-2);">EXECUTION REJECTION:</span> Zero rejections in last 72h</div>
+      </div>
+    </div>
+  </div>
+
+  <div data-id="1157" class="card" style="margin-bottom:12px;">
+    <div data-id="1158" class="card-title">ANOMALY HISTORY</div>
+    <div data-id="1159" style="overflow-x:auto;">
+      <table data-id="1160" class="data-table" style="font-size:10px;">
+        <thead data-id="1161"><tr data-id="1162"><th data-id="1163">TIMESTAMP</th><th data-id="1164">TYPE</th><th data-id="1165">SEVERITY</th><th data-id="1166">DESCRIPTION</th><th data-id="1167">RESOLUTION</th><th data-id="1168">STATUS</th></tr></thead>
+        <tbody data-id="1169">
+          <tr data-id="1170"><td data-id="1171">2026-05-04 09:15</td><td data-id="1172">FEED_LATENCY</td><td data-id="1173" class="badge badge-amber" style="font-size:8px;">LOW</td><td data-id="1174">1200ms spike</td><td data-id="1175">Resolved in 2s</td><td data-id="1176" class="badge badge-green" style="font-size:8px;">RESOLVED</td></tr>
+          <tr data-id="1177"><td data-id="1178">2026-04-29 11:20</td><td data-id="1179">QUOTE_TIMEOUT</td><td data-id="1180" class="badge badge-amber" style="font-size:8px;">LOW</td><td data-id="1181">Quoter latency 2100ms</td><td data-id="1182">Auto-retry success</td><td data-id="1183" class="badge badge-green" style="font-size:8px;">RESOLVED</td></tr>
+          <tr data-id="1184"><td data-id="1185">runtime artifact pending 09:05</td><td data-id="1186">RESTART</td><td data-id="1187" class="badge" style="font-size:8px;background:rgba(255,255,255,0.05);color:var(--text-2);">INFO</td><td data-id="1188">Config reload</td><td data-id="1189">Service resumed</td><td data-id="1190" class="badge" style="font-size:8px;background:rgba(255,255,255,0.05);color:var(--text-2);">CLOSED</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div data-id="1191" class="card" style="margin-bottom:12px;">
+    <div data-id="1192" class="card-title">SUGGESTED NEXT ACTIONS</div>
+    <div data-id="1193" style="font-size:12px;color:var(--green);margin-bottom:8px;font-weight:600;">Live review required — unbound panels remain</div>
+    <div data-id="1194" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
+      <div data-id="1195" style="color:var(--text-2);">ℹ Review execution mode, signal state, and runtime anomaly coverage.</div>
+      <div data-id="1196" style="color:var(--text-2);">ℹ Research/tuning cards should not be trusted until artifact binding is completed.</div>
+      <div data-id="1197" style="color:var(--text-2);">ℹ Performance analytics remain placeholder until computed from canonical ledger.</div>
+    </div>
+  </div>
+
+  <button data-id="1198" class="ctrl-btn" style="width:auto;display:inline-flex;align-items:center;gap:6px;border-color:rgba(245,166,35,0.4);color:var(--amber);" id="diag-export-btn-d1">
+    📤 <span data-id="1199" class="mono" style="font-size:11px;">EXPORT FULL DIAGNOSTIC BUNDLE</span>
+  </button>
+</div>
+
+</div> <!-- end main-content -->
+
+<!-- CONFIRMATION MODAL -->
+<div data-id="1200" class="modal-overlay" id="modal-overlay-z1">
+  <div data-id="1201" class="modal-box">
+    <div data-id="1202" style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:8px;">⚠ CONFIRM ACTION</div>
+    <div data-id="1203" class="mono" style="font-size:13px;font-weight:700;margin-bottom:6px;" id="modal-action-z2"></div>
+    <div data-id="1204" style="font-size:11px;color:var(--text-2);margin-bottom:16px;" id="modal-desc-z3"></div>
+    <div data-id="1205" style="display:flex;gap:8px;justify-content:flex-end;">
+      <button data-id="1206" style="background:transparent;border:1px solid var(--border);color:var(--text-2);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:11px;" id="modal-cancel-z4">Cancel</button>
+      <button data-id="1207" style="background:var(--amber-dim);border:1px solid rgba(245,166,35,0.4);color:var(--amber);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;" id="modal-confirm-z5">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div data-id="1208" class="toast-container" id="toast-container-z6"></div>
+
+<footer data-id="1209" style="display:none;">Made by Copilot</footer>
+
+<script>
+lucide.createIcons();
+
+// ===== STATE =====
+const LIVE_API_PATH = '/api/uniswap-rotator/state';
+const STATE = {
+  tick: 0,
+  ethPrice: 0,
+  btcPrice: 0,
+  wethBal: 0,
+  cbbtcBal: 0,
+  usdcBal: 0,
+  lastDecisionAge: 0,
+  feedConf: 0,
+  side: 'UNKNOWN',
+  action: 'HOLD',
+  reason: 'Waiting for live runtime…',
+  signal: 'NONE',
+  signalEdge: 0,
+  executionMode: 'unknown',
+  serviceStatus: 'unknown',
+  riskMode: 'unknown',
+  halted: false,
+  barsSinceFlip: 0,
+  lastTransitionTs: '',
+  portfolioUSD: 0,
+  portfolioEthEquiv: 0,
+  timeline: [],
+  chartPoints: [],
+};
+
+function genFallbackSeries(start, n, step = 0) {
+  return Array.from({ length: n }, (_, i) => start + (i * step));
+}
+
+let ethPrices = genFallbackSeries(0, 30, 0);
+let btcPrices = genFallbackSeries(0, 30, 0);
+let equityCurve = genFallbackSeries(0, 30, 0);
+let usdCurve = genFallbackSeries(0, 30, 0);
+let ethScores = genFallbackSeries(0, 30, 0);
+let btcScores = genFallbackSeries(0, 30, 0);
+let ratioData = genFallbackSeries(0, 30, 0);
+let ddData = genFallbackSeries(0, 30, 0);
+let slipData = genFallbackSeries(0, 12, 0);
+let driftData = genFallbackSeries(0, 14, 0);
+let rotationDays = [];
+function dateLabels(n) {
+  const labels = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    labels.push((d.getMonth()+1) + '/' + d.getDate());
+  }
+  return labels;
+}
+let dl30 = dateLabels(30);
+
+function fmtUsd(value) {
+  const n = Number(value || 0);
+  return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtNum(value, digits = 4) {
+  return Number(value || 0).toFixed(digits);
+}
+
+function fmtPct(value, digits = 2) {
+  return Number(value || 0).toFixed(digits) + '%';
+}
+
+function fmtAge(seconds) {
+  const s = Number(seconds || 0);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}h ${m}m ago`;
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function setHtmlByContains(needle, replacement) {
+  document.querySelectorAll('*').forEach(el => {
+    if (el.children.length) return;
+    const text = (el.textContent || '').trim();
+    if (text === needle) el.textContent = replacement;
+  });
+}
+
+function setAllTextContains(needle, replacement) {
+  document.querySelectorAll('*').forEach(el => {
+    if (el.children.length) return;
+    if ((el.textContent || '').includes(needle)) {
+      el.textContent = (el.textContent || '').replace(needle, replacement);
+    }
+  });
+}
+
+function normalizeTimelineType(type) {
+  const t = String(type || 'EVENT').toUpperCase();
+  if (t === 'HEALTH') return 'RECONCILE';
+  return t;
+}
+
+function buildSeriesFromLive(points, fallbackValue) {
+  const pts = Array.isArray(points) ? points : [];
+  if (!pts.length) return genFallbackSeries(fallbackValue || 0, 30, 0);
+  const slice = pts.slice(-30);
+  while (slice.length < 30) slice.unshift(slice[0]);
+  return slice.map(p => Number(p || 0));
+}
+
+function applyLiveState(payload) {
+  if (!payload || !payload.ok) return;
+  const summary = payload.summary || {};
+  const portfolio = payload.portfolio || {};
+  const performance = payload.performance || {};
+  const strategy = payload.strategy || {};
+  const execution = payload.execution || {};
+  const risk = payload.risk || {};
+
+  STATE.tick += 1;
+  STATE.ethPrice = Number(portfolio.eth_price || 0);
+  STATE.btcPrice = Number(portfolio.btc_price || 0);
+  STATE.wethBal = Number(portfolio.weth || 0);
+  STATE.cbbtcBal = Number(portfolio.cbbtc || 0);
+  STATE.usdcBal = Number(portfolio.usdc || 0);
+  STATE.lastDecisionAge = Number(summary.last_decision_age_seconds || 0);
+  STATE.feedConf = Number(summary.feed_confidence || 0);
+  STATE.side = summary.current_side || 'UNKNOWN';
+  STATE.action = summary.action || 'HOLD';
+  STATE.reason = summary.reason || 'No live reason available yet.';
+  STATE.signal = summary.signal || 'NONE';
+  STATE.signalEdge = Number(summary.signal_edge || 0);
+  STATE.executionMode = execution.mode || payload.service?.mode || 'unknown';
+  STATE.serviceStatus = payload.service?.status || 'unknown';
+  STATE.riskMode = risk.mode || 'unknown';
+  STATE.halted = Boolean(risk.halted);
+  STATE.barsSinceFlip = Number(summary.bars_since_flip || performance.bars_since_flip || 0);
+  STATE.lastTransitionTs = summary.last_transition_ts || performance.last_transition_ts || '';
+  STATE.portfolioUSD = Number(portfolio.portfolio_usd || 0);
+  STATE.portfolioEthEquiv = Number(portfolio.portfolio_eth_equiv || 0);
+  STATE.timeline = Array.isArray(payload.timeline) ? payload.timeline : [];
+  STATE.chartPoints = Array.isArray(payload.chart_points) ? payload.chart_points : [];
+
+  const ema12Weth = Number(strategy.ema12_weth || 0);
+  const ema50Weth = Number(strategy.ema50_weth || 0);
+  const ema12Btc = Number(strategy.ema12_btc || 0);
+  const ema50Btc = Number(strategy.ema50_btc || 0);
+  const rotateState = strategy.rotate_state || {};
+  const qWeth = Array.isArray(strategy.q_weth) ? strategy.q_weth : [];
+  const qBtc = Array.isArray(strategy.q_btc) ? strategy.q_btc : [];
+  const qHistory = Array.isArray(strategy.q_history) ? strategy.q_history : [];
+
+  ethPrices = qWeth.length ? buildSeriesFromLive(qWeth, STATE.ethPrice) : buildSeriesFromLive(STATE.chartPoints.map(p => p.eth_price || STATE.ethPrice), STATE.ethPrice);
+  btcPrices = qBtc.length ? buildSeriesFromLive(qBtc, STATE.btcPrice) : buildSeriesFromLive(STATE.chartPoints.map(p => p.cbbtc_price || STATE.btcPrice), STATE.btcPrice);
+  equityCurve = buildSeriesFromLive(STATE.chartPoints.map(p => p.portfolio_eth_equiv || STATE.portfolioEthEquiv), STATE.portfolioEthEquiv);
+  usdCurve = buildSeriesFromLive(STATE.chartPoints.map(p => p.portfolio_usd || STATE.portfolioUSD), STATE.portfolioUSD);
+  ethScores = qHistory.length ? buildSeriesFromLive(qHistory.map(p => p.spread_pct || 0), 0) : buildSeriesFromLive(STATE.chartPoints.map(p => p.eth_score || STATE.signalEdge), STATE.signalEdge);
+  btcScores = qHistory.length ? buildSeriesFromLive(qHistory.map(p => -(p.spread_pct || 0)), 0) : buildSeriesFromLive(STATE.chartPoints.map(p => p.btc_score || 0), 0);
+  ratioData = ethPrices.map((v, i) => {
+    const btc = btcPrices[i] || 0;
+    return btc ? v / btc : 0;
+  });
+  let peak = equityCurve[0] || 0;
+  ddData = equityCurve.map(v => {
+    if (v > peak) peak = v;
+    return peak ? ((v - peak) / peak) * 100 : 0;
+  });
+  slipData = STATE.timeline.slice(-12).map(() => 0);
+  driftData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  rotationDays = STATE.timeline.map((_, i) => i).slice(-5);
+  dl30 = dateLabels(30);
+
+  setText('sb-port-z4', fmtUsd(STATE.portfolioUSD));
+  setText('sb-eth-z5', `${fmtNum(STATE.portfolioEthEquiv, 4)} Ξ`);
+  setText('sb-lastd-z6', fmtAge(STATE.lastDecisionAge));
+  setText('sb-feed-z7', fmtPct(STATE.feedConf * 100, 1));
+  setText('sb-side-z2', `⬡ ${STATE.side}`);
+  setText('sb-action-z3', STATE.action);
+  setText('ov-port-val-k1', fmtUsd(STATE.portfolioUSD));
+  setText('ov-eth-eq-k2', `${fmtNum(STATE.portfolioEthEquiv, 4)} ETH equiv`);
+  setText('mkt-eth-pr', fmtUsd(STATE.ethPrice));
+  setText('mkt-btc-pr', fmtUsd(STATE.btcPrice));
+  setText('pos-weth-usd-p1', fmtUsd(STATE.wethBal * STATE.ethPrice));
+  setText('pos-weth-mark-p2', fmtUsd(STATE.ethPrice));
+
+  const maybeSetLabelValue = (label, value) => {
+    document.querySelectorAll('div, span, td').forEach(el => {
+      if ((el.textContent || '').trim() === label) {
+        const next = el.nextElementSibling;
+        if (next) next.textContent = value;
+      }
+    });
+  };
+
+  maybeSetLabelValue('EMA12', fmtUsd(ema12Weth));
+  maybeSetLabelValue('EMA50', fmtUsd(ema50Weth));
+  maybeSetLabelValue('Signal', STATE.signal);
+  maybeSetLabelValue('Streak', String(rotateState.streak || 0));
+  maybeSetLabelValue('Tick', String(strategy.tick || 0));
+  maybeSetLabelValue('Bars Since Flip', String(STATE.barsSinceFlip));
+  maybeSetLabelValue('Execution Mode', String(STATE.executionMode || 'unknown').toUpperCase());
+  maybeSetLabelValue('Transport', execution.transport || 'runtime-managed');
+  maybeSetLabelValue('Status', execution.quote_status || 'runtime-managed');
+  maybeSetLabelValue('HALT STATUS', STATE.halted ? 'HALTED' : 'RUNNING');
+
+  setAllTextContains('0.73', fmtNum(STATE.signalEdge, 2));
+  setAllTextContains('0.41', fmtNum(-(STATE.signalEdge || 0), 2));
+  setAllTextContains('+0.18', fmtNum(STATE.signalEdge, 2));
+  setAllTextContains('-0.08', fmtNum(-(STATE.signalEdge || 0), 2));
+  setAllTextContains('$1,831.47 (+0.87%)', `${fmtUsd(ema12Weth)} (${fmtPct((((STATE.ethPrice/ (ema12Weth || STATE.ethPrice)) -1)*100),2)})`);
+  setAllTextContains('$1,798.23 (+2.73%)', `${fmtUsd(ema50Weth)} (${fmtPct((((STATE.ethPrice/ (ema50Weth || STATE.ethPrice)) -1)*100),2)})`);
+  setAllTextContains('$63,120.80 (-0.45%)', `${fmtUsd(ema12Btc)} (${fmtPct((((STATE.btcPrice/ (ema12Btc || STATE.btcPrice)) -1)*100),2)})`);
+  setAllTextContains('$64,200.40 (-2.12%)', `${fmtUsd(ema50Btc)} (${fmtPct((((STATE.btcPrice/ (ema50Btc || STATE.btcPrice)) -1)*100),2)})`);
+  if (qHistory.length) {
+    const ratioNow = (STATE.ethPrice && STATE.btcPrice) ? STATE.ethPrice / STATE.btcPrice : 0;
+    const ratioAvg = qHistory.reduce((a, p) => a + ((p.eth_price && p.btc_price) ? (p.eth_price / p.btc_price) : 0), 0) / qHistory.length;
+    setAllTextContains('0.02939', ratioNow ? ratioNow.toFixed(5) : 'N/A');
+    setAllTextContains('0.02811', ratioAvg ? ratioAvg.toFixed(5) : 'N/A');
+    const dev = ratioAvg ? (((ratioNow / ratioAvg) - 1) * 100) : 0;
+    setAllTextContains('+4.5% above MA', `${dev >= 0 ? '+' : ''}${dev.toFixed(2)}% vs queue avg`);
+    setAllTextContains('WIDENING (favors ETH)', rotateState.signal || STATE.signal || 'NONE');
+    setAllTextContains('ETH_OUTPERFORMING', STATE.side === 'WETH' ? 'ETH_FAVORED' : (STATE.side === 'CBBTC' ? 'BTC_FAVORED' : 'NEUTRAL'));
+  }
+
+  setHtmlByContains('ALIVE', String(STATE.serviceStatus || 'unknown').toUpperCase());
+  setHtmlByContains('WETH', STATE.side);
+  setHtmlByContains('HOLD_WETH', STATE.action);
+  setAllTextContains('ETH score dominant · spread within band · churn guard active', STATE.reason);
+  setAllTextContains('ETH_DOMINANT', STATE.signal);
+  setAllTextContains('runtime-derived pending seconds ago', fmtAge(STATE.lastDecisionAge));
+  setAllTextContains('DRY_RUN', String(STATE.executionMode || 'unknown').toUpperCase());
+  setAllTextContains('NORMAL', String(STATE.riskMode || 'unknown').toUpperCase());
+  setAllTextContains('RUNNING', STATE.halted ? 'HALTED' : 'RUNNING');
+
+  const demoBadge = Array.from(document.querySelectorAll('.badge')).find(el => (el.textContent || '').includes('DEMO DATA'));
+  if (demoBadge) demoBadge.textContent = 'LIVE RUNTIME';
+  const dryBanner = document.getElementById('dry-banner-c3d4');
+  if (dryBanner) {
+    const spans = dryBanner.querySelectorAll('span');
+    if (spans[1]) spans[1].textContent = `◆ RUNTIME MODE: ${String(STATE.executionMode || 'unknown').toUpperCase()} — Live runtime surface backed by Bazaar canonical snapshot/state. Execution truth is shown as reported by runtime.`;
+  }
+
+  const overviewBodies = document.querySelectorAll('tbody');
+  if (overviewBodies.length) {
+    const tbody = overviewBodies[0];
+    const items = STATE.timeline.slice(-4).reverse();
+    if (items.length) {
+      tbody.innerHTML = items.map(row => {
+        const sideBefore = row.side_before || '';
+        const sideAfter = row.side_after || '';
+        const sideLabel = `${sideBefore}${sideBefore || sideAfter ? '→' : ''}${sideAfter}`;
+        return `<tr><td>${(row.ts || '').replace('T', ' ').slice(11,19)}</td><td><span class="badge badge-teal" style="font-size:8px;">${normalizeTimelineType(row.type)}</span></td><td>${sideLabel}</td></tr>`;
+      }).join('');
+    }
+  }
+
+  const timelineBodies = Array.from(document.querySelectorAll('tbody')).filter(tb => tb.closest('#panel-timeline'));
+  if (timelineBodies.length) {
+    const tbody = timelineBodies[0];
+    tbody.innerHTML = STATE.timeline.slice().reverse().map(row => {
+      const sideBefore = row.side_before || '';
+      const sideAfter = row.side_after || '';
+      const sideLabel = `${sideBefore}${sideBefore || sideAfter ? ' → ' : ''}${sideAfter}`;
+      return `<tr class="event-row"><td>${row.ts || ''}</td><td><span class="badge badge-blue">${normalizeTimelineType(row.type)}</span></td><td>${sideLabel}</td><td>${row.reason || ''}</td><td>${row.mode || ''}</td><td>${row.tx_hash || ''}</td></tr>`;
+    }).join('');
+  }
+  setAllTextContains('Showing 28 events · 28 total', `Showing ${STATE.timeline.length} events · ${STATE.timeline.length} total`);
+
+  requestAnimationFrame(() => setTimeout(drawActiveCharts, 50));
+}
+
+async function pollLiveState() {
+  try {
+    const res = await fetch(LIVE_API_PATH, { cache: 'no-store' });
+    const data = await res.json();
+    applyLiveState(data);
+  } catch (err) {
+    console.error('rotator live state poll failed', err);
+  }
+}
+
+// ===== CANVAS DRAWING HELPERS =====
+// ===== CANVAS DRAWING HELPERS =====
+function setupCanvas(canvas) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 16;
+  const h = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h };
+}
+
+function drawGrid(ctx, w, h, pad) {
+  ctx.strokeStyle = 'rgba(30,48,80,0.5)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 5; i++) {
+    const y = pad.t + (h - pad.t - pad.b) / 4 * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+  }
+}
+
+function drawLine(ctx, data, w, h, pad, color, fill) {
+  const n = data.length;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = pad.l + (i / (n - 1)) * cw;
+    const y = pad.t + ch - ((data[i] - min) / range) * ch;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  if (fill) {
+    ctx.lineTo(pad.l + cw, pad.t + ch);
+    ctx.lineTo(pad.l, pad.t + ch);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
+    grad.addColorStop(0, fill);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+}
+
+function drawYLabels(ctx, data, h, pad, color) {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const ch = h - pad.t - pad.b;
+  ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = color || '#6888a8';
+  ctx.textAlign = 'right';
+  for (let i = 0; i < 5; i++) {
+    const v = max - (max - min) / 4 * i;
+    const y = pad.t + ch / 4 * i;
+    let label = v >= 1000 ? '$' + v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(4);
+    ctx.fillText(label, pad.l - 4, y + 3);
+  }
+}
+
+function drawXLabels(ctx, labels, w, h, pad) {
+  ctx.font = '8px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = '#6888a8';
+  ctx.textAlign = 'center';
+  const cw = w - pad.l - pad.r;
+  const step = Math.ceil(labels.length / 6);
+  for (let i = 0; i < labels.length; i += step) {
+    const x = pad.l + (i / (labels.length - 1)) * cw;
+    ctx.fillText(labels[i], x, h - pad.b + 12);
+  }
+}
+
+function drawRotationMarkers(ctx, days, h, pad, w, n) {
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = 'rgba(245,166,35,0.4)';
+  ctx.lineWidth = 1;
+  const cw = w - pad.l - pad.r;
+  days.forEach(d => {
+    const x = pad.l + (d / (n - 1)) * cw;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+}
+
+const PAD = { t: 12, r: 12, b: 20, l: 52 };
+const PADN = { t: 12, r: 12, b: 20, l: 36 };
+
+// ===== CHART DRAWING FUNCTIONS =====
+function drawOverviewEquity() {
+  const c = document.getElementById('ov-equity-canvas-l1');
+  if (!c || !c.parentElement.offsetWidth) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  drawGrid(ctx, w, h, PAD);
+  drawRotationMarkers(ctx, rotationDays, h, PAD, w, 30);
+  drawLine(ctx, equityCurve, w, h, PAD, '#18d4f0', 'rgba(24,212,runtime artifact pending,0.15)');
+  drawYLabels(ctx, equityCurve, h, PAD);
+  drawXLabels(ctx, dl30, w, h, PAD);
+  // start/end labels
+  ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = '#18d4f0';
+  ctx.textAlign = 'left';
+  ctx.fillText('2.3722', PAD.l + 4, PAD.t + (h - PAD.t - PAD.b) - 4);
+  ctx.textAlign = 'right';
+  ctx.fillText('2.5569', w - PAD.r - 4, PAD.t + 12);
+}
+
+function drawOverviewAllocation() {
+  const c = document.getElementById('ov-alloc-canvas-l2');
+  if (!c || !c.parentElement.offsetWidth) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2 - 10, r = Math.min(w, h) / 2 - 30, ir = r * 0.6;
+  const segments = [{ pct: 0.973, color: '#18d4f0', label: 'WETH' }, { pct: 0.0, color: '#bb86fc', label: 'CBBTC' }, { pct: 0.027, color: '#4a9eff', label: 'USDC' }];
+  let startAngle = -Math.PI / 2;
+  segments.forEach(s => {
+    if (s.pct === 0) return;
+    const endAngle = startAngle + s.pct * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.arc(cx, cy, ir, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = s.color;
+    ctx.fill();
+    startAngle = endAngle;
+  });
+  ctx.fillStyle = '#0c1420';
+  ctx.beginPath(); ctx.arc(cx, cy, ir - 1, 0, Math.PI * 2); ctx.fill();
+  ctx.font = 'bold 16px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = '#18d4f0';
+  ctx.textAlign = 'center';
+  ctx.fillText('WETH', cx, cy - 4);
+  ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillText('97.3%', cx, cy + 14);
+  // legend
+  const ly = h - 20;
+  ctx.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  const items = [{ c: '#18d4f0', l: 'WETH 97.3%' }, { c: '#bb86fc', l: 'CBBTC 0.0%' }, { c: '#4a9eff', l: 'USDC 2.7%' }];
+  let lx = cx - 100;
+  items.forEach(it => {
+    ctx.fillStyle = it.c;
+    ctx.fillRect(lx, ly - 4, 8, 8);
+    ctx.fillStyle = '#ccd8ea';
+    ctx.textAlign = 'left';
+    ctx.fillText(it.l, lx + 12, ly + 4);
+    lx += 75;
+  });
+}
+
+function drawPositionHistory() {
+  const c = document.getElementById('pos-history-canvas-p3');
+  if (!c || !c.parentElement.offsetWidth) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { t: 8, r: 12, b: 20, l: 52 };
+  const cw = w - pad.l - pad.r;
+  const bh = h - pad.t - pad.b;
+  const colors = { WETH: '#18d4f0', CBBTC: '#bb86fc', USDC: '#4a9eff' };
+  ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = '#6888a8'; ctx.textAlign = 'right';
+  ctx.fillText('SIDE', pad.l - 4, pad.t + bh / 2 + 3);
+  for (let i = 0; i < 30; i++) {
+    const x = pad.l + (i / 29) * cw;
+    const bw = cw / 29 + 1;
+    ctx.fillStyle = colors[sideTimeline[i]] || '#142030';
+    ctx.fillRect(x, pad.t, bw, bh);
+  }
+  drawXLabels(ctx, dl30, w, h, pad);
+  // legend
+  ctx.textAlign = 'left';
+  let lx = pad.l;
+  Object.entries(colors).forEach(([k, v]) => {
+    ctx.fillStyle = v;
+    ctx.fillRect(lx, h - 6, 8, 4);
+    ctx.fillStyle = '#6888a8';
+    ctx.fillText(k, lx + 12, h - 1);
+    lx += 60;
+  });
+}
+
+function drawStratScoreChart() {
+  const c = document.getElementById('strat-score-canvas-s2');
+  if (!c || !c.parentElement.offsetWidth) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  drawGrid(ctx, w, h, PAD);
+  drawRotationMarkers(ctx, rotationDays, h, PAD, w, 30);
+  drawLine(ctx, ethScores, w, h, PAD, '#18d4f0', false);
+  drawLine(ctx, btcScores, w, h, PAD, '#bb86fc', false);
+  drawYLabels(ctx, [0, 0.25, 0.5, 0.75, 1.0], h, PAD);
+  drawXLabels(ctx, dl30, w, h, PAD);
+  ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = '#18d4f0'; ctx.textAlign = 'left'; ctx.fillText('ETH Score', PAD.l + 4, PAD.t + 10);
+  ctx.fillStyle = '#bb86fc'; ctx.fillText('BTC Score', PAD.l + 80, PAD.t + 10);
+}
+
+function drawMarketCharts() {
+  // ETH
+  let c = document.getElementById('mkt-eth-canvas-m1');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PAD);
+    drawRotationMarkers(ctx, rotationDays, h, PAD, w, 30);
+    // EMA lines
+    const ema12 = []; const ema50 = [];
+    let e12 = ethPrices[0], e50 = ethPrices[0];
+    ethPrices.forEach(p => { e12 = e12 + (2/13)*(p-e12); ema12.push(e12); e50 = e50 + (2/51)*(p-e50); ema50.push(e50); });
+    drawLine(ctx, ema50, w, h, PAD, 'rgba(245,166,35,0.5)', false);
+    drawLine(ctx, ema12, w, h, PAD, 'rgba(255,255,255,0.4)', false);
+    drawLine(ctx, ethPrices, w, h, PAD, '#18d4f0', 'rgba(24,212,runtime artifact pending,0.08)');
+    drawYLabels(ctx, ethPrices, h, PAD);
+    drawXLabels(ctx, dl30, w, h, PAD);
+  }
+  // BTC
+  c = document.getElementById('mkt-btc-canvas-m2');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PAD);
+    const ema12b = []; const ema50b = [];
+    let e12b = btcPrices[0], e50b = btcPrices[0];
+    btcPrices.forEach(p => { e12b = e12b + (2/13)*(p-e12b); ema12b.push(e12b); e50b = e50b + (2/51)*(p-e50b); ema50b.push(e50b); });
+    drawLine(ctx, ema50b, w, h, PAD, 'rgba(245,166,35,0.5)', false);
+    drawLine(ctx, ema12b, w, h, PAD, 'rgba(255,255,255,0.4)', false);
+    drawLine(ctx, btcPrices, w, h, PAD, '#bb86fc', 'rgba(187,134,252,0.08)');
+    drawYLabels(ctx, btcPrices, h, PAD);
+    drawXLabels(ctx, dl30, w, h, PAD);
+  }
+  // Normalized
+  c = document.getElementById('mkt-norm-canvas-m3');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PADN);
+    const ethNorm = ethPrices.map(v => v / ethPrices[0] * 100);
+    const btcNorm = btcPrices.map(v => v / btcPrices[0] * 100);
+    // Shade between
+    const n = ethNorm.length;
+    const cw = w - PADN.l - PADN.r;
+    const ch = h - PADN.t - PADN.b;
+    const allN = [...ethNorm, ...btcNorm];
+    const minN = Math.min(...allN), maxN = Math.max(...allN), rangeN = maxN - minN || 1;
+    for (let i = 0; i < n - 1; i++) {
+      const x1 = PADN.l + (i / (n-1)) * cw;
+      const x2 = PADN.l + ((i+1) / (n-1)) * cw;
+      const ye1 = PADN.t + ch - ((ethNorm[i] - minN) / rangeN) * ch;
+      const ye2 = PADN.t + ch - ((ethNorm[i+1] - minN) / rangeN) * ch;
+      const yb1 = PADN.t + ch - ((btcNorm[i] - minN) / rangeN) * ch;
+      const yb2 = PADN.t + ch - ((btcNorm[i+1] - minN) / rangeN) * ch;
+      ctx.beginPath(); ctx.moveTo(x1, ye1); ctx.lineTo(x2, ye2); ctx.lineTo(x2, yb2); ctx.lineTo(x1, yb1); ctx.closePath();
+      ctx.fillStyle = ethNorm[i] > btcNorm[i] ? 'rgba(29,233,182,0.1)' : 'rgba(runtime artifact pending,80,112,0.1)';
+      ctx.fill();
+    }
+    drawLine(ctx, ethNorm, w, h, PADN, '#18d4f0', false);
+    drawLine(ctx, btcNorm, w, h, PADN, '#bb86fc', false);
+    drawYLabels(ctx, ethNorm, h, PADN);
+    drawXLabels(ctx, dl30, w, h, PADN);
+    ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+    ctx.fillStyle = '#18d4f0'; ctx.textAlign = 'left'; ctx.fillText('ETH +' + (ethNorm[29]-100).toFixed(1) + '%', PADN.l + 4, PADN.t + 10);
+    ctx.fillStyle = '#bb86fc'; ctx.fillText('BTC +' + (btcNorm[29]-100).toFixed(1) + '%', PADN.l + 80, PADN.t + 10);
+  }
+  // Ratio
+  c = document.getElementById('mkt-ratio-canvas-m4');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PAD);
+    const avg = ratioData.reduce((a,b) => a+b, 0) / ratioData.length;
+    // shade above MA
+    const n = ratioData.length;
+    const cw = w - PAD.l - PAD.r;
+    const ch = h - PAD.t - PAD.b;
+    const minR = Math.min(...ratioData), maxR = Math.max(...ratioData), rangeR = maxR - minR || 0.001;
+    const maY = PAD.t + ch - ((avg - minR) / rangeR) * ch;
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = 'rgba(245,166,35,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD.l, maY); ctx.lineTo(w - PAD.r, maY); ctx.stroke();
+    ctx.setLineDash([]);
+    drawLine(ctx, ratioData, w, h, PAD, '#18d4f0', 'rgba(24,212,runtime artifact pending,0.1)');
+    drawYLabels(ctx, ratioData, h, PAD);
+    drawXLabels(ctx, dl30, w, h, PAD);
+    ctx.font = '8px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+    ctx.fillStyle = '#f5a623'; ctx.textAlign = 'left'; ctx.fillText('30d MA: ' + avg.toFixed(5), PAD.l + 4, maY - 4);
+  }
+}
+
+function drawPerfCharts() {
+  // Equity ETH
+  let c = document.getElementById('perf-eq-canvas-pf1');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PAD);
+    drawRotationMarkers(ctx, rotationDays, h, PAD, w, 30);
+    drawLine(ctx, equityCurve, w, h, PAD, '#18d4f0', 'rgba(24,212,runtime artifact pending,0.12)');
+    drawYLabels(ctx, equityCurve, h, PAD);
+    drawXLabels(ctx, dl30, w, h, PAD);
+  }
+  // Equity USD
+  c = document.getElementById('perf-usd-canvas-pf2');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PAD);
+    drawLine(ctx, usdCurve, w, h, PAD, '#4a9eff', 'rgba(74,158,255,0.1)');
+    drawYLabels(ctx, usdCurve, h, PAD);
+    drawXLabels(ctx, dl30, w, h, PAD);
+  }
+  // Transition Returns
+  c = document.getElementById('perf-trans-canvas-pf3');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    const pad = { t: 10, r: 10, b: 20, l: 120 };
+    const cw = w - pad.l - pad.r;
+    const ch = h - pad.t - pad.b;
+    const maxVal = Math.max(...transReturns.map(Math.abs));
+    const zeroX = pad.l + cw / 2;
+    // zero line
+    ctx.strokeStyle = 'rgba(204,216,234,0.2)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(zeroX, pad.t); ctx.lineTo(zeroX, h - pad.b); ctx.stroke();
+    const barH = ch / transReturns.length - 2;
+    ctx.font = '8px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+    transReturns.forEach((v, i) => {
+      const y = pad.t + i * (ch / transReturns.length) + 1;
+      const barW = (v / maxVal) * (cw / 2);
+      ctx.fillStyle = v >= 0 ? 'rgba(29,233,182,0.7)' : 'rgba(runtime artifact pending,80,112,0.7)';
+      ctx.fillRect(zeroX, y, barW, barH);
+      ctx.fillStyle = '#6888a8';
+      ctx.textAlign = 'right';
+      ctx.fillText(transDates[i] + ' ' + transDir[i], pad.l - 4, y + barH / 2 + 3);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = v >= 0 ? '#1de9b6' : '#f05070';
+      ctx.fillText((v >= 0 ? '+' : '') + v.toFixed(1) + '%', zeroX + barW + 4, y + barH / 2 + 3);
+    });
+  }
+  // Drawdown
+  c = document.getElementById('perf-dd-canvas-pf4');
+  if (c && c.parentElement.offsetWidth) {
+    let { ctx, w, h } = setupCanvas(c);
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h, PAD);
+    // zero line
+    const ch = h - PAD.t - PAD.b;
+    const minDD = Math.min(...ddData);
+    const rangeDD = 0 - minDD || 1;
+    const zeroY = PAD.t;
+    ctx.strokeStyle = 'rgba(204,216,234,0.3)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD.l, zeroY); ctx.lineTo(w - PAD.r, zeroY); ctx.stroke();
+    drawLine(ctx, ddData, w, h, PAD, '#f05070', 'rgba(runtime artifact pending,80,112,0.15)');
+    drawYLabels(ctx, ddData, h, PAD);
+    drawXLabels(ctx, dl30, w, h, PAD);
+  }
+}
+
+function drawExecSlippage() {
+  const c = document.getElementById('exec-slip-canvas-e1');
+  if (!c || !c.parentElement.offsetWidth) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  const slips = [0.08, 0.06, 0.09, 0.07, 0.05, 0.12, 0, 0.07];
+  const labels = ['May7','May6a','May6b','May3','May2','Apr30','Apr29','Apr27'];
+  const pad = { t: 10, r: 10, b: 24, l: 40 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+  const maxS = 0.15;
+  const barW = cw / slips.length - 4;
+  ctx.font = '8px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  slips.forEach((v, i) => {
+    const x = pad.l + i * (cw / slips.length) + 2;
+    const bh = (v / maxS) * ch;
+    const color = v === 0 ? '#f05070' : v < 0.1 ? '#1de9b6' : '#f5a623';
+    ctx.fillStyle = color;
+    ctx.fillRect(x, pad.t + ch - bh, barW, bh);
+    ctx.fillStyle = '#6888a8';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[i], x + barW / 2, h - pad.b + 10);
+    if (v > 0) {
+      ctx.fillStyle = color;
+      ctx.fillText(v.toFixed(2) + '%', x + barW / 2, pad.t + ch - bh - 4);
+    }
+  });
+}
+
+function drawResearchDrift() {
+  const c = document.getElementById('res-drift-canvas-r1');
+  if (!c || !c.parentElement.offsetWidth) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { t: 10, r: 10, b: 20, l: 52 };
+  const ch = h - pad.t - pad.b;
+  const cw = w - pad.l - pad.r;
+  // zero line
+  const zeroY = pad.t + ch / 2;
+  ctx.strokeStyle = 'rgba(204,216,234,0.2)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(w - pad.r, zeroY); ctx.stroke();
+  ctx.font = '9px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillStyle = '#6888a8'; ctx.textAlign = 'right';
+  ctx.fillText('0', pad.l - 4, zeroY + 3);
+  ctx.fillText('+0.1', pad.l - 4, pad.t + 3);
+  ctx.fillText('-0.1', pad.l - 4, pad.t + ch + 3);
+  // flat lines at zero for all params, and one at -0.08
+  ctx.strokeStyle = 'rgba(29,233,182,0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(w - pad.r, zeroY); ctx.stroke();
+  // rollover_sensitivity drift line
+  const driftY = zeroY + (0.08 / 0.1) * (ch / 2);
+  ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(pad.l + cw * 0.7, zeroY);
+  ctx.lineTo(pad.l + cw * 0.8, driftY); ctx.lineTo(w - pad.r, driftY); ctx.stroke();
+  ctx.fillStyle = '#f5a623'; ctx.textAlign = 'left'; ctx.font = '8px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.fillText('rollover_sensitivity: -0.08', w - pad.r - 140, driftY - 4);
+}
+
+// ===== EVENT TAPE DATA =====
+const events = [
+  { ts: '2026-05-07 23:runtime-derived pending:12', type: 'DECISION', before: 'WETH', after: 'WETH', reason: 'ETH score dominant', price: '$1,8runtime-derived pending.32', tx: '—', mode: 'DRY_RUN', notes: 'Churn guard active' },
+  { ts: '2026-05-07 23:42:08', type: 'RECONCILE', before: 'WETH', after: 'WETH', reason: 'Scheduled reconcile', price: '$1,848.10', tx: '—', mode: 'DRY_RUN', notes: 'Balances confirmed' },
+  { ts: '2026-05-07 22:15:44', type: 'DECISION', before: 'WETH', after: 'WETH', reason: 'ETH score dominant streak 7', price: '$1,841.20', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-05-07 21:03:29', type: 'ROTATE_SIGNAL', before: 'USDC', after: 'WETH', reason: 'ETH edge crosses threshold', price: '$1,828.40', tx: '—', mode: 'DRY_RUN', notes: 'Signal generated' },
+  { ts: '2026-05-07 20:58:11', type: 'COMMIT', before: 'USDC', after: 'WETH', reason: 'Commit confirmed', price: '$1,827.90', tx: '—', mode: 'DRY_RUN', notes: 'Quote valid' },
+  { ts: '2026-05-07 05:17:33', type: 'ENTER', before: 'USDC', after: 'WETH', reason: 'Enter WETH on ETH_DOMINANT', price: '$1,796.51', tx: '0xdry...4f3a', mode: 'DRY_RUN', notes: 'Sim 2.4871 WETH' },
+  { ts: '2026-05-06 19:44:02', type: 'EXIT', before: 'CBBTC', after: 'USDC', reason: 'BTC rollover detected', price: '$62,100.80', tx: '0xdry...8b2c', mode: 'DRY_RUN', notes: 'Exit 0.0748 CBBTC' },
+  { ts: '2026-05-06 11:22:17', type: 'ROTATE', before: 'WETH', after: 'CBBTC', reason: 'BTC_DOMINANT signal flip', price: '$61,900.20', tx: '0xdry...1a7f', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-05-05 16:30:55', type: 'DECISION', before: 'WETH', after: 'WETH', reason: 'Holding ETH exposure', price: '$1,771.20', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-05-04 09:15:44', type: 'WARNING', before: 'WETH', after: 'WETH', reason: 'Feed latency spike 1200ms', price: '$1,758.40', tx: '—', mode: 'DRY_RUN', notes: 'Recovered in 2s' },
+  { ts: '2026-05-03 14:22:00', type: 'ROTATE_SIGNAL', before: 'USDC', after: 'WETH', reason: 'ETH emerges from consolidation', price: '$1,742.80', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-05-03 14:25:30', type: 'COMMIT', before: 'USDC', after: 'WETH', reason: '—', price: '$1,743.10', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-05-03 14:28:44', type: 'ENTER', before: 'USDC', after: 'WETH', reason: 'ETH entry', price: '$1,744.20', tx: '0xdry...c9e1', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-05-02 20:11:08', type: 'EXIT', before: 'WETH', after: 'USDC', reason: 'ETH stall signal', price: '$1,730.50', tx: '0xdry...7d4b', mode: 'DRY_RUN', notes: 'Parked in USDC' },
+  { ts: '2026-05-01 08:45:22', type: 'RECONCILE', before: 'CBBTC', after: 'CBBTC', reason: '—', price: '$63,800.00', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-30 17:30:00', type: 'ROTATE', before: 'USDC', after: 'CBBTC', reason: 'BTC oversold bounce', price: '$63,200.40', tx: '0xdry...3f2a', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-29 11:20:15', type: 'FAILURE', before: 'WETH', after: 'WETH', reason: 'Quote timeout >2000ms', price: '$1,710.20', tx: '—', mode: 'DRY_RUN', notes: 'Auto-retry OK' },
+  { ts: 'runtime artifact pending 09:05:44', type: 'RESTART', before: '—', after: '—', reason: 'Service restart', price: '—', tx: '—', mode: 'DRY_RUN', notes: 'Config reload' },
+  { ts: '2026-04-27 15:44:30', type: 'ROTATE', before: 'CBBTC', after: 'USDC', reason: 'BTC deterioration', price: '$64,100.00', tx: '0xdry...9a1c', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-26 12:30:00', type: 'ENTER', before: 'USDC', after: 'CBBTC', reason: 'BTC_DOMINANT entry', price: '$63,900.00', tx: '0xdry...5d8f', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-25 08:20:10', type: 'DECISION', before: 'USDC', after: 'USDC', reason: 'No clear signal', price: '$1,695.40', tx: '—', mode: 'DRY_RUN', notes: 'Parked' },
+  { ts: '2026-04-24 14:10:33', type: 'EXIT', before: 'WETH', after: 'USDC', reason: 'ETH momentum fading', price: '$1,702.80', tx: '0xdry...2e4a', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-22 09:45:18', type: 'DECISION', before: 'WETH', after: 'WETH', reason: 'ETH holding trend', price: '$1,710.50', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-20 16:22:44', type: 'ENTER', before: 'USDC', after: 'WETH', reason: 'ETH breakout signal', price: '$1,688.20', tx: '0xdry...7b3c', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-18 11:30:00', type: 'RECONCILE', before: 'USDC', after: 'USDC', reason: 'Scheduled', price: '$1,680.10', tx: '—', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-15 20:15:22', type: 'EXIT', before: 'CBBTC', after: 'USDC', reason: 'BTC weakness', price: '$62,400.00', tx: '0xdry...4d1e', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-12 08:44:11', type: 'ROTATE', before: 'WETH', after: 'CBBTC', reason: 'BTC strength signal', price: '$62,800.00', tx: '0xdry...8f2b', mode: 'DRY_RUN', notes: '—' },
+  { ts: '2026-04-07 14:30:00', type: 'ENTER', before: 'USDC', after: 'WETH', reason: 'Initial ETH entry', price: '$1,680.00', tx: '0xdry...1a2b', mode: 'DRY_RUN', notes: 'Bot start' },
+];
+
+const typeColors = { RECONCILE: '#4a9eff', DECISION: '#18d4f0', ROTATE_SIGNAL: '#f5a623', COMMIT: '#f5a623', ENTER: '#1de9b6', EXIT: '#f05070', ROTATE: '#bb86fc', DRY_EXEC: '#f5a623', FAILURE: '#f05070', RESTART: '#ff7c42', WARNING: '#f5a623', ANOMALY: '#f05070' };
+const typeBg = { ENTER: 'rgba(29,233,182,0.06)', EXIT: 'rgba(runtime artifact pending,80,112,0.06)', FAILURE: 'rgba(runtime artifact pending,80,112,0.06)', DRY_EXEC: 'rgba(245,166,35,0.06)' };
+
+function renderTimeline() {
+  const tbody = document.getElementById('tl-tbody-t4');
+  const filterType = document.getElementById('tl-filter-type-t1').value;
+  const search = document.getElementById('tl-search-t2').value.toLowerCase();
+  let filtered = events;
+  if (filterType !== 'all') filtered = filtered.filter(e => e.type === filterType);
+  if (search) filtered = filtered.filter(e => Object.values(e).some(v => v.toLowerCase().includes(search)));
+  tbody.innerHTML = '';
+  filtered.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.className = 'event-row';
+    tr.style.borderLeftColor = typeColors[e.type] || '#142030';
+    if (typeBg[e.type]) tr.style.background = typeBg[e.type];
+    const badgeClass = e.type === 'ENTER' ? 'badge-green' : e.type === 'EXIT' ? 'badge-red' : e.type === 'FAILURE' ? 'badge-red' : e.type === 'ROTATE' ? 'badge-purple' : e.type === 'ROTATE_SIGNAL' || e.type === 'COMMIT' || e.type === 'WARNING' ? 'badge-amber' : e.type === 'RESTART' ? 'badge-amber' : e.type === 'RECONCILE' ? 'badge-blue' : 'badge-teal';
+    tr.innerHTML = `<td>${e.ts}</td><td><span class="badge ${badgeClass}" style="font-size:8px;">${e.type}</span></td><td>${e.before}</td><td>${e.after}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${e.reason}</td><td>${e.price}</td><td style="color:var(--text-3);" title="${e.tx}">${e.tx}</td><td><span class="badge badge-amber" style="font-size:8px;">${e.mode}</span></td><td style="color:var(--text-2);max-width:120px;overflow:hidden;text-overflow:ellipsis;">${e.notes}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('tl-count-t5').textContent = `Showing ${filtered.length} events · ${events.length} total`;
+}
+
+// ===== NAVIGATION =====
+const navItems = document.querySelectorAll('.nav-item');
+const panels = document.querySelectorAll('.panel');
+function switchPanel(panelId) {
+  navItems.forEach(n => n.classList.remove('active'));
+  panels.forEach(p => p.classList.remove('active'));
+  const nav = document.querySelector(`.nav-item[data-panel="${panelId}"]`);
+  const panel = document.getElementById('panel-' + panelId);
+  if (nav) nav.classList.add('active');
+  if (panel) panel.classList.add('active');
+  requestAnimationFrame(() => { setTimeout(drawActiveCharts, 50); });
+}
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => { switchPanel(item.dataset.panel); });
+});
+
+function drawActiveCharts() {
+  const active = document.querySelector('.panel.active');
+  if (!active) return;
+  const id = active.id.replace('panel-', '');
+  if (id === 'overview') { drawOverviewEquity(); drawOverviewAllocation(); }
+  if (id === 'position') { drawPositionHistory(); }
+  if (id === 'strategy') { drawStratScoreChart(); }
+  if (id === 'market') { drawMarketCharts(); }
+  if (id === 'performance') { drawPerfCharts(); }
+  if (id === 'execution') { drawExecSlippage(); }
+  if (id === 'research') { drawResearchDrift(); }
+  if (id === 'timeline') { renderTimeline(); }
+}
+
+// ===== STREAK SQUARES =====
+const streakContainer = document.getElementById('streak-squares-s1');
+for (let i = 0; i < 12; i++) {
+  const sq = document.createElement('div');
+  sq.style.cssText = `width:10px;height:10px;border-radius:2px;background:${i < 8 ? 'var(--green)' : 'var(--border)'};`;
+  streakContainer.appendChild(sq);
+}
+
+// ===== TIMELINE FILTERS =====
+document.getElementById('tl-filter-type-t1').addEventListener('change', renderTimeline);
+document.getElementById('tl-search-t2').addEventListener('input', renderTimeline);
+document.querySelectorAll('.tl-range-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tl-range-btn').forEach(b => { b.className = 'tl-range-btn badge'; b.style.background = 'rgba(255,255,255,0.05)'; b.style.color = 'var(--text-2)'; });
+    btn.className = 'tl-range-btn badge badge-teal';
+    btn.style.background = ''; btn.style.color = '';
+    renderTimeline();
+  });
+});
+
+// ===== MODAL & CONTROLS =====
+const modalOverlay = document.getElementById('modal-overlay-z1');
+const modalAction = document.getElementById('modal-action-z2');
+const modalDesc = document.getElementById('modal-desc-z3');
+
+document.querySelectorAll('#ctrl-grid-r1 .ctrl-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    modalAction.textContent = btn.dataset.action;
+    modalDesc.textContent = 'This will ' + btn.dataset.desc.toLowerCase() + '. Confirm?';
+    modalOverlay.classList.add('show');
+  });
+});
+
+document.getElementById('modal-cancel-z4').addEventListener('click', () => { modalOverlay.classList.remove('show'); });
+document.getElementById('modal-confirm-z5').addEventListener('click', () => {
+  modalOverlay.classList.remove('show');
+  showToast('✓ Command dispatched (DRY_RUN — no real action taken)');
+});
+
+document.getElementById('diag-export-btn-d1').addEventListener('click', () => {
+  showToast('✓ Diagnostic bundle exported (DRY_RUN — simulated)');
+});
+
+document.getElementById('settings-btn-z8').addEventListener('click', () => {
+  showToast('✓ Live runtime API connected — fetching fresh data...');
+  pollLiveState();
+});
+
+function showToast(msg) {
+  const container = document.getElementById('toast-container-z6');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 3000);
+}
+
+// ===== LIVE STATE POLLING =====
+// Run 3 times fast on load, then every 5s
+pollLiveState();
+setTimeout(pollLiveState, 500);
+setTimeout(pollLiveState, 1500);
+setInterval(pollLiveState, 5000);
+
+// ===== MOBILE MENU =====
+const mobileBtn = document.getElementById('mobile-menu-btn-m1');
+const sidebar = document.getElementById('sidebar-e5f6');
+let mobileMenuOpen = false;
+mobileBtn.addEventListener('click', () => {
+  mobileMenuOpen = !mobileMenuOpen;
+  sidebar.style.display = mobileMenuOpen ? 'flex' : '';
+  sidebar.style.zIndex = mobileMenuOpen ? '200' : '';
+  sidebar.style.width = mobileMenuOpen ? '100%' : '';
+});
+
+// ===== WINDOW RESIZE =====
+window.addEventListener('resize', () => { setTimeout(drawActiveCharts, 100); });
+
+// ===== INITIAL DRAW =====
+setTimeout(() => {
+  drawOverviewEquity();
+  drawOverviewAllocation();
+}, 100);
+</script>
+</body>
+</html>

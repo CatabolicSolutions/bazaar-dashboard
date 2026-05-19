@@ -9,7 +9,7 @@ PYTHON_ARCHIVE_SCRIPT="$HOME/.openclaw/workspace/scripts/tradier_archive_run.py"
 
 TMP_RAW=$(mktemp)
 TMP_BOARD=$(mktemp)
-OUTPUT_BOARD_PATH="$HOME/.openclaw/workspace/out/tradier_leaders_board.txt"
+OUTPUT_BOARD_PATH="$HOME/.openclaw/workspace/out/tradier_leaders_board_v2.txt"
 mkdir -p "$(dirname "$OUTPUT_BOARD_PATH")"
 trap 'rm -f "$TMP_RAW" "$TMP_BOARD"' EXIT
 

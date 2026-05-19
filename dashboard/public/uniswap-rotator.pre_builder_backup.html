@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>UniSwap Rotator Inspect</title>
+  <style>
+    body { font-family: Inter, Arial, sans-serif; background:#0b1020; color:#e8ecf3; margin:0; padding:24px; }
+    .wrap { max-width:1200px; margin:0 auto; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+    .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:24px; }
+    .nav { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 24px; }
+    .pill { background:#182149; border:1px solid #2e3b73; color:#cdd8ff; padding:8px 12px; border-radius:999px; font-size:13px; }
+    .action-btn { background:#26356f; color:#f4f7ff; border:1px solid #4f6ed6; padding:10px 14px; border-radius:10px; margin:6px 8px 0 0; cursor:pointer; font-weight:600; }
+    .action-btn:hover { background:#31448a; }
+    .card { background:#121936; border:1px solid #28325c; border-radius:16px; padding:16px; }
+    h1,h2,h3 { margin-top:0; }
+    table { width:100%; border-collapse:collapse; background:#121936; border-radius:12px; overflow:hidden; }
+    th,td { padding:10px 12px; border-bottom:1px solid #28325c; text-align:left; font-size:14px; }
+    th { background:#182149; }
+    .muted { color:#97a3c6; font-size:13px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>UniSwap Rotator HQ</h1>
+  <p class="muted">Expanded HQ surface generated from canonical UniSwap_Rotator state, ledger, controls, harness, and result outputs.</p>
+  <div class="nav"><span class="pill">HQ</span><span class="pill">Portfolio</span><span class="pill">Controls</span><span class="pill">Strategy</span><span class="pill">Matrix</span><span class="pill">Harness</span><span class="pill">Vigil</span><span class="pill">Athena</span><span class="pill">Results</span><span class="pill">Ledger</span></div>
+  <div class="grid">
+    <div class="card"><h3>Portfolio</h3><div>WETH: 0.0</div><div>CBBTC: 0.0</div><div>USDC: 233.7</div><div>USD: 233.7</div><div>ETH-equiv: 0.09987179487179487</div></div>
+    <div class="card"><h3>Performance</h3><div>Side: USDC</div><div>USD: 233.7</div><div>ETH-equiv: 0.09987179487179487</div><div>Bars since flip: 0</div></div>
+    <div class="card"><h3>State</h3><div>Risk mode: normal</div><div>Last transition: 2026-05-07T06:38:52.806726Z</div><div>Recent rows: 5</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Controls</h3><div><button class="action-btn" onclick="runAction('refresh')">Refresh Snapshot</button><button class="action-btn" onclick="runAction('dry_run_reconcile')">Dry Run Reconcile</button><button class="action-btn" onclick="runAction('quote_bridge_check')">Quote Bridge Check</button><button class="action-btn" onclick="runAction('deploy_hq')">Deploy HQ</button></div><div id="action-status" class="muted">No action run yet.</div><div>Safety: normal</div><div>Execution: legacy_bridge_dry_run</div><div>Service: active</div></div>
+    <div class="card"><h3>Strategy</h3><div>Active: UniSwap_Rotator canonical 3-state</div><div>Objective: maximize eth_equiv_delta_units</div><div>Mode: rotator-native</div><div>Reason: matrix cbbtc to usdc</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Matrix / Tuning</h3><div>Suite: eth_btc_rotator_tuning_v3</div><div>Best candidate: r7</div><div>Candidate count: 8</div><div>Updated: 2026-05-06T09:20:11.261083+00:00</div></div>
+    <div class="card"><h3>Harness / Replay</h3><div>Last replay: eth_scalper/out_eth_market_chart_30d.json</div><div>Scenario count: 726</div><div>Audit: rotate_audit_loaded</div><div>Artifacts: out/rotate_event_audit.json</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Vigil / Athena</h3><div>Vigil: signal_probe_loaded</div><div>Athena: battery_loaded</div><div>Latest note: # Three-State Rotation Replay Status</div><div>Alerts: </div></div>
+    <div class="card"><h3>Test / Tune / Results</h3><div>Last result: r7</div><div>ETH Δ: -0.006291923996052287</div><div>ETH return %: -8.576819466454943</div><div>Status: research-loaded</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Chart Summary</h3><div>Ledger points: 5</div><div>Total ETH Δ: -0.0022562211627515094</div><div>Total USD Δ: -5.30499999999995</div></div>
+    <div class="card"><h3>Operational Status</h3><div>Current side: USDC</div><div>Service state: active</div><div>Execution mode: legacy_bridge_dry_run</div><div>Last transition: 2026-05-07T06:38:52.806726Z</div></div>
+  </div>
+  <h2>Recent Ledger</h2>
+  <table>
+    <thead><tr><th>TS</th><th>Event</th><th>Before</th><th>After</th><th>ETH Δ</th><th>USD Δ</th><th>Reason</th></tr></thead>
+    <tbody><tr><td>2026-05-07T05:16:26.646291Z</td><td>ENTER</td><td>USDC</td><td>CBBTC</td><td>-0.000995744680851049</td><td>-2.339999999999975</td><td>sample dry-run rotate into CBBTC</td></tr><tr><td>2026-05-07T05:41:50.230506Z</td><td>EXIT</td><td>WETH</td><td>USDC</td><td>-0.0003276955602536935</td><td>-0.7749999999999773</td><td>sample runtime loop exit to USDC</td></tr><tr><td>2026-05-07T06:38:52.803998Z</td><td>ENTER</td><td>USDC</td><td>WETH</td><td>-0.0006063829787233965</td><td>-1.424999999999983</td><td>matrix usdc to weth</td></tr><tr><td>2026-05-07T06:38:52.805323Z</td><td>ROTATE</td><td>WETH</td><td>CBBTC</td><td>-6.144067796610975e-05</td><td>-0.14500000000001023</td><td>matrix weth to cbbtc</td></tr><tr><td>2026-05-07T06:38:52.806606Z</td><td>EXIT</td><td>CBBTC</td><td>USDC</td><td>-0.0002649572649572607</td><td>-0.6200000000000045</td><td>matrix cbbtc to usdc</td></tr></tbody>
+  </table>
+</div>
+<script>
+async function runAction(action) {
+  const status = document.getElementById('action-status');
+  status.textContent = `Running ${action}...`;
+  try {
+    const res = await fetch('/api/hq/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json();
+    status.textContent = data.ok ? `${action}: ok` : `${action}: ${data.error || data.stderr || 'failed'}`;
+  } catch (err) {
+    status.textContent = `${action}: ${err}`;
+  }
+}
+</script>
+</body>
+</html>

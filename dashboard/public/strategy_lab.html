@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Strategy Lab — Bazaar</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header class="command-center">
+      <div class="brand-zone">
+        <div class="logo-mark">◈</div>
+        <div class="brand-text">
+          <div class="brand-name">STRATEGY LAB</div>
+          <div class="brand-tag">Wind tunnel for ETH reversal logic</div>
+        </div>
+      </div>
+      <div class="status-zone">
+        <div class="status-cluster">
+          <div class="status-dot live"></div>
+          <span class="status-text">ANALYSIS</span>
+        </div>
+        <div class="time-display" id="lab-updated-at">--</div>
+        <a class="icon-btn" href="./index.html" title="Back to dashboard" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">↩</a>
+      </div>
+    </header>
+
+    <main class="zone active" style="display:block;">
+      <div class="zone-header">
+        <h2 class="zone-title">See what Alfred sees</h2>
+        <p class="zone-subtitle">30-day ETH structure, active thresholds, and parameter sensitivity in one place.</p>
+      </div>
+
+      <div class="dashboard-grid">
+        <section class="panel panel-stats-row" style="grid-column: span 12;">
+          <div class="stats-grid" id="lab-metrics">
+            <div class="stat-card"><span class="stat-label">Data Window</span><span id="lab-window" class="stat-value">--</span></div>
+            <div class="stat-card"><span class="stat-label">Samples</span><span id="lab-samples" class="stat-value">--</span></div>
+            <div class="stat-card"><span class="stat-label">Best Avg Net</span><span id="lab-best-net" class="stat-value">--</span></div>
+            <div class="stat-card"><span class="stat-label">Best Win Rate</span><span id="lab-best-win" class="stat-value">--</span></div>
+            <div class="stat-card"><span class="stat-label">Turns</span><span id="lab-turns" class="stat-value">--</span></div>
+            <div class="stat-card"><span class="stat-label">Strong Turns</span><span id="lab-strong-turns" class="stat-value">--</span></div>
+          </div>
+        </section>
+
+        <section class="panel panel-chart" style="grid-column: span 8;">
+          <div class="panel-header">
+            <span class="panel-label">30D ETH PRICE + BOT OVERLAY</span>
+            <div class="chart-controls">
+              <button class="btn-sm active" data-overlay="best">Best Set</button>
+              <button class="btn-sm" data-overlay="raw">Raw Price</button>
+              <button class="btn-sm" data-overlay="turns">Turns</button>
+            </div>
+          </div>
+          <div class="panel-body chart-body" style="height:420px;">
+            <canvas id="lab-chart"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-trading" style="grid-column: span 4;">
+          <div class="panel-header">
+            <span class="panel-label">PARAMETERS</span>
+            <span class="panel-status" id="lab-param-mode">BEST</span>
+          </div>
+          <div class="panel-body trading-body">
+            <div class="trading-stats" style="grid-template-columns:1fr 1fr;">
+              <div class="trading-stat"><span class="label">Distance Min</span><span id="param-distance" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Pullback Min</span><span id="param-pullback" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Reversal Min</span><span id="param-reversal" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Vol Ratio Min</span><span id="param-volume" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Volatility Min</span><span id="param-volatility" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Acceleration Min</span><span id="param-accel" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Target / Stop</span><span id="param-target-stop" class="value">--</span></div>
+              <div class="trading-stat"><span class="label">Hold / Friction</span><span id="param-hold-friction" class="value">--</span></div>
+            </div>
+            <div class="pillnote">This surface is for truth and tuning — not vibes. When the edge is weak, it should look weak.</div>
+          </div>
+        </section>
+
+        <section class="panel" style="grid-column: span 5;">
+          <div class="panel-header">
+            <span class="panel-label">TWEAKABLE CONTROLS</span>
+            <button class="btn-action" id="lab-rerender">APPLY</button>
+          </div>
+          <div class="panel-body compact" id="lab-controls"></div>
+        </section>
+
+        <section class="panel" style="grid-column: span 7;">
+          <div class="panel-header">
+            <span class="panel-label">SENSITIVITY / TOP SETUPS</span>
+            <span class="panel-count" id="lab-tested-count">--</span>
+          </div>
+          <div class="panel-body" id="lab-results-table"></div>
+        </section>
+
+        <section class="panel" style="grid-column: span 12;">
+          <div class="panel-header">
+            <span class="panel-label">WHY IT'S WINNING OR FAILING</span>
+          </div>
+          <div class="panel-body compact" id="lab-notes"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const state = { market: null, backtest: null, analysis: null, overlay: 'best', derived: null };
+
+    const $ = id => document.getElementById(id);
+    const fmtPct = n => n == null ? '--' : `${Number(n).toFixed(3)}%`;
+    const fmtNum = n => n == null ? '--' : Number(n).toFixed(2);
+    const fmtSignedPct = n => n == null ? '--' : `${n >= 0 ? '+' : ''}${Number(n).toFixed(3)}%`;
+
+    async function loadLab() {
+      const [marketRes, backtestRes, analysisRes] = await Promise.all([
+        fetch('/api/strategy-lab/market-data'),
+        fetch('/api/strategy-lab/backtest'),
+        fetch('/api/strategy-lab/analysis')
+      ]);
+      state.market = await marketRes.json();
+      state.backtest = await backtestRes.json();
+      state.analysis = await analysisRes.json();
+      state.derived = deriveSeries(state.market, state.backtest.best?.params || {});
+      renderLab();
+    }
+
+    function deriveSeries(marketPayload, params) {
+      const rows = (marketPayload.rows || []).map(r => ({ ...r }));
+      for (let i = 0; i < rows.length; i++) {
+        const start = Math.max(0, i - 11);
+        const window = rows.slice(start, i + 1);
+        const prices = window.map(r => r.price);
+        const vols = window.map(r => r.volume || 0);
+        const midpoint = prices.reduce((a,b) => a+b, 0) / prices.length;
+        const prev = rows[i - 1]?.price ?? rows[i].price;
+        const prev2 = rows[i - 2]?.price ?? prev;
+        const ret1 = prev ? ((rows[i].price - prev) / prev) * 100 : 0;
+        const prevRet = prev2 ? ((prev - prev2) / prev2) * 100 : 0;
+        rows[i].midpoint = midpoint;
+        rows[i].windowLow = Math.min(...prices);
+        rows[i].windowHigh = Math.max(...prices);
+        rows[i].distanceFromMidPct = midpoint ? ((rows[i].price - midpoint) / midpoint) * 100 : 0;
+        rows[i].pullbackDepthPct = midpoint ? ((midpoint - rows[i].windowLow) / midpoint) * 100 : 0;
+        rows[i].reversalStrengthPct = (prevRet < 0 && ret1 > 0) ? Math.abs(prevRet) + Math.abs(ret1) : 0;
+        rows[i].volumeRatio = vols.reduce((a,b)=>a+b,0) ? ((rows[i].volume||0) / (vols.reduce((a,b)=>a+b,0) / vols.length)) : 1;
+        rows[i].volatilityPct = midpoint ? ((rows[i].windowHigh - rows[i].windowLow) / midpoint) * 100 : 0;
+        rows[i].acceleration = ret1 - prevRet;
+      }
+      const entries = rows.filter(r =>
+        r.price <= r.midpoint &&
+        Math.abs(r.distanceFromMidPct) >= (params.distance_min ?? 0) &&
+        r.pullbackDepthPct >= (params.pullback_min ?? 0) &&
+        r.reversalStrengthPct >= (params.reversal_min ?? 0) &&
+        r.volumeRatio >= (params.volume_ratio_min ?? 0) &&
+        r.volatilityPct >= (params.volatility_min ?? 0) &&
+        r.acceleration >= (params.accel_min ?? -999)
+      );
+      return { rows, entries };
+    }
+
+    function renderLab() {
+      const best = state.backtest.best || {};
+      const params = best.params || {};
+      $('lab-window').textContent = '30 days';
+      $('lab-samples').textContent = state.market.rows?.length || 0;
+      $('lab-best-net').textContent = fmtSignedPct(best.avg_net_pct);
+      $('lab-best-win').textContent = best.win_rate == null ? '--' : `${(best.win_rate * 100).toFixed(1)}%`;
+      $('lab-turns').textContent = state.analysis.turn_count ?? '--';
+      $('lab-strong-turns').textContent = state.analysis.filtered_turn_count ?? '--';
+      $('lab-tested-count').textContent = `${state.backtest.tested || 0} sets tested`;
+      $('lab-updated-at').textContent = new Date().toLocaleTimeString();
+
+      $('param-distance').textContent = fmtPct(params.distance_min);
+      $('param-pullback').textContent = fmtPct(params.pullback_min);
+      $('param-reversal').textContent = fmtPct(params.reversal_min);
+      $('param-volume').textContent = fmtNum(params.volume_ratio_min);
+      $('param-volatility').textContent = fmtPct(params.volatility_min);
+      $('param-accel').textContent = fmtPct(params.accel_min);
+      $('param-target-stop').textContent = `${fmtPct(params.target_pct)} / ${fmtPct(params.stop_pct)}`;
+      $('param-hold-friction').textContent = `${params.max_hold_bars ?? '--'} bars / ${fmtPct(params.friction_pct)}`;
+
+      renderControls(params);
+      renderResults();
+      renderNotes(best);
+      drawLabChart();
+    }
+
+    function renderControls(params) {
+      const fields = [
+        ['distance_min','Distance min'], ['pullback_min','Pullback min'], ['reversal_min','Reversal min'],
+        ['volume_ratio_min','Volume ratio min'], ['volatility_min','Volatility min'], ['accel_min','Acceleration min'],
+        ['target_pct','Target %'], ['stop_pct','Stop %'], ['trail_trigger_pct','Trail trigger %'],
+        ['retrace_pct','Retrace %'], ['max_hold_bars','Max hold bars'], ['friction_pct','Friction %']
+      ];
+      $('lab-controls').innerHTML = `<div class="status-grid">${fields.map(([key,label]) => `
+        <div class="status-item">
+          <span class="status-label">${label}</span>
+          <input data-param="${key}" type="number" step="0.01" value="${params[key] ?? ''}" style="margin-top:6px;width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text-primary);">
+        </div>`).join('')}</div>`;
+      $('lab-rerender').onclick = () => {
+        const next = { ...params };
+        document.querySelectorAll('[data-param]').forEach(el => {
+          next[el.dataset.param] = Number(el.value);
+        });
+        state.derived = deriveSeries(state.market, next);
+        $('lab-param-mode').textContent = 'CUSTOM';
+        drawLabChart();
+        renderNotes({ ...state.backtest.best, params: next });
+      };
+      document.querySelectorAll('[data-overlay]').forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll('[data-overlay]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.overlay = btn.dataset.overlay;
+          drawLabChart();
+        };
+      });
+    }
+
+    function renderResults() {
+      const top = state.backtest.top_results || [];
+      $('lab-results-table').innerHTML = `
+        <div class="status-grid">${top.slice(0,6).map((r, i) => `
+          <div class="status-item">
+            <span class="status-label">Set ${i+1}</span>
+            <span class="status-value">avg ${fmtSignedPct(r.avg_net_pct)} · win ${(r.win_rate*100).toFixed(1)}%</span>
+            <div style="margin-top:6px;font-size:11px;color:var(--text-secondary);line-height:1.5;">
+              rev ${fmtPct(r.params.reversal_min)} · pull ${fmtPct(r.params.pullback_min)} · stop ${fmtPct(r.params.stop_pct)} · hold ${r.params.max_hold_bars}
+            </div>
+          </div>`).join('')}</div>`;
+    }
+
+    function renderNotes(best) {
+      const avg = best.avg_net_pct ?? null;
+      const win = best.win_rate ?? null;
+      const entries = state.derived?.entries?.length || 0;
+      const notes = [
+        `Current best fast-grid set is ${avg != null && avg < 0 ? 'still negative after friction' : 'positive after friction'}: ${fmtSignedPct(avg)} avg net per trade with ${(win*100).toFixed(1)}% win rate.`,
+        `The visible trigger stack currently finds ${entries} candidate long reversals in the 30-day window under the shown thresholds.`,
+        `If you loosen reversal / pullback thresholds and the chart fills with markers, that’s a sign the bot is drifting into noise-capture instead of edge-capture.`,
+        `If you tighten them too much and markers disappear, we’re starving the engine. The job is the narrow band between those two failures.`
+      ];
+      $('lab-notes').innerHTML = notes.map(n => `<div class="pillnote" style="margin-bottom:10px;">${n}</div>`).join('');
+    }
+
+    function drawLabChart() {
+      const canvas = $('lab-chart');
+      const rows = state.derived?.rows || [];
+      if (!canvas || rows.length < 2) return;
+      const ctx = canvas.getContext('2d');
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth - 10;
+      canvas.height = container.clientHeight - 10;
+      const w = canvas.width, h = canvas.height, pad = 28;
+      const prices = rows.map(r => r.price);
+      const mids = rows.map(r => r.midpoint);
+      const min = Math.min(...prices, ...mids) * 0.995;
+      const max = Math.max(...prices, ...mids) * 1.005;
+      const y = p => h - pad - ((p - min) / (max - min)) * (h - 2*pad);
+      const x = i => pad + (i / (rows.length - 1)) * (w - 2*pad);
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const gy = pad + (i/4) * (h - 2*pad);
+        ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(w - pad, gy); ctx.stroke();
+      }
+      if (state.overlay !== 'raw') {
+        ctx.strokeStyle = '#f1c27d';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        rows.forEach((r,i)=>{ const px=x(i), py=y(r.midpoint); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#9b59b6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      rows.forEach((r,i)=>{ const px=x(i), py=y(r.price); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+      ctx.stroke();
+
+      if (state.overlay !== 'raw') {
+        const entries = state.derived.entries || [];
+        entries.forEach(r => {
+          const i = rows.indexOf(r);
+          const px = x(i), py = y(r.price);
+          ctx.fillStyle = '#2ecc71';
+          ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI*2); ctx.fill();
+        });
+      }
+      if (state.overlay === 'turns') {
+        rows.forEach((r,i) => {
+          if ((r.reversalStrengthPct || 0) > 0) {
+            ctx.fillStyle = '#f39c12';
+            ctx.fillRect(x(i)-2, y(r.price)-2, 4, 4);
+          }
+        });
+      }
+    }
+
+    loadLab().catch(err => {
+      $('lab-notes').innerHTML = `<div class="pillnote">Strategy Lab load failed: ${err.message}</div>`;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>

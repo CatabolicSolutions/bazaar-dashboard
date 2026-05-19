@@ -35,11 +35,6 @@ Execution quality outranks verbosity.
 - Channel ID: `1483580321126416565`
 - Purpose: active entered-position monitoring, roadmap, narrative updates, prospective actions, and exit confirmation
 
-### Kalshi / prediction-market channel
-- Channel ID: `1483308037111283784`
-- Purpose: Kalshi review / leaders / recommendation flow
-- Plain-text trigger: `/coinflip`
-
 ## Tradier Current State
 ### Core pipeline
 - `scripts/tradier_strategy_processor_v2.py`
@@ -72,87 +67,6 @@ Known note:
 - direct Discord posting from a Telegram-bound session is blocked by provider-context policy
 - Discord-side session/runtime should own final native Discord delivery
 
-## Kalshi Current State
-### Core pipeline
-- `scripts/kalshi_strategy_processor.py`
-- `scripts/post_kalshi_tickets.sh`
-- shared runner: `scripts/run_python_script.sh`
-
-### Kalshi trigger semantics
-`/coinflip` means:
-- run Kalshi review
-- produce leaders / recommendation if valid candidates exist
-- otherwise output explicit `No Trade`
-
-### Kalshi mission
-Prediction markets are intended to become a disciplined 24/7/365 marginal-return engine.
-
-### Kalshi current posture
-- auth/runtime works
-- selector works
-- explicit `No Trade` works
-- rejection audit works
-- execution-worthy discovery is still under development
-- approved next architecture: probability-first Kalshi refactor
-
-### Kalshi preferred market types
-Highest priority:
-- macro / economic data
-- Fed / rates
-- CPI / inflation / GDP / unemployment / claims
-- index-close / range markets
-- corporate-event / earnings markets
-
-### Kalshi setup archetypes
-Prioritize:
-- mispricing / arbitrage vs legitimate external anchor
-- high-probability yield
-- event-driven asymmetry
-
-### Kalshi market tolerance
-- macro / economic / index close: yes
-- corporate events / earnings: yes
-- sports: do not categorically reject if a contract is structurally clean and survives pricing/clarity/edge filters
-- politics: no by default except rare economically legible binaries
-- crypto-event markets: high scrutiny; default no unless edge is unusually clear
-
-### Kalshi output standard
-Normal runs:
-- summary-quality output only
-- concise, operational, disciplined
-
-Failure runs:
-- raw error
-- concise summary
-- obvious next action if known
-
-If no edge exists:
-- explicit `No Trade`
-- include rejection audit when useful
-
-Never post:
-- raw generic open-market dumps
-- placeholder spam
-- debug noise unless needed for diagnosis
-
-### Kalshi known blocker
-The sampled live Kalshi open feed has been dominated by:
-- cross-category / combinatoric contracts
-- shallow metadata responses that often omit usable tradable quote fields
-- contracts too messy to turn into clean Bazaar tickets
-- many sports-linked contracts that still fail on structure/clarity rather than category alone
-
-Discovery quality and contract interpretation, not auth/runtime, are the main blockers to execution-worthy Kalshi tickets.
-
-### Kalshi next approved architecture
-Probability-first refactor is approved.
-
-Immediate refactor goals:
-- move away from quote-first/options-style evaluation
-- treat probability as the native language of Kalshi
-- separate contract discovery, contract interpretation, fair-probability estimation, edge scoring, and execution validation
-- distinguish metadata-only contracts from truly tradable ones
-- build `/coinflip` around implied probability vs estimated fair probability rather than raw quote presence alone
 
 ## Live Position Workflow
 When a live position is opened:
@@ -196,12 +110,6 @@ Tradier:
 - no hype
 - no contradictory tickets
 - no fabricated certainty
-
-Kalshi:
-- not waiting for mythical perfect conditions
-- willing to use practice-grade candidates if structure is clean enough
-- moderate sizing acceptable for early live learning
-- if still no trade, provide auditable reasons and sample rejected markets
 
 ## Continuity Guidance
 If memory search returns weak or empty results, consult this file first.

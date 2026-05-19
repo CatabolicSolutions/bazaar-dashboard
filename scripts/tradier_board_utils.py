@@ -10,6 +10,9 @@ MIN_ASYMMETRY_SCORE = 50.0
 MIN_EXECUTION_QUALITY = 50.0
 MAX_ACCEPTABLE_SPREAD_RATIO = 0.35
 MIN_BID_FOR_LEADER = 0.05
+MAX_SCALP_PREMIUM_MID = 6.0
+PREFERRED_SCALP_PREMIUM_MID = 3.5
+MAX_DISTANCE_FROM_UNDERLYING_PCT = 0.04
 
 
 def parse_ticket_blocks(text: str) -> list[list[str]]:
@@ -208,15 +211,20 @@ def leader_components(ticket: dict[str, Any]) -> dict[str, Any]:
     execution_quality = 0.0
     invalidation_clarity = 0.0
     tactical_timing = 0.0
+    practical_scalp_fit = 0.0
+    distance_from_underlying = abs(float(ticket.get('strike') or 0.0) - underlying) / underlying if underlying else 9.0
 
     if strategy == 'Scalping Buy':
         directional_conviction = min(100.0, 35.0 + qc['delta_score'] * 1.7 + qc['spread_score'] * 0.6)
         asymmetry = min(100.0, 30.0 + qc['premium_score'] * 2.0 + max(0.0, 12.0 - mid) * 2.5)
         tactical_timing = min(100.0, 45.0 + max(0.0, 20.0 - actual_dte * 2.5) + qc['delta_score'] * 0.7)
+        practical_scalp_fit = max(0.0, 100.0 - max(0.0, mid - PREFERRED_SCALP_PREMIUM_MID) * 18.0 - max(0.0, distance_from_underlying - 0.01) * 900.0)
+        asymmetry = max(0.0, asymmetry - max(0.0, mid - PREFERRED_SCALP_PREMIUM_MID) * 6.0)
     else:
         directional_conviction = min(100.0, 28.0 + qc['delta_score'] * 1.2 + qc['spread_score'] * 0.5)
         asymmetry = min(100.0, 38.0 + qc['premium_score'] * 1.4 + max(0.0, 16.0 - abs(delta - 0.14) * 100.0) * 1.4)
         tactical_timing = min(100.0, 40.0 + max(0.0, 18.0 - actual_dte * 1.8) + qc['spread_score'] * 0.8)
+        practical_scalp_fit = min(100.0, 70.0 + qc['spread_score'])
 
     execution_quality = min(100.0, 35.0 + qc['spread_score'] * 1.8 + qc['premium_score'] * 1.5 + min(bid, 5.0) * 4.0)
     invalidation_clarity = 70.0 if ticket.get('invalidation') else 35.0
@@ -224,21 +232,25 @@ def leader_components(ticket: dict[str, Any]) -> dict[str, Any]:
         hard_reject = True
     else:
         hard_reject = False
+    if strategy == 'Scalping Buy' and (mid > MAX_SCALP_PREMIUM_MID or distance_from_underlying > MAX_DISTANCE_FROM_UNDERLYING_PCT):
+        hard_reject = True
     leader_score = round(
-        directional_conviction * 0.35
-        + asymmetry * 0.25
-        + execution_quality * 0.20
+        directional_conviction * 0.28
+        + asymmetry * 0.22
+        + execution_quality * 0.18
         + invalidation_clarity * 0.10
-        + tactical_timing * 0.10,
+        + tactical_timing * 0.10
+        + practical_scalp_fit * 0.12,
         2,
     )
-    hard_reject = hard_reject or directional_conviction < MIN_DIRECTIONAL_CONVICTION or asymmetry < MIN_ASYMMETRY_SCORE or execution_quality < MIN_EXECUTION_QUALITY
+    hard_reject = hard_reject or directional_conviction < MIN_DIRECTIONAL_CONVICTION or asymmetry < MIN_ASYMMETRY_SCORE or execution_quality < MIN_EXECUTION_QUALITY or practical_scalp_fit < 45.0
     return {
         'directional_conviction': round(directional_conviction, 2),
         'asymmetry_score': round(asymmetry, 2),
         'execution_quality': round(execution_quality, 2),
         'invalidation_clarity': round(invalidation_clarity, 2),
         'tactical_timing': round(tactical_timing, 2),
+        'practical_scalp_fit': round(practical_scalp_fit, 2),
         'leader_score': leader_score,
         'hard_reject': hard_reject,
     }
@@ -353,7 +365,7 @@ def build_board(tickets: list[dict[str, Any]]) -> str:
                 f"   Confidence: {qc['confidence']}/10 | Leader Score {lc['leader_score']:.1f} | Structure {qc['structure_score']:.1f}"
             )
             lines.append(
-                f"   Rubric: conviction {lc['directional_conviction']:.1f}, asymmetry {lc['asymmetry_score']:.1f}, execution {lc['execution_quality']:.1f}, invalidation {lc['invalidation_clarity']:.1f}, timing {lc['tactical_timing']:.1f}"
+                f"   Rubric: conviction {lc['directional_conviction']:.1f}, asymmetry {lc['asymmetry_score']:.1f}, execution {lc['execution_quality']:.1f}, invalidation {lc['invalidation_clarity']:.1f}, timing {lc['tactical_timing']:.1f}, scalp-fit {lc['practical_scalp_fit']:.1f}"
             )
             if strategy == 'Scalping Buy':
                 lines.append('   Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep')

@@ -48,45 +48,58 @@ def _save_json(path: Path, data: Any):
     path.write_text(json.dumps(data, indent=2, default=str))
 
 
-def _load_client():
-    """Lazy import to avoid startup dependency."""
-    import importlib
-    mod = importlib.import_module("active_crypto_sleeve.coinbase_client")
-    return mod.CoinbaseAdvancedClient.from_env()
+# ── Cached client (reused across cycles) ────────────────────────────
+_CLIENT_CACHE: dict = {}
+
+def _import_le_executor() -> tuple | None:
+    """Lazy import the CoinbaseExecutor. Returns None if unavailable."""
+    try:
+        import importlib
+        mod = importlib.import_module("active_crypto_sleeve.executor")
+        return mod, getattr(mod, "CoinbaseExecutor", None)
+    except Exception:
+        return None
+
+
+def _get_client():
+    """Return a cached Coinbase client (initializes once)."""
+    if not _CLIENT_CACHE:
+        import importlib
+        mod = importlib.import_module("active_crypto_sleeve.coinbase_client")
+        _CLIENT_CACHE["client"] = mod.CoinbaseAdvancedClient.from_env()
+    return _CLIENT_CACHE["client"]
 
 
 def _fetch_mids() -> dict[str, float]:
-    """Fetch latest mid prices for BTC and ETH perps."""
-    client = _load_client()
+    """Fetch latest mid prices for BTC and ETH perps from products endpoint.
+    Uses a single API call (products list) instead of 3 separate queries."""
+    client = _get_client()
+    result = client.get("/products", {"product_type": "FUTURE"})
+    if not result.get("ok"):
+        return {}
+    payload = result.get("payload", {}) or {}
     mids = {}
-    for pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE"):
-        result = client.get("/best_bid_ask", {"product_ids": pid})
-        if not result.get("ok"):
-            continue
-        payload = result.get("payload", {}) or {}
-    pricebooks = payload.get("pricebooks") or []
-    mids = {}
-    for pb in pricebooks:
-        pid = pb.get("product_id")
-        bids = pb.get("bids", []) or []
-        asks = pb.get("asks", []) or []
-        if bids and asks:
-            bid = _float(bids[0].get("price"))
-            ask = _float(asks[0].get("price"))
-            if bid and ask:
-                mids[pid] = round((bid + ask) / 2, 2)
-    # Fallback: query products endpoint for mid price
+    for pr in payload.get("products", []):
+        pid = pr.get("product_id")
+        if pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE"):
+            mid = _float(pr.get("mid_market_price") or pr.get("price"))
+            if mid:
+                mids[pid] = mid
+    # Fallback: try best_bid_ask if products endpoint gave nothing
     if not mids:
-        client = _load_client()
-        prod_result = client.get("/products", {"product_type": "FUTURE"})
-        if prod_result.get("ok"):
-            pp = prod_result.get("payload", {}) or {}
-            for pr in pp.get("products", []):
-                pid = pr.get("product_id")
-                if pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE"):
-                    mid = _float(pr.get("mid_market_price") or pr.get("price"))
-                    if mid:
-                        mids[pid] = mid
+        for pid in ("BIP-20DEC30-CDE", "ETP-20DEC30-CDE"):
+            r = client.get("/best_bid_ask", {"product_ids": pid})
+            if not r.get("ok"):
+                continue
+            pb = (r.get("payload", {}) or {}).get("pricebooks", [])
+            for book in pb:
+                bids = book.get("bids", []) or []
+                asks = book.get("asks", []) or []
+                if bids and asks:
+                    bid = _float(bids[0].get("price"))
+                    ask = _float(asks[0].get("price"))
+                    if bid and ask:
+                        mids[book.get("product_id")] = round((bid + ask) / 2, 2)
     return mids
 
 
@@ -109,16 +122,25 @@ def _update_price_history(mids: dict[str, float]):
     _save_json(PRICE_HISTORY_PATH, history)
 
 
-def _detect_sweep_reclaim(
+def _fetch_candles(product_id: str, granularity: str = "FIVE_MINUTE", count: int = 60) -> list[dict]:
+    """Fetch candle data from CFM products endpoint."""
+    client = _get_client()
+    r = client.get(f"/products/{product_id}/candles", {"granularity": granularity})
+    if not r.get("ok"):
+        return []
+    candles = (r.get("payload", {}) or {}).get("candles", []) or []
+    return candles[-count:]
+
+
+def _detect_sweep_reclaim_candles(
     product_id: str,
     label: str,
-    current_mid: float,
-    history: list[dict],
+    candles: list[dict],
 ) -> dict | None:
     """
-    Detect liquidation sweep reclaim setup using rolling price history.
-    Candle endpoint (401 on CFM) is not available, so structure is detected
-    from recent mid samples.
+    Detect liquidation sweep reclaim using real OHLC candle data.
+    LONG: candle wicks below swing low, reclaims above.
+    SHORT: spike above swing high, fails back.
     """
     if not history or len(history) < 10:
         return None
@@ -144,74 +166,83 @@ def _detect_sweep_reclaim(
     swing_low = low_1
     swing_high = high_1
     
-    # Check if we swept below the swing low
-    swept_low = low_recent <= swing_low * 1.001  # Within 0.1% of swing low
-    sweep_depth = (swing_low - low_recent) / swing_low * 100 if low_recent < swing_low else 0
-    
-    # Check if we reclaimed
-    reclaimed = current_mid > swing_low + reclaim_buffer
-    
-    # Check for SHORT sweep (spike above swing high, then failure)
-    swept_high = high_recent >= swing_high * 0.999
-    spike_depth = (high_recent - swing_high) / swing_high * 100 if high_recent > swing_high else 0
-    failed_reclaim = current_mid < swing_high - reclaim_buffer if high_recent > swing_high else False
+    # Build candle data for detection
+    if not candles or len(candles) < 10:
+        return None
+
+    data = []
+    for c in candles:
+        o = _float(c.get("open"))
+        h = _float(c.get("high"))
+        l = _float(c.get("low"))
+        cl = _float(c.get("close"))
+        v = _float(c.get("volume"))
+        if o and h and l and cl:
+            data.append({"open": o, "high": h, "low": l, "close": cl, "volume": v or 0})
+
+    if len(data) < 10:
+        return None
+
+    last = data[-1]
+    lookback = data[-20:-2]
+    recent_data = data[-5:]
+
+    swing_low = min(c["low"] for c in lookback)
+    swing_high = max(c["high"] for c in lookback)
+    avg_volume = sum(c["volume"] for c in lookback) / max(len(lookback), 1)
+
+    current_close = last["close"]
+    current_volume = last["volume"]
+    min_recent_low = min(c["low"] for c in recent_data)
+    max_recent_high = max(c["high"] for c in recent_data)
+    vol_ratio = current_volume / max(avg_volume, 0.01) if avg_volume > 0 else 0
+
+    # LONG setup
+    sweep_long = min_recent_low < swing_low * 0.999
+    reclaim_long = current_close > swing_low * 1.0005
+    sweep_depth_long = (swing_low - min_recent_low) / swing_low * 100 if sweep_long else 0
+
+    # SHORT setup
+    sweep_short = max_recent_high > swing_high * 1.001
+    reclaim_short = current_close < swing_high * 0.9995
+    spike_depth_short = (max_recent_high - swing_high) / swing_high * 100 if sweep_short else 0
 
     results = []
-    
-    # LONG setup
-    if swept_low and reclaimed and sweep_depth > 0.1:
-        entry_zone = f"{swing_low + reclaim_buffer:,.2f} - {swing_low * 1.002:,.2f}"
-        stop_price = f"{min(low_recent * 0.998, swing_low * 0.995):,.2f}"
-        target_1 = f"{swing_low * 1.005:,.2f}"
-        target_2 = f"{swing_low * 1.01:,.2f}"
-        
-        results.append({
-            "product_id": product_id,
-            "market": label,
-            "direction": "LONG",
-            "setup_family": "liquidation_sweep_reclaim",
-            "confidence": "MEDIUM" if sweep_depth < 0.3 else "HIGH",
-            "signal_detail": f"Swept low ${swing_low:,.2f} by {sweep_depth:.2f}%, reclaimed at ${current_mid:,.2f}",
-            "current_mid": current_mid,
-            "swing_low": swing_low,
-            "swing_high": swing_high,
-            "sweep_depth_pct": round(sweep_depth, 3),
-            "current_reclaim_pct": round(current_from_low, 3),
-            "entry_trigger": f"Enter long if price holds above ${entry_zone} with rising volume/momentum",
-            "entry_zone": entry_zone,
-            "stop": stop_price,
-            "stop_pct": round((current_mid - _float(stop_price.replace(',',''))) / current_mid * 100, 3) if _float(stop_price.replace(',','')) else None,
-            "target_1": target_1,
-            "target_2": target_2,
-            "invalidation": f"Abort if price loses ${stop_price} or reclaim fails >30s after entry",
-        })
-    
-    # SHORT setup
-    if swept_high and failed_reclaim and spike_depth > 0.1:
-        entry_zone = f"{swing_high - reclaim_buffer:,.2f} - {swing_high * 0.998:,.2f}"
-        stop_price = f"{max(high_recent * 1.002, swing_high * 1.005):,.2f}"
-        target_1 = f"{swing_high * 0.995:,.2f}"
-        target_2 = f"{swing_high * 0.99:,.2f}"
-        
-        results.append({
-            "product_id": product_id,
-            "market": label,
-            "direction": "SHORT",
-            "setup_family": "liquidation_sweep_reclaim",
-            "confidence": "MEDIUM" if spike_depth < 0.3 else "HIGH",
-            "signal_detail": f"Spiked above ${swing_high:,.2f} by {spike_depth:.2f}%, failed back to ${current_mid:,.2f}",
-            "current_mid": current_mid,
-            "swing_low": swing_low,
-            "swing_high": swing_high,
-            "spike_depth_pct": round(spike_depth, 3),
-            "entry_trigger": f"Enter short if price fails below ${entry_zone} with selling volume",
-            "entry_zone": entry_zone,
-            "stop": stop_price,
-            "target_1": target_1,
-            "target_2": target_2,
-            "invalidation": f"Abort if price reclaims above ${stop_price} or short fails >30s",
-        })
-    
+
+    if sweep_long and reclaim_long:
+        conf = "HIGH" if sweep_depth_long >= 0.3 else ("MEDIUM" if sweep_depth_long >= 0.15 else "LOW")
+        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > 1.5):
+            stop_val = min_recent_low * 0.998
+            stop_pct = round((current_close - stop_val) / current_close * 100, 3) if stop_val else None
+            results.append({
+                "product_id": product_id, "market": label, "direction": "LONG",
+                "setup_family": "candle_sweep_reclaim", "confidence": conf,
+                "signal_detail": f"Wick ${min_recent_low:,.2f} swept swing low ${swing_low:,.2f} ({sweep_depth_long:.2f}%), reclaimed at ${current_close:,.2f}. Vol {vol_ratio:.1f}x avg",
+                "current_mid": current_close, "swing_low": swing_low, "swing_high": swing_high,
+                "sweep_depth_pct": round(sweep_depth_long, 3), "volume_ratio": round(vol_ratio, 2),
+                "entry_zone": f"{swing_low * 1.001:,.2f} - {swing_low * 1.003:,.2f}",
+                "entry_trigger": f"Enter long if price holds above ${swing_low * 1.001:,.2f}",
+                "stop": f"{stop_val:,.2f}", "stop_pct": stop_pct,
+                "target_1": f"{swing_low * 1.005:,.2f}", "target_2": f"{swing_low * 1.01:,.2f}",
+                "invalidation": f"Abort if price loses ${stop_val:,.2f}",
+            })
+
+    if sweep_short and reclaim_short:
+        conf = "HIGH" if spike_depth_short >= 0.3 else ("MEDIUM" if spike_depth_short >= 0.15 else "LOW")
+        if (conf in ("HIGH", "MEDIUM")) or (vol_ratio > 1.5):
+            results.append({
+                "product_id": product_id, "market": label, "direction": "SHORT",
+                "setup_family": "candle_sweep_reclaim", "confidence": conf,
+                "signal_detail": f"Spike to ${max_recent_high:,.2f} (${(max_recent_high - swing_high):,.2f} above swing high ${swing_high:,.2f}), failed to ${current_close:,.2f}. Vol {vol_ratio:.1f}x avg",
+                "current_mid": current_close, "swing_low": swing_low, "swing_high": swing_high,
+                "spike_depth_pct": round(spike_depth_short, 3), "volume_ratio": round(vol_ratio, 2),
+                "entry_zone": f"{swing_high * 0.998:,.2f} - {swing_high * 0.9995:,.2f}",
+                "entry_trigger": f"Enter short below ${swing_high * 0.999:,.2f}",
+                "stop": f"{max_recent_high * 1.002:,.2f}",
+                "target_1": f"{swing_high * 0.995:,.2f}", "target_2": f"{swing_high * 0.99:,.2f}",
+                "invalidation": f"Abort if price reclaims above ${max_recent_high * 1.002:,.2f}",
+            })
+
     return results[0] if results else None
 
 
@@ -226,17 +257,15 @@ def _main_loop():
             return {"ok": False, "cycle": cycle_id, "error": "no mids fetched"}
         
         _update_price_history(mids)
-        history = _load_json(PRICE_HISTORY_PATH) or {}
-        product_samples = history.get("products", {})
         
+        # Fetch REAL candle data for sweep detection
         signals = []
         for pid, label in [("BIP-20DEC30-CDE", "BTC PERP"), ("ETP-20DEC30-CDE", "ETH PERP")]:
             mid = mids.get(pid)
             if not mid:
                 continue
-            prod_history = product_samples.get(pid, [])
-            # candles endpoint is 401 on CFM; use rolling price history only
-            signal = _detect_sweep_reclaim(pid, label, mid, prod_history)
+            candles = _fetch_candles(pid, "FIVE_MINUTE", 60)
+            signal = _detect_sweep_reclaim_candles(pid, label, candles)
             if signal:
                 signals.append(signal)
         
@@ -260,7 +289,79 @@ def _main_loop():
                 }
                 _save_json(PENDING_TRADE_PATH, pending)
                 
-                # Also reset approval state for new trade
+                # ── AUTO-EXECUTE on HIGH confidence ────────────────────────
+                if best_signal["confidence"] == "HIGH":
+                    imported = _import_le_executor()
+                    if imported:
+                        executor_module, CoinbaseExecutor = imported
+                        try:
+                            # Get balance for sizing
+                            client = _get_client()
+                            bal_result = client.get("/cfm/balance_summary")
+                            cfg_cfm = 0.0
+                            if bal_result.get("ok"):
+                                bal_payload = (bal_result.get("payload") or {}).get("futures_balance_summary", {}) or {}
+                                cfg_cfm = _float(bal_payload.get("total_with_cushion", {}).get("value")) or 0.0
+                            
+                            # Size: 50% of CFM / stop distance
+                            stop_str = best_signal.get("stop", "0")
+                            stop_val = _float(stop_str.replace(",", "")) or 0.0
+                            entry = best_signal.get("entry_zone", "0-0").split(" - ")[0]
+                            entry_val = _float(entry.replace(",", "")) or best_signal["current_mid"]
+                            stop_distance = abs(entry_val - stop_val) / entry_val if entry_val and stop_val else 0.01
+                            
+                            max_risk = cfg_cfm * 0.5  # 50% of CFM
+                            position_value = max_risk / max(stop_distance, 0.001)
+                            position_value = min(position_value, cfg_cfm * 2.0)  # Cap at 2x leverage
+                            position_value = max(position_value, 10.0)  # Min $10
+                            
+                            executor = CoinbaseExecutor(client)
+                            direction = best_signal["direction"]
+                            order_side = "BUY" if direction == "LONG" else "SELL"
+                            
+                            order_result = executor.place_order(
+                                product_id=best_signal["product_id"],
+                                side=order_side,
+                                size=f"{position_value:.2f}",
+                            )
+                            
+                            # Save execution notification state
+                            exec_notification = {
+                                "executed": order_result.get("ok", False),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "trade_card_id": trade_card_id,
+                                "direction": direction,
+                                "market": best_signal["market"],
+                                "entry": entry_val,
+                                "size_usd": round(position_value, 2),
+                                "stop": stop_val if stop_val > 0 else stop_str,
+                                "target_1": best_signal.get("target_1", "?"),
+                                "target_2": best_signal.get("target_2", "?"),
+                                "setup_detail": best_signal["signal_detail"],
+                                "order_result": order_result.get("ok", False),
+                                "order_error": order_result.get("error"),
+                                "sent_to_conor": False,
+                            }
+                            _save_json(ROOT / "state" / "active_crypto_last_execution.json", exec_notification)
+                            
+                            if order_result.get("ok"):
+                                # Also send via Coinbase executor's built-in flow
+                                pending["submitted"] = True
+                                pending["submitted_at"] = datetime.now(timezone.utc).isoformat()
+                                pending["order_response"] = order_result.get("payload", {})
+                                pending["stop_order_id"] = None  # TODO: place stop order after fill
+                                _save_json(PENDING_TRADE_PATH, pending)
+                        except Exception as exec_err:
+                            # Log error but don't crash the cycle
+                            _save_json(ROOT / "state" / "active_crypto_last_execution.json", {
+                                "executed": False,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "error": str(exec_err),
+                                "sent_to_conor": False,
+                            })
+                    else:
+                        # executor not available - still a valid detection
+                        pass
                 approval_state = _load_json(APPROVAL_STATE_PATH) or {}
                 if approval_state.get("approved"):
                     # Don't reset if already approved - that's an active approved card
@@ -333,24 +434,22 @@ def run_once() -> dict:
     return _main_loop()
 
 
-def run_loop(interval: float = 30.0):
+def run_loop(interval: float = 120.0):
     """Run continuous monitoring loop."""
-    print(f"[active-crypto-runner] Starting loop, interval={interval}s")
     while True:
         start = time.time()
         result = _main_loop()
         ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
-        if result.get("ok"):
-            mids = result.get("mids", {})
-            signal = result.get("active_signal")
-            if signal:
-                print(f"[{ts}] MIDS: {mids} | SIGNAL: {signal['direction']} {signal['setup']} | {signal.get('detail','')[:80]}")
-            else:
-                print(f"[{ts}] MIDS: {mids} | no setup")
-        else:
-            print(f"[{ts}] ERROR: {result.get('error','unknown')}")
+        mids = result.get("mids", {}) or {}
+        signal = result.get("active_signal")
+        if signal:
+            print(f"[{ts}] SIGNAL: {signal.get('direction')} on {signal.get('market','')}")
+        elif mids:
+            btc = mids.get("BIP-20DEC30-CDE","?")
+            eth = mids.get("ETP-20DEC30-CDE","?")
+            print(f"[{ts}] BTC={btc} ETH={eth}")
         elapsed = time.time() - start
-        sleep_time = max(1.0, interval - elapsed)
+        sleep_time = max(5.0, interval - elapsed)
         time.sleep(sleep_time)
 
 

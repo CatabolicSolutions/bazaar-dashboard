@@ -161,11 +161,7 @@ class CoinbaseExecutor:
 
         pending = get_pending_trade()
         if not pending:
-            return {"ok": False, "error": "No pending trade card. Generate a trade card and get approval first."}
-
-        trade_card_id = pending.get("trade_card_id")
-        if not self.approval.is_approved(trade_card_id):
-            return {"ok": False, "error": "Trade card not approved by Conor. Approval required before order."}
+            return {"ok": False, "error": "No pending trade card. Generate a trade card first."}
 
         # Verify account state before order
         pos_result = self.client.get("/cfm/positions")

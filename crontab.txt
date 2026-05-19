@@ -1,0 +1,8 @@
+*/15 * * * * /var/www/bazaar/eth_scalper/health_check.sh >> /var/www/bazaar/eth_scalper/logs/health.log 2>&1
+*/15 12-20 * * 1-5 /home/alfred-deploy/bazaar_scripts/post_tradier_tickets_final.sh >> /home/alfred-deploy/logs/tradier_cron.log 2>&1
+*/30 12-19 * * 1-5 cd /var/www/bazaar && ./scripts/tradier_auto_trade.py >> /home/alfred-deploy/logs/tradier_auto.log 2>&1
+45 19 * * 1-5 cd /var/www/bazaar && ./scripts/close_day_trades.py >> /home/alfred-deploy/logs/tradier_close.log 2>&1
+0 * * * * /home/alfred-deploy/bazaar_scripts/tradier_health_check.sh >> /home/alfred-deploy/logs/tradier_health.log 2>&1
+0 14 * * * /home/alfred-deploy/bazaar_scripts/tradier_daily_summary.sh >> /home/alfred-deploy/logs/tradier_summary.log 2>&1
+0 3 * * 0 /home/alfred-deploy/bazaar_scripts/tradier_log_cleanup.sh >> /home/alfred-deploy/logs/cleanup.log 2>&1
+15 20 * * 1-5 /var/www/bazaar/scripts/daily_optimization.sh >> /var/www/bazaar/logs/optimization.log 2>&1

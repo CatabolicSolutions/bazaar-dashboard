@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGORA Algorithm</title>
+<style>
+:root{--bg:#080b10;--panel:#111821;--panel2:#16202b;--line:#2a3645;--text:#e7eef7;--muted:#91a1b5;--good:#2dd4bf;--warn:#f59e0b;--bad:#fb7185;--blue:#60a5fa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}main{max-width:1640px;margin:0 auto;padding:16px}header{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:end;border-bottom:1px solid var(--line);padding:8px 0 14px}h1{font-size:28px;margin:0}.sub{color:var(--muted);margin-top:4px}.strip{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:var(--panel);color:var(--muted);white-space:nowrap}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}.blue{color:var(--blue)}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:14px}section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px;min-width:0}.s12{grid-column:span 12}.s8{grid-column:span 8}.s6{grid-column:span 6}.s4{grid-column:span 4}.s3{grid-column:span 3}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}.big{font-size:32px;font-weight:760;line-height:1.05}.metric{display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(145,161,181,.16);padding:7px 0}.metric:first-child{border-top:0}.label{color:var(--muted)}.value{text-align:right;font-weight:650;overflow-wrap:anywhere}.narrative{font-size:17px;line-height:1.35}.small{font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{padding:8px 6px;border-top:1px solid rgba(145,161,181,.16);text-align:left;vertical-align:top}th{font-size:12px;color:var(--muted)}td:last-child,th:last-child{text-align:right}.alert{border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.08);border-radius:6px;padding:9px;margin-top:8px}.alert.bad{border-color:rgba(251,113,133,.5);background:rgba(251,113,133,.08)}.toolrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tool{background:var(--panel2);border:1px solid rgba(145,161,181,.18);border-radius:6px;padding:9px}.chartbox{height:220px;background:#0b1118;border:1px solid rgba(145,161,181,.18);border-radius:6px;padding:8px}canvas{width:100%;height:100%}pre{white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto;background:var(--panel2);border:1px solid rgba(145,161,181,.18);border-radius:6px;padding:10px;margin:0}.empty{color:var(--muted);padding:8px 0}@media(max-width:980px){header{grid-template-columns:1fr}.strip{justify-content:flex-start}.s8,.s6,.s4,.s3{grid-column:span 12}.toolrow{grid-template-columns:1fr}main{padding:10px}}
+</style>
+</head>
+<body>
+<main>
+<header><div><h1>AGORA Algorithm</h1><div class="sub">BTC reversal scalp desk: monitored positions, fresh leaders, alerts, BTC context, and backend verification.</div></div><div id="strip" class="strip"></div></header>
+<div class="grid">
+<section class="s8"><h2>Desk Narrative</h2><div id="narrative" class="narrative">Loading...</div><div id="alerts"></div></section>
+<section class="s4"><h2>Desk Strength</h2><div id="strength" class="big">--</div><div id="strengthDetail" class="small"></div></section>
+<section class="s3"><h2>BTC Reversal Runtime</h2><div id="runtime"></div></section>
+<section class="s3"><h2>Wallet / NAV</h2><div id="wallet"></div></section>
+<section class="s3"><h2>Tradier Account</h2><div id="account"></div></section>
+<section class="s3"><h2>Backend Verification</h2><div id="backend"></div></section>
+<section class="s6"><h2>Monitored Positions</h2><div id="positions"></div></section>
+<section class="s6"><h2>Tradier Leaderboard</h2><div id="leaders"></div></section>
+<section class="s6"><h2>BTC Price Context</h2><div class="chartbox"><canvas id="priceChart"></canvas></div><div id="chartMeta" class="small"></div></section>
+<section class="s6"><h2>BTC Reversal Logic & Tools</h2><div id="tools" class="toolrow"></div></section>
+<section class="s6"><h2>Rotator Audit</h2><div id="audit"></div></section>
+<section class="s6"><h2>Alert Logic</h2><div id="alertLogic"></div></section>
+<section class="s12"><h2>Raw Desk Snapshot</h2><pre id="raw">Loading...</pre></section>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+const money=v=>{const n=num(v);return n==null?'--':'$'+n.toFixed(2)};
+const pct=v=>{const n=num(v);return n==null?'--':n.toFixed(2)+'%'};
+const qty=v=>{const n=num(v);return n==null?'--':n.toLocaleString(undefined,{maximumFractionDigits:8})};
+const cls=n=>num(n)>=0?'good':'bad';
+const metric=(l,v,c='')=>'<div class="metric"><span class="label">'+esc(l)+'</span><span class="value '+c+'">'+v+'</span></div>';
+async function get(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' '+r.status);return r.json()}
+function strength(hq,monitor,leaders){
+ const live=hq.live||{}, text=String(live.operator_summary||''), pnl=num((text.match(/pnl=([-0-9.]+)%/)||[])[1])||0, retr=num((text.match(/retrace=([-0-9.]+)%/)||[])[1])||0;
+ const high=(monitor.alerts||[]).length, ranked=(leaders.ranked_candidates||[]).length, edge=num(live.scoreboard?.rotator_last_edge)||0;
+ let score=55+pnl*60-retr*25+Math.min(10,ranked/5)+edge*10-high*10;
+ return Math.max(0,Math.min(100,Math.round(score)));
+}
+function renderChart(charts){
+ const c=$('priceChart'), ctx=c.getContext('2d'), rect=c.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+ c.width=Math.max(300,rect.width*dpr); c.height=Math.max(160,rect.height*dpr); ctx.scale(dpr,dpr);
+ const w=rect.width,h=rect.height,pad=18;
+ const btc=(charts.btc_30d?.prices||[]).slice(-160).map(x=>[x[0],Number(x[1])]).filter(x=>Number.isFinite(x[1]));
+ ctx.clearRect(0,0,w,h); ctx.strokeStyle='#253242'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,h-pad); ctx.lineTo(w-pad,h-pad); ctx.lineTo(w-pad,pad); ctx.stroke();
+ function line(rows,color){ if(rows.length<2)return; const vals=rows.map(r=>r[1]), min=Math.min(...vals), max=Math.max(...vals), span=max-min||1; ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath(); rows.forEach((r,i)=>{const x=pad+(i/(rows.length-1))*(w-pad*2), y=h-pad-((r[1]-min)/span)*(h-pad*2); i?ctx.lineTo(x,y):ctx.moveTo(x,y)}); ctx.stroke(); }
+ line(btc,'#f59e0b');
+ $('chartMeta').innerHTML='<span class="warn">BTC reference</span> '+btc.length+' pts | rotator events '+((charts.rotator_points||[]).length)+' | context only, BTC scalp mandate';
+}
+function render(data){
+ const {hq,asset,monitor,leaders,rotator,charts,audit}=data, live=hq.live||{}, uni=rotator.live||{}, summary=uni.summary||{}, portfolio=uni.portfolio||{}, strat=uni.strategy||{}, risk=uni.risk||{};
+ const score=strength(hq,monitor,leaders), positions=monitor.positions||[], high=monitor.alerts||[];
+ $('strip').innerHTML=[
+  '<span class="pill '+(live.status==='live'?'good':'warn')+'">HQ '+esc(live.status||'unknown')+'</span>',
+  '<span class="pill '+(asset.live?'good':'warn')+'">Tradier '+(asset.live?'live':'fallback')+'</span>',
+  '<span class="pill '+(summary.current_side==='CBBTC'?'warn':'blue')+'">Rotator '+esc(summary.current_side||'--')+'</span>',
+  '<span class="pill '+(high.length?'bad':'good')+'">Alerts '+high.length+'</span>',
+  '<span class="pill">Updated '+new Date().toLocaleTimeString()+'</span>'
+ ].join('');
+ $('narrative').innerHTML='<strong>'+esc(summary.current_side||live.holding_asset||'Unknown')+'</strong>: '+esc(summary.reason||live.operator_summary||'No runtime narrative returned.')+'<br><span class="small">Objective: '+esc(strat.rotation_objective||live.operator_focus||'maximize risk-adjusted capital efficiency')+'</span>';
+ $('alerts').innerHTML=high.map(a=>'<div class="alert bad"><strong>'+esc((a.account||'').toUpperCase())+' '+esc(a.option_symbol||a.symbol)+'</strong>: '+esc(a.alert_reason||a.state)+' - '+esc(a.narrative||'')+'</div>').join('');
+ $('strength').innerHTML='<span class="'+(score>=65?'good':score>=40?'warn':'bad')+'">'+score+'/100</span>';
+ $('strengthDetail').textContent='Includes BTC runtime, retrace, leaderboard availability, and monitored-position alert load.';
+ $('runtime').innerHTML=metric('Current side',esc(summary.current_side||'--'),'blue')+metric('Action',esc(summary.action||'--'))+metric('Signal',esc(summary.signal||'--'))+metric('Signal edge',qty(summary.signal_edge))+metric('Risk mode',esc(risk.mode||'--'),risk.halted?'bad':'good')+metric('Reason',esc(summary.reason||'--'));
+ $('wallet').innerHTML=metric('Portfolio',money(portfolio.portfolio_usd))+metric('ETH equiv',qty(portfolio.portfolio_eth_equiv))+metric('CBBTC',qty(portfolio.cbbtc))+metric('WETH',qty(portfolio.weth))+metric('USDC',qty(portfolio.usdc))+metric('BTC price',money(portfolio.btc_price));
+ const b=asset.balances||{};
+ $('account').innerHTML=metric('Equity',money(b.total_equity))+metric('Cash',money(b.cash))+metric('Long value',money(b.raw?.long_market_value))+metric('Open P/L',money(b.raw?.open_pl),cls(b.raw?.open_pl))+metric('Broker positions',String((asset.positions||[]).length));
+ const checks=audit.checks||[], ok=checks.filter(c=>c.exists).length;
+ $('backend').innerHTML=metric('Artifacts online',ok+'/'+checks.length,ok===checks.length?'good':'warn')+checks.slice(0,5).map(c=>metric(c.name,c.exists?'yes':'missing',c.exists?'good':'bad')).join('');
+ $('positions').innerHTML=positions.length?'<table><thead><tr><th>Account</th><th>Contract</th><th>Qty</th><th>Mid</th><th>P/L</th><th>State</th></tr></thead><tbody>'+positions.map(p=>'<tr><td>'+esc(p.account)+'</td><td><strong>'+esc(p.option_symbol||p.symbol)+'</strong><div class="small">'+esc(p.symbol)+' @ '+qty(p.underlying_last)+'</div></td><td>'+qty(p.qty)+'</td><td>'+money(p.current_mid)+'</td><td class="'+cls(p.pnl_pct)+'">'+money(p.pnl_total)+'<div>'+pct(p.pnl_pct)+'</div></td><td class="'+(p.alert_level==='high'?'bad':'warn')+'">'+esc(p.state)+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">No monitored positions.</div>';
+ const ranked=(leaders.ranked_candidates||[]).slice(0,8);
+ $('leaders').innerHTML='<pre>'+esc(leaders.board_text||'No board text')+'</pre>'+(ranked.length?'<table><thead><tr><th>Rank</th><th>Contract</th><th>Mid</th><th>Score</th></tr></thead><tbody>'+ranked.map((r,i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+esc(r.symbol)+' '+esc(r.option_type)+' '+esc(r.strike)+'</strong><div class="small">'+esc(r.expiration)+' DTE '+esc(r.dte)+'</div></td><td>'+money(r.mid)+'</td><td>'+qty(r.score)+'</td></tr>').join('')+'</tbody></table>':'');
+ $('tools').innerHTML=[
+  ['Execution mode',esc(uni.execution?.mode||'unknown')],
+  ['Transport',esc(uni.execution?.transport||'unknown')],
+  ['BTC EMA',qty(strat.ema12_btc)+' / '+qty(strat.ema50_btc)],
+  ['Peak BTC',money(strat.peak_btc)],
+  ['Hold BTC',qty(strat.hold_bars_cbbtc||strat.extra?.hold_bars_BTC)],
+  ['Tick',qty(strat.tick)],
+  ['Review trades',qty((uni.research?.results?.trades||[]).length)],
+  ['Last tx',esc(uni.execution?.last_tx_hash||'not exposed')]
+ ].map(x=>'<div class="tool"><div class="small">'+x[0]+'</div><strong>'+x[1]+'</strong></div>').join('');
+ const events=uni.timeline||hq.events||[];
+ $('audit').innerHTML=events.length?'<table><thead><tr><th>Time</th><th>Move</th><th>Reason</th></tr></thead><tbody>'+events.slice(-10).reverse().map(e=>'<tr><td>'+esc(String(e.ts||'').replace('T',' ').replace('Z',''))+'</td><td>'+esc((e.side_before||'')+' -> '+(e.side_after||''))+'</td><td>'+esc(e.reason||e.type||'')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">No audit events.</div>';
+ $('alertLogic').innerHTML=positions.map(p=>metric((p.account||'')+' '+(p.symbol||''),esc(p.alert_level+': '+p.alert_reason),p.alert_level==='high'?'bad':'warn')).join('')||'<div class="empty">No alert logic rows.</div>';
+ renderChart(charts);
+ $('raw').textContent=JSON.stringify(data,null,2).slice(0,18000);
+}
+async function refresh(){
+ try{
+  const [hq,asset,monitor,leaders,rotator,charts,audit]=await Promise.all([
+   get('/agora/api/hq/status'),get('/agora/api/agora/asset-manager'),get('/agora/api/agora/position-monitor'),get('/agora/api/agora/tradier-leaders'),get('/agora/api/agora/rotator-hub'),get('/agora/api/agora/charts'),get('/agora/api/agora/backend-audit')
+  ]);
+  render({hq,asset,monitor,leaders,rotator,charts,audit});
+ }catch(e){$('narrative').innerHTML='<span class="bad">'+esc(e.message)+'</span>'}
+}
+refresh();setInterval(refresh,15000);addEventListener('resize',()=>refresh());
+</script>
+</body>
+</html>

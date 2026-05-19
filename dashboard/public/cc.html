@@ -63,6 +63,7 @@ body::before{content:'';position:fixed;inset:0;background:
       <div class="stack">
         <button class="navbtn active" data-view="overview">Overview</button>
         <button class="navbtn" data-view="execution">Execution</button>
+        <button class="navbtn" data-view="strategy">Strategy</button>
         <button class="navbtn" data-view="balances">Balances</button>
         <button class="navbtn" data-view="controls">Controls</button>
         <button class="navbtn" data-view="journal">Journal</button>
@@ -196,6 +197,28 @@ function renderExecution(){
     : `<section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Controls</div><div class="panel-sub">Actions for the onchain lane</div></div><span class="badge">actions</span></div><div class="panel-body"><div class="ctrlgrid"><button class="ctrlbtn" onclick="runCmd('diagnose_bloc')">Diagnose Bloc<small>Check wallet truth and runtime state</small></button><button class="ctrlbtn" onclick="runCmd('pause_bloc')">Pause Bloc<small>Stop cycle activity immediately</small></button><button class="ctrlbtn" onclick="runCmd('resume_bloc')">Resume Bloc<small>Resume cycle logic</small></button><button class="ctrlbtn danger" onclick="runCmd('close_all')">Emergency close<small>Flatten if supported</small></button></div></div></section><section class="panel"><div class="panel-head"><div><div class="panel-title">Bloc Notes</div><div class="panel-sub">Interpretation, not noise</div></div></div><div class="panel-body"><div class="list">${cardItem('Inventory is not success', 'Holding BTC while the engine is silent is still a broken recycle path.')} ${cardItem('Use wallet truth first', 'Wallet data beats summarized status when there is any conflict.')}</div></div></section>`;
 }
 
+function renderStrategy(){
+  $('#main').innerHTML = `
+    <section class="hero" style="background:linear-gradient(135deg,rgba(137,103,255,.20),rgba(11,18,27,.96) 42%),linear-gradient(180deg,rgba(15,30,43,.96),rgba(10,19,30,.98))">
+      <div class="eyebrow">Bloc Strategy Lab</div>
+      <div class="hero-title">Wind tunnel the bot, not the story</div>
+      <div class="hero-sub">This lane is for 30-day ETH structure, visible parameter thresholds, reversal markers, and direct tuning against the Bloc execution model.</div>
+      <div class="actiongrid">
+        <a class="act alt" href="./strategy_lab.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">Open Strategy Lab</a>
+        <button class="act neutral" onclick="runCmd('diagnose_bloc')">Refresh Bloc context</button>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><div class="panel-title">Why this belongs here</div><div class="panel-sub">Connected to the bot lane, not the shelved Tradier/Cockpit lane</div></div><span class="badge">bloc</span></div>
+      <div class="panel-body"><div class="list">
+        ${cardItem('Same execution problem', 'The lab is about ETH/BTC onchain signal quality, friction, and recycle behavior — that is Bloc territory.')}
+        ${cardItem('Visible thresholds', 'You can inspect and tweak the exact variable stack instead of trusting buried assumptions.')}
+        ${cardItem('Truth over narrative', 'If the setup family is negative after friction, this page should make that obvious immediately.')}
+      </div></div>
+    </section>`;
+  $('#ops').innerHTML = `<section class="panel"><div class="panel-head"><div><div class="panel-title">Strategy Objective</div><div class="panel-sub">What we are trying to prove</div></div><span class="badge">objective</span></div><div class="panel-body"><div class="list">${cardItem('Your thesis still holds', 'There is enough price delta between many swings; the open problem is bottom/top capture quality after costs.')}${cardItem('The lab is the shared truth surface', 'We use it to find where entry, hold, exit, and regime filters create or destroy net edge.')}</div></div></section>`;
+}
+
 function renderBalances(){
   const { live, t, wallet, a } = liveData();
   $('#main').innerHTML = `
@@ -234,7 +257,7 @@ function renderAudit(){
 
 function render(){
   updateHeader();
-  const renderers = { overview:renderOverview, execution:renderExecution, balances:renderBalances, controls:renderControls, journal:renderJournal, audit:renderAudit };
+  const renderers = { overview:renderOverview, execution:renderExecution, strategy:renderStrategy, balances:renderBalances, controls:renderControls, journal:renderJournal, audit:renderAudit };
   (renderers[appState.view] || renderOverview)();
   const events = (appState.payload && appState.payload.events) || [];
   $('#event-tape').textContent = events.length ? events.map(e => `${e.created_at || ''}  ${e.event_type || 'event'}  ${e.summary || JSON.stringify(e)}`).join('\n\n') : 'No recorded events yet.';

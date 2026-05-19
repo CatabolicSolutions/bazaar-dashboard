@@ -1,0 +1,316 @@
+bash: cannot set terminal process group (12821): Inappropriate ioctl for device
+bash: no job control in this shell
+DEBUG: Today's date: 2026-05-03
+DEBUG: Attempting to fetch VIX quote.
+
+--- Current VIX: 16.99 ---
+DEBUG: VIX fetched successfully. Starting symbol processing loop.
+
+--- Processing SPX ---
+  Underlying price for SPX: 7230.12
+Fetching option chain for SPX, requested DTE: 7 (Using Expiry: 2026-05-15, Label: 12DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
+Skipping scalping output for SPX requested 7DTE because fallback actual DTE 12 is too distant.
+Skipping credit spread output for SPX requested 7DTE because fallback actual DTE 12 is too distant.
+No tickets generated for this symbol/requested DTE.
+Fetching option chain for SPX, requested DTE: 14 (Using Expiry: 2026-06-18, Label: 46DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-06-18.
+Skipping scalping output for SPX requested 14DTE because fallback actual DTE 46 is too distant.
+Skipping credit spread output for SPX requested 14DTE because fallback actual DTE 46 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing SPY ---
+  Underlying price for SPY: 720.65
+Fetching option chain for SPY, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for SPY requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for SPY on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for SPY (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $720.65
+  - Current VIX: 16.99
+  - Type: PUT
+  - Strike: $702.00
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $1.29
+  - Bid: $1.31 / Ask: $1.33
+  - Delta: -0.1384
+  - Spread Ratio: 1.52%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for SPY, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for SPY requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for SPY requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing NDX ---
+  Underlying price for NDX: 27650.81
+Fetching option chain for NDX, requested DTE: 7 (Using Expiry: 2026-05-15, Label: 12DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
+Skipping scalping output for NDX requested 7DTE because fallback actual DTE 12 is too distant.
+Skipping credit spread output for NDX requested 7DTE because fallback actual DTE 12 is too distant.
+No tickets generated for this symbol/requested DTE.
+Fetching option chain for NDX, requested DTE: 14 (Using Expiry: 2026-06-18, Label: 46DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-06-18.
+Skipping scalping output for NDX requested 14DTE because fallback actual DTE 46 is too distant.
+Skipping credit spread output for NDX requested 14DTE because fallback actual DTE 46 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing QQQ ---
+  Underlying price for QQQ: 674.15
+Fetching option chain for QQQ, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for QQQ requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for QQQ on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for QQQ (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $674.15
+  - Current VIX: 16.99
+  - Type: PUT
+  - Strike: $651.00
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $1.69
+  - Bid: $1.67 / Ask: $1.89
+  - Delta: -0.1405
+  - Spread Ratio: 12.36%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for QQQ, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for QQQ requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for QQQ requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing NVDA ---
+  Underlying price for NVDA: 198.45
+Fetching option chain for NVDA, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for NVDA requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for NVDA on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for NVDA (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $198.45
+  - Current VIX: 16.99
+  - Type: CALL
+  - Strike: $210.00
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $0.89
+  - Bid: $0.84 / Ask: $0.87
+  - Delta: 0.1553
+  - Spread Ratio: 3.51%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for NVDA, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for NVDA requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for NVDA requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing TSLA ---
+  Underlying price for TSLA: 390.82
+Fetching option chain for TSLA, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for TSLA requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for TSLA on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for TSLA (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $390.82
+  - Current VIX: 16.99
+  - Type: CALL
+  - Strike: $420.00
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $1.82
+  - Bid: $1.81 / Ask: $1.86
+  - Delta: 0.1427
+  - Spread Ratio: 2.72%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for TSLA, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for TSLA requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for TSLA requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing XSP ---
+  Underlying price for XSP: 723.01
+Fetching option chain for XSP, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for XSP requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for XSP on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for XSP (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $723.01
+  - Current VIX: 16.99
+  - Type: PUT
+  - Strike: $704.00
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $1.19
+  - Bid: $1.23 / Ask: $1.60
+  - Delta: -0.1361
+  - Spread Ratio: 26.15%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for XSP, requested DTE: 14 (Using Expiry: 2026-05-18, Label: 15DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-18.
+Skipping scalping output for XSP requested 14DTE because fallback actual DTE 15 is too distant.
+Applying 'credit_spread_sell' strategy for XSP on 2026-05-18 (Requested DTE 14, Actual DTE 15)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for XSP (15DTE (requested 14DTE, fallback))**
+  - Underlying Price: $723.01
+  - Current VIX: 16.99
+  - Type: PUT
+  - Strike: $696.00
+  - Expiration: 2026-05-18
+  - Requested DTE: 14
+  - Actual DTE: 15
+  - Last Price: $2.55
+  - Bid: $1.86 / Ask: $2.36
+  - Delta: -0.1421
+  - Spread Ratio: 23.70%
+  - Expiry Selection Note: No exact 14DTE expiry available; using nearest valid expiry 2026-05-18.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+
+--- Processing IWM ---
+  Underlying price for IWM: 279.28
+Fetching option chain for IWM, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for IWM requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for IWM on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for IWM (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $279.28
+  - Current VIX: 16.99
+  - Type: PUT
+  - Strike: $269.00
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $0.73
+  - Bid: $0.73 / Ask: $0.80
+  - Delta: -0.1371
+  - Spread Ratio: 9.15%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for IWM, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for IWM requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for IWM requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing VIX ---
+  Underlying price for VIX: 16.99
+Fetching option chain for VIX, requested DTE: 7 (Using Expiry: 2026-05-19, Label: 16DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-19.
+Skipping scalping output for VIX requested 7DTE because fallback actual DTE 16 is too distant.
+Skipping credit spread output for VIX requested 7DTE because fallback actual DTE 16 is too distant.
+No tickets generated for this symbol/requested DTE.
+Skipping duplicate expiry 2026-05-19 for VIX; already processed via a higher-priority DTE path.
+
+--- Processing AMD ---
+  Underlying price for AMD: 360.54
+Fetching option chain for AMD, requested DTE: 7 (Using Expiry: 2026-05-15, Label: 12DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-15.
+Skipping scalping output for AMD requested 7DTE because fallback actual DTE 12 is too distant.
+Skipping credit spread output for AMD requested 7DTE because fallback actual DTE 12 is too distant.
+No tickets generated for this symbol/requested DTE.
+Fetching option chain for AMD, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for AMD requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for AMD requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+--- Processing AAPL ---
+  Underlying price for AAPL: 280.14
+Fetching option chain for AAPL, requested DTE: 7 (Using Expiry: 2026-05-11, Label: 8DTE (requested 7DTE, fallback))...
+  Expiry fallback in use: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+Skipping scalping output for AAPL requested 7DTE because fallback actual DTE 8 is too distant.
+Applying 'credit_spread_sell' strategy for AAPL on 2026-05-11 (Requested DTE 7, Actual DTE 8)...
+ [Strategy Processor] Current VIX: 16.99. Applying strict filters.
+Found 1 ranked options for credit_spread_sell. Formatting tickets...
+---TICKET_START---
+Credit Spread Sell Opportunity for AAPL (8DTE (requested 7DTE, fallback))**
+  - Underlying Price: $280.14
+  - Current VIX: 16.99
+  - Type: CALL
+  - Strike: $292.50
+  - Expiration: 2026-05-11
+  - Requested DTE: 7
+  - Actual DTE: 8
+  - Last Price: $0.64
+  - Bid: $0.60 / Ask: $0.69
+  - Delta: 0.1252
+  - Spread Ratio: 13.95%
+  - Expiry Selection Note: No exact 7DTE expiry available; using nearest valid expiry 2026-05-11.
+
+*Thesis Hint: OTM premium candidate in the target delta band with cleaner spread characteristics.*
+*Action Hint: Consider only as part of a defined-risk spread, not naked premium selling.*
+
+---TICKET_DELIMITER---
+---TICKET_END---
+Fetching option chain for AAPL, requested DTE: 14 (Using Expiry: 2026-05-22, Label: 19DTE (requested 14DTE, fallback))...
+  Expiry fallback in use: No exact 14DTE expiry available; using nearest valid expiry 2026-05-22.
+Skipping scalping output for AAPL requested 14DTE because fallback actual DTE 19 is too distant.
+Skipping credit spread output for AAPL requested 14DTE because fallback actual DTE 19 is too distant.
+No tickets generated for this symbol/requested DTE.
+
+Tradier options processing complete.

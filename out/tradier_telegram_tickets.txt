@@ -1,35 +1,24 @@
 TRADIER TELEGRAM EXECUTION CANDIDATES
-Leaders ready: 3
+Leaders ready: 2
 
 LEADER 1
-Contract: SPY 2026-03-27 656.00 PUT
-Bias: BEARISH | Strategy: Scalping Buy
-Why leader: leader score 70.2; conviction 70.5, asymmetry 59.4, execution 100.0, timing 72.4.
-Why now: underlying 651.42, DTE 1, option market 5.93/6.01 (mid 5.97), structure 0.0.
-Confirmation: Require live confirmation that SPY is failing cleanly and accepting below the entry zone rather than reclaiming back toward 651.42.
-Invalidation: Invalidate if SPY reclaims momentum, selling pressure fades, or if option spread quality materially worsens.
-Payoff path: Fast directional follow-through with a quick first scale, then only hold extension if momentum and tape quality stay alive.
+Contract: TSLA 2026-05-26 437.50 CALL
+Bias: BULLISH | Strategy: Credit Spread Sell
+Why leader: leader score 68.6; conviction 60.2, asymmetry 63.9, execution 80.1, timing 57.7.
+Why now: underlying 408.58, DTE 8, option market 2.28/2.37 (mid 2.33), structure 54.3.
+Confirmation: Require live confirmation that TSLA is holding above the entry zone and pressing toward/through 437.50 rather than stalling below it.
+Invalidation: Invalidate if TSLA loses continuation, stalls quickly after entry, or if option spread quality materially worsens.
+Payoff path: Defined-risk premium capture only; do not overstay or turn a clean capture into a hope-hold.
 Risk posture: premium-outlay only and no blind entry; require human signoff before ticket conversion.
 Command path: review -> approve -> build execution ticket -> commit only on explicit signoff.
 
 LEADER 2
-Contract: QQQ 2026-03-27 578.00 CALL
-Bias: BULLISH | Strategy: Scalping Buy
-Why leader: leader score 70.1; conviction 70.2, asymmetry 59.5, execution 99.8, timing 72.2.
-Why now: underlying 581.04, DTE 1, option market 5.22/5.25 (mid 5.24), structure 0.0.
-Confirmation: Require live confirmation that QQQ is holding above the entry zone and pressing toward/through 578.00 rather than stalling below it.
+Contract: QQQ 2026-06-01 730.00 CALL
+Bias: BULLISH | Strategy: Credit Spread Sell
+Why leader: leader score 68.3; conviction 59.7, asymmetry 63.0, execution 81.1, timing 54.9.
+Why now: underlying 701.39, DTE 14, option market 2.16/2.21 (mid 2.19), structure 75.7.
+Confirmation: Require live confirmation that QQQ is holding above the entry zone and pressing toward/through 730.00 rather than stalling below it.
 Invalidation: Invalidate if QQQ loses continuation, stalls quickly after entry, or if option spread quality materially worsens.
-Payoff path: Fast directional follow-through with a quick first scale, then only hold extension if momentum and tape quality stay alive.
-Risk posture: premium-outlay only and no blind entry; require human signoff before ticket conversion.
-Command path: review -> approve -> build execution ticket -> commit only on explicit signoff.
-
-LEADER 3
-Contract: QQQ 2026-03-27 571.00 PUT
-Bias: BEARISH | Strategy: Credit Spread Sell
-Why leader: leader score 61.7; conviction 61.1, asymmetry 61.1, execution 72.1, timing 71.3.
-Why now: underlying 581.04, DTE 1, option market 0.53/0.54 (mid 0.54), structure 0.0.
-Confirmation: Require live confirmation that QQQ is failing cleanly and accepting below the entry zone rather than reclaiming back toward 581.04.
-Invalidation: Invalidate if QQQ reclaims momentum, selling pressure fades, or if option spread quality materially worsens.
 Payoff path: Defined-risk premium capture only; do not overstay or turn a clean capture into a hope-hold.
 Risk posture: premium-outlay only and no blind entry; require human signoff before ticket conversion.
 Command path: review -> approve -> build execution ticket -> commit only on explicit signoff.

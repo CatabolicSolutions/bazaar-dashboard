@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+REPLAY = ROOT / 'eth_scalper' / 'scripts' / 'replay_live_bloc_protocol.py'
+SUMMARY = ROOT / 'eth_scalper' / 'out' / 'live_bloc_replay_summary.json'
+OUT = ROOT / 'out' / 'rotate_signal_activation_tuning.json'
+
+PARAM_SETS = [
+    {'name':'a1','MIN_WETH_ACCUMULATION_PCT':0.00,'REENTRY_SCORE_THRESHOLD':0.10,'REENTRY_SCORE_ARM_THRESHOLD':0.04,'PAIR_ENTRY_MIN_RELATIVE_STRENGTH_PCT':0.00,'PAIR_ROTATION_COMMIT_PCT':0.04,'PAIR_ROTATION_HOLD_BARS':2,'PAIR_USDC_EXIT_EDGE_PCT':0.10,'PAIR_CHURN_GUARD_BARS':2,'ROTATE_SIGNAL_MIN_EDGE_PCT':0.06,'ROTATE_SIGNAL_MIN_DEV_PCT':0.03,'ROTATE_SIGNAL_MIN_SPREAD_MOVE_PCT':0.01,'ROTATE_SIGNAL_PERSIST_BARS':1,'VOL_MULTIPLIER':0.78,'STOP_LOSS':1.20,'COOLDOWN_BARS':1},
+    {'name':'a2','MIN_WETH_ACCUMULATION_PCT':0.00,'REENTRY_SCORE_THRESHOLD':0.09,'REENTRY_SCORE_ARM_THRESHOLD':0.03,'PAIR_ENTRY_MIN_RELATIVE_STRENGTH_PCT':0.00,'PAIR_ROTATION_COMMIT_PCT':0.03,'PAIR_ROTATION_HOLD_BARS':1,'PAIR_USDC_EXIT_EDGE_PCT':0.08,'PAIR_CHURN_GUARD_BARS':1,'ROTATE_SIGNAL_MIN_EDGE_PCT':0.05,'ROTATE_SIGNAL_MIN_DEV_PCT':0.02,'ROTATE_SIGNAL_MIN_SPREAD_MOVE_PCT':0.01,'ROTATE_SIGNAL_PERSIST_BARS':1,'VOL_MULTIPLIER':0.75,'STOP_LOSS':1.25,'COOLDOWN_BARS':1},
+    {'name':'a3','MIN_WETH_ACCUMULATION_PCT':0.01,'REENTRY_SCORE_THRESHOLD':0.12,'REENTRY_SCORE_ARM_THRESHOLD':0.05,'PAIR_ENTRY_MIN_RELATIVE_STRENGTH_PCT':0.01,'PAIR_ROTATION_COMMIT_PCT':0.05,'PAIR_ROTATION_HOLD_BARS':2,'PAIR_USDC_EXIT_EDGE_PCT':0.12,'PAIR_CHURN_GUARD_BARS':2,'ROTATE_SIGNAL_MIN_EDGE_PCT':0.08,'ROTATE_SIGNAL_MIN_DEV_PCT':0.04,'ROTATE_SIGNAL_MIN_SPREAD_MOVE_PCT':0.015,'ROTATE_SIGNAL_PERSIST_BARS':2,'VOL_MULTIPLIER':0.80,'STOP_LOSS':1.10,'COOLDOWN_BARS':1},
+    {'name':'a4','MIN_WETH_ACCUMULATION_PCT':-0.01,'REENTRY_SCORE_THRESHOLD':0.08,'REENTRY_SCORE_ARM_THRESHOLD':0.03,'PAIR_ENTRY_MIN_RELATIVE_STRENGTH_PCT':0.00,'PAIR_ROTATION_COMMIT_PCT':0.02,'PAIR_ROTATION_HOLD_BARS':1,'PAIR_USDC_EXIT_EDGE_PCT':0.06,'PAIR_CHURN_GUARD_BARS':1,'ROTATE_SIGNAL_MIN_EDGE_PCT':0.04,'ROTATE_SIGNAL_MIN_DEV_PCT':0.02,'ROTATE_SIGNAL_MIN_SPREAD_MOVE_PCT':0.005,'ROTATE_SIGNAL_PERSIST_BARS':1,'VOL_MULTIPLIER':0.72,'STOP_LOSS':1.30,'COOLDOWN_BARS':1}
+]
+
+
+def run_one(params: dict) -> dict:
+    env = os.environ.copy()
+    env.update({k: str(v) for k, v in params.items() if k != 'name'})
+    subprocess.run(['python3', str(REPLAY)], cwd=str(ROOT), env=env, check=True, capture_output=True, text=True)
+    summary = json.loads(SUMMARY.read_text())
+    return {'name': params['name'], 'params': params, 'summary': summary}
+
+
+def rank_key(item: dict):
+    s = item['summary']
+    return (
+        float(s.get('rotate_count') or 0),
+        float(s.get('eth_equiv_delta_units') or -999999),
+        -float(s.get('trade_count') or 999999),
+    )
+
+
+def main() -> None:
+    results = [run_one(p) for p in PARAM_SETS]
+    ranked = sorted(results, key=rank_key, reverse=True)
+    out = {'tested': len(results), 'top3': ranked[:3], 'results': results}
+    OUT.write_text(json.dumps(out, indent=2))
+    print(json.dumps({'tested': out['tested'], 'top3': out['top3']}, indent=2))
+
+if __name__ == '__main__':
+    main()

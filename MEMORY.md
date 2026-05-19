@@ -13,7 +13,6 @@ Bazaar of Fortunes is being built in Discord and currently has separate rooms fo
 - trading journal / logs
 - coordination
 - live position management
-- Kalshi prediction-market review
 
 ### Tradier durable state
 The Tradier workflow has already been materially rebuilt from noisy raw output into a leaders-board pipeline.
@@ -31,39 +30,6 @@ Tradier durable truths:
 - direct cross-provider Discord sending from Telegram context is blocked; Discord-context delivery should own final posting
 - VPS deployment: pipeline runs on Bazaar droplet with cron scheduling, health checks, and logs in /home/alfred‑deploy/
 - option symbol format is OCC (6‑character underlying + YYMMDD expiration + C/P + 8‑digit strike with 3 decimal places); verified in order_entry.py.
-
-### Kalshi durable state
-Kalshi auth/runtime is functioning.
-
-Current Kalshi pipeline:
-- `scripts/kalshi_strategy_processor.py`
-- `scripts/post_kalshi_tickets.sh`
-- `scripts/run_python_script.sh`
-
-Kalshi durable truths:
-- `/coinflip` is the intended plain-text trigger for Kalshi review / leaders / recommendation flow
-- current Kalshi engine supports `No Trade` and rejection audits
-- major remaining blockers are discovery quality and contract interpretation, not auth/runtime
-- sampled live open feed has often been dominated by combinatoric cross-category noise and many contracts only expose shallow metadata in the current pull
-- approved next direction is a probability-first refactor: implied probability -> fair probability estimate -> edge score -> execution validation
-
-### Kalshi preference model
-Highest-priority Kalshi markets:
-- macro / economic data
-- Fed / rates
-- CPI / inflation / GDP / unemployment / claims
-- index-close / range contracts
-- corporate-event / earnings contracts
-
-Preferred Kalshi setup archetypes:
-- mispricing / arbitrage vs external anchor
-- high-probability yield
-- event-driven asymmetry
-
-Category tolerance:
-- sports should not be categorically rejected if a contract is structurally clean and survives edge/clarity/pricing filters
-- politics are no by default except rare economically legible binaries
-- crypto-event markets require high scrutiny and default to no unless edge is unusually clear
 
 ### Discord continuity mitigation
 There is a known continuity gap across surfaces/sessions.

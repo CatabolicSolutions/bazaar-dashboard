@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-05-06T05:14:59.670056+00:00",
+  "source": "eth_scalper/state/persisted_positions.json",
+  "source_count": 2,
+  "trusted_count": 1,
+  "trusted_ids": [
+    "pos_1_1775983277"
+  ],
+  "metrics": {
+    "trade_count": 1,
+    "wins": 0,
+    "losses": 1,
+    "win_rate": 0.0,
+    "total_pnl_usd": -2.0013521370526126,
+    "avg_pnl_usd": -2.0013521370526126,
+    "avg_pnl_pct": -0.013521370526124727,
+    "best_pnl_usd": -2.0013521370526126,
+    "worst_pnl_usd": -2.0013521370526126
+  },
+  "trusted_rows": [
+    {
+      "id": "pos_1_1775983277",
+      "source": "autonomous_entry",
+      "asset": "WETH",
+      "entry_price": 2218.71,
+      "target_price": 2229.8035499999996,
+      "stop_price": 2212.05387,
+      "max_hold_seconds": 300,
+      "size_usd": 10.0,
+      "lot_units": 0.004492977720985208,
+      "status": "closed",
+      "entry_time": 1775983277.2932506,
+      "tx_hash": "1cac33823b66f08a66d92d34af5f305269d717cee400ce6baa4967c53ec8b9c9",
+      "paper": false,
+      "resumable_after_restart": false,
+      "binding_asset": "WETH",
+      "binding_units": 0.004492977720985208,
+      "binding_method": "tx_confirmed_lot_units",
+      "entry_derivation": "tracked_live_execution",
+      "target_derivation": "tracked_live_execution",
+      "stop_derivation": "tracked_live_execution",
+      "max_hold_derivation": "config",
+      "updated_at": "2026-04-12T08:49:04.440096+00:00",
+      "exit_tx_hash": "e63d35b98456a2405dcc89d1b8090b5c60b5c0edf950598ad78651e980e99d69",
+      "exit_price": 2218.41,
+      "exit_time": 1775983583.0288873,
+      "pnl_usd": -2.0013521370526126,
+      "pnl_pct": -0.013521370526124727,
+      "close_reason": "timeout",
+      "allocation_state": "closed",
+      "linked_to_wallet_inventory": false,
+      "trusted_reason": "closed persisted position with entry/exit/pnl fields present"
+    }
+  ],
+  "rejected_rows": [
+    {
+      "id": "pos_1_1775981561",
+      "reason": "status_not_closed"
+    }
+  ]
+}

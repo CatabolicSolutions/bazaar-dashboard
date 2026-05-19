@@ -1,0 +1,21 @@
+bash: cannot set terminal process group (87375): Inappropriate ioctl for device
+bash: no job control in this shell
+DEBUG: Today's date: 2026-05-08
+DEBUG: Attempting to fetch VIX quote.
+
+--- Current VIX: 17.28 ---
+DEBUG: VIX fetched successfully. Starting symbol processing loop.
+
+--- Processing SPX ---
+  Underlying price for SPX: 7392.98
+Fetching option chain for SPX, requested DTE: 7 (Using Expiry: 2026-05-15, Label: 7DTE)...
+Applying 'scalping_buy' strategy for SPX on 2026-05-15 (Requested DTE 7, Actual DTE 7)...
+ [Strategy Processor] Current VIX: 17.28. Applying strict filters.
+Traceback (most recent call last):
+  File "/home/catabolic_solutions/.openclaw/workspace/scripts/tradier_strategy_processor_v2.py", line 591, in <module>
+    filtered_options_buy = process_options_for_strategy(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/catabolic_solutions/.openclaw/workspace/scripts/tradier_strategy_processor_v2.py", line 410, in process_options_for_strategy
+    if dist_pct > SCALPING_DISTANCE_LIMITS[dte_value]:
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'SCALPING_DISTANCE_LIMITS' is not defined
