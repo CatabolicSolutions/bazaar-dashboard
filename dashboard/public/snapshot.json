@@ -1,89 +1,123 @@
 {
-  "updatedAt": "2026-05-19T13:15:33.788576+00:00",
+  "updatedAt": "2026-05-19T13:30:34.051722+00:00",
   "systemHealth": {
     "tradierBoardPresent": true,
-    "tradierBoardUpdatedAt": "2026-05-19T13:15:18.416649+00:00",
+    "tradierBoardUpdatedAt": "2026-05-19T13:30:17.362088+00:00",
     "tradierApiKeyLoaded": true,
     "refreshStatus": {
       "ok": false,
       "stage": "starting",
       "message": "Refresh cycle starting",
-      "snapshotMtime": "2026-05-19T13:00:36.016528Z",
-      "boardMtime": "2026-05-19T13:00:17.312127Z",
-      "updatedAt": "2026-05-19T13:15:01.647867Z"
+      "snapshotMtime": "2026-05-19T13:15:33.792659Z",
+      "boardMtime": "2026-05-19T13:26:56.659040Z",
+      "updatedAt": "2026-05-19T13:30:01.563441Z"
     },
-    "latestCommit": "01e4e8f Auto-refresh: 2026-05-19T13:00:47Z"
+    "latestCommit": "8489176 Auto-refresh: 2026-05-19T13:15:43Z"
   },
   "tradier": {
-    "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\nVIX: 17.69\n\nPremium / Credit Leaders\n1. QQQ PUT | Underlying 705.88 | Strike 680.00 | Exp 2026-05-26 | 7DTE | \u0394 -0.1438 | Bid/Ask 2.06/2.11\n   Candidate ID: QQQ-2026-05-26-PUT-680\n   Setup Family: defined_risk_premium\n   Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.\n   Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.\n   Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.\n   Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.\n   Confidence: 8/10 | Leader Score 69.0 | Structure 85.4\n   Rubric: conviction 60.5, asymmetry 63.4, execution 80.4, invalidation 70.0, timing 60.2, scalp-fit 88.6\n   Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility\n\nRun Notes\n- Leaders emitted: 2\n- Fallback-expiry leaders: 0\n- All leaders matched requested expiry intent directly\n\n",
+    "rawBoard": "BAZAAR OF FORTUNES \u2014 TRADIER LEADERS BOARD\nVIX: 17.98\n\nDirectional / Scalping Leaders\n1. AAPL CALL | Underlying 296.93 | Strike 295.00 | Exp 2026-05-26 | 7DTE | \u0394 0.6274 | Bid/Ask 4.35/5.25\n   Candidate ID: AAPL-2026-05-26-CALL-295\n   Setup Family: directional_momentum\n   Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.\n   Expectations: Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.\n   Invalidation: Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.\n   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.\n   Confidence: 7/10 | Leader Score 68.0 | Structure 78.8\n   Rubric: conviction 73.1, asymmetry 51.7, execution 76.8, invalidation 70.0, timing 61.0, scalp-fit 76.6\n   Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep\n\nPremium / Credit Leaders\n1. QQQ PUT | Underlying 700.34 | Strike 679.00 | Exp 2026-05-26 | 7DTE | \u0394 -0.1407 | Bid/Ask 2.49/2.55\n   Candidate ID: QQQ-2026-05-26-PUT-679\n   Setup Family: defined_risk_premium\n   Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.\n   Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.\n   Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.\n   Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.\n   Confidence: 9/10 | Leader Score 69.9 | Structure 86.5\n   Rubric: conviction 61.1, asymmetry 64.5, execution 82.9, invalidation 70.0, timing 60.3, scalp-fit 88.6\n   Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility\n\nRun Notes\n- Leaders emitted: 3\n- Fallback-expiry leaders: 0\n- All leaders matched requested expiry intent directly\n\n",
     "leaders": [
+      {
+        "section": "directional",
+        "details": [
+          "Candidate ID: AAPL-2026-05-26-CALL-295",
+          "Setup Family: directional_momentum",
+          "Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.",
+          "Expectations: Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.",
+          "Invalidation: Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.",
+          "Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.",
+          "Confidence: 7/10 | Leader Score 68.0 | Structure 78.8",
+          "Rubric: conviction 73.1, asymmetry 51.7, execution 76.8, invalidation 70.0, timing 61.0, scalp-fit 76.6",
+          "Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep"
+        ],
+        "symbol": "AAPL",
+        "option_type": "CALL",
+        "underlying": "296.93",
+        "strike": "295.00",
+        "exp": "2026-05-26",
+        "label": "7DTE",
+        "delta": "0.6274",
+        "bid": "4.35",
+        "ask": "5.25",
+        "fallback": false,
+        "headline": "1. AAPL CALL | Underlying 296.93 | Strike 295.00 | Exp 2026-05-26 | 7DTE | \u0394 0.6274 | Bid/Ask 4.35/5.25",
+        "candidate id": "AAPL-2026-05-26-CALL-295",
+        "setup family": "directional_momentum",
+        "thesis": "Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.",
+        "expectations": "Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.",
+        "invalidation": "Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.",
+        "targets": "T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.",
+        "confidence": "7/10 | Leader Score 68.0 | Structure 78.8",
+        "rubric": "conviction 73.1, asymmetry 51.7, execution 76.8, invalidation 70.0, timing 61.0, scalp-fit 76.6",
+        "risk": "premium-outlay directional trade; demand confirmation and avoid late chasing or size creep"
+      },
       {
         "section": "premium",
         "details": [
-          "Candidate ID: QQQ-2026-05-26-PUT-680",
+          "Candidate ID: QQQ-2026-05-26-PUT-679",
           "Setup Family: defined_risk_premium",
           "Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.",
           "Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.",
           "Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.",
           "Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.",
-          "Confidence: 8/10 | Leader Score 69.0 | Structure 85.4",
-          "Rubric: conviction 60.5, asymmetry 63.4, execution 80.4, invalidation 70.0, timing 60.2, scalp-fit 88.6",
+          "Confidence: 9/10 | Leader Score 69.9 | Structure 86.5",
+          "Rubric: conviction 61.1, asymmetry 64.5, execution 82.9, invalidation 70.0, timing 60.3, scalp-fit 88.6",
           "Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility"
         ],
         "symbol": "QQQ",
         "option_type": "PUT",
-        "underlying": "705.88",
-        "strike": "680.00",
+        "underlying": "700.34",
+        "strike": "679.00",
         "exp": "2026-05-26",
         "label": "7DTE",
-        "delta": "-0.1438",
-        "bid": "2.06",
-        "ask": "2.11",
+        "delta": "-0.1407",
+        "bid": "2.49",
+        "ask": "2.55",
         "fallback": false,
-        "headline": "1. QQQ PUT | Underlying 705.88 | Strike 680.00 | Exp 2026-05-26 | 7DTE | \u0394 -0.1438 | Bid/Ask 2.06/2.11",
-        "candidate id": "QQQ-2026-05-26-PUT-680",
+        "headline": "1. QQQ PUT | Underlying 700.34 | Strike 679.00 | Exp 2026-05-26 | 7DTE | \u0394 -0.1407 | Bid/Ask 2.49/2.55",
+        "candidate id": "QQQ-2026-05-26-PUT-679",
         "setup family": "defined_risk_premium",
         "thesis": "OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.",
         "expectations": "Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.",
         "invalidation": "Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.",
         "targets": "T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.",
-        "confidence": "8/10 | Leader Score 69.0 | Structure 85.4",
-        "rubric": "conviction 60.5, asymmetry 63.4, execution 80.4, invalidation 70.0, timing 60.2, scalp-fit 88.6",
+        "confidence": "9/10 | Leader Score 69.9 | Structure 86.5",
+        "rubric": "conviction 61.1, asymmetry 64.5, execution 82.9, invalidation 70.0, timing 60.3, scalp-fit 88.6",
         "risk": "defined-risk spread only; premium collection is not a license to overstay or sell naked volatility"
       }
     ],
     "overview": {
-      "leaderCount": 1,
-      "directionalCount": 0,
+      "leaderCount": 2,
+      "directionalCount": 1,
       "premiumCount": 1,
       "fallbackCount": 0,
-      "vix": "17.69",
+      "vix": "17.98",
       "runNotes": [
-        "Leaders emitted: 2",
+        "Leaders emitted: 3",
         "Fallback-expiry leaders: 0",
         "All leaders matched requested expiry intent directly"
       ]
     },
     "runNotes": [
-      "Leaders emitted: 2",
+      "Leaders emitted: 3",
       "Fallback-expiry leaders: 0",
       "All leaders matched requested expiry intent directly"
     ],
     "nearMisses": {
-      "updatedAt": "2026-05-19T13:15:33.699364Z",
-      "count": 5103,
+      "updatedAt": "2026-05-19T13:30:33.965941Z",
+      "count": 5154,
       "candidates": [
         {
-          "symbol": "NDX260618P30000000",
-          "option_type": "PUT",
-          "strike": 30000.0,
+          "symbol": "NDX260618C27450000",
+          "option_type": "CALL",
+          "strike": 27450.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.6932,
-          "bid": 1168.7,
-          "ask": 1298.5,
-          "spread_ratio": 0.10522049286640724,
-          "underlying": 28555.22,
+          "delta": 0.7983,
+          "bid": 1837.0,
+          "ask": 2146.9,
+          "spread_ratio": 0.15557619418158092,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -94,16 +128,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDXP260618P30000000",
-          "option_type": "PUT",
-          "strike": 30000.0,
+          "symbol": "NDX260618C27475000",
+          "option_type": "CALL",
+          "strike": 27475.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.6891,
-          "bid": 1221.7,
-          "ask": 1240.2,
-          "spread_ratio": 0.01502904260936675,
-          "underlying": 28555.22,
+          "delta": 0.7953,
+          "bid": 1816.2,
+          "ask": 2129.6,
+          "spread_ratio": 0.15885245070708087,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -114,16 +148,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDX260618P30100000",
-          "option_type": "PUT",
-          "strike": 30100.0,
+          "symbol": "NDX260618C27500000",
+          "option_type": "CALL",
+          "strike": 27500.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.7144,
-          "bid": 1222.9,
-          "ask": 1392.4,
-          "spread_ratio": 0.1296218407066111,
-          "underlying": 28555.22,
+          "delta": 0.7923,
+          "bid": 1784.4,
+          "ask": 2114.1,
+          "spread_ratio": 0.1691419776837244,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -134,16 +168,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDXP260618P30100000",
-          "option_type": "PUT",
-          "strike": 30100.0,
+          "symbol": "NDXP260618C27500000",
+          "option_type": "CALL",
+          "strike": 27500.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.711,
-          "bid": 1250.4,
-          "ask": 1396.5,
-          "spread_ratio": 0.11039329026408244,
-          "underlying": 28555.22,
+          "delta": 0.7914,
+          "bid": 1681.7,
+          "ask": 1908.9,
+          "spread_ratio": 0.12655266529270875,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -154,16 +188,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDX260618P30200000",
-          "option_type": "PUT",
-          "strike": 30200.0,
+          "symbol": "NDX260618C27525000",
+          "option_type": "CALL",
+          "strike": 27525.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.7345,
-          "bid": 1311.9,
-          "ask": 1446.8,
-          "spread_ratio": 0.09779968825896246,
-          "underlying": 28555.22,
+          "delta": 0.7892,
+          "bid": 1687.4,
+          "ask": 2143.6,
+          "spread_ratio": 0.2381623596972069,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -174,16 +208,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDXP260618P30200000",
-          "option_type": "PUT",
-          "strike": 30200.0,
+          "symbol": "NDX260618C27550000",
+          "option_type": "CALL",
+          "strike": 27550.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.7321,
-          "bid": 1317.9,
-          "ask": 1587.0,
-          "spread_ratio": 0.18527315914489303,
-          "underlying": 28555.22,
+          "delta": 0.7862,
+          "bid": 1743.8,
+          "ask": 1998.0,
+          "spread_ratio": 0.13587043668822493,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -194,16 +228,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDX260618P30300000",
+          "symbol": "NDX260618P30500000",
           "option_type": "PUT",
-          "strike": 30300.0,
+          "strike": 30500.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.7542,
-          "bid": 1384.3,
-          "ask": 1618.1,
-          "spread_ratio": 0.15574207300826004,
-          "underlying": 28555.22,
+          "delta": -0.7913,
+          "bid": 1535.6,
+          "ask": 1772.2,
+          "spread_ratio": 0.14305580748533775,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -214,16 +248,16 @@
           "near_miss_score": 84
         },
         {
-          "symbol": "NDXP260618P30300000",
+          "symbol": "NDXP260618P30500000",
           "option_type": "PUT",
-          "strike": 30300.0,
+          "strike": 30500.0,
           "expiration": "2026-06-18",
           "strategy": "Directional / Scalping",
-          "delta": -0.753,
-          "bid": 1389.8,
-          "ask": 1641.3,
-          "spread_ratio": 0.16594635610834352,
-          "underlying": 28555.22,
+          "delta": -0.7928,
+          "bid": 1537.5,
+          "ask": 1793.4,
+          "spread_ratio": 0.15365216608123936,
+          "underlying": 29005.45,
           "rejection_reasons": [
             "reward/risk / distance outside scalping tolerance"
           ],
@@ -2875,8 +2909,8 @@
     "lastCycleRun": "  'updatedAt': datetime.utcnow().isoformat() + 'Z',",
     "refreshTail": [
       "error: failed to push some refs to 'https://github.com/CatabolicSolutions/bazaar-dashboard.git'",
-      "=== Bazaar refresh cycle complete: 2026-05-19T07:00:50-06:00 ===",
-      "=== Bazaar refresh cycle start: 2026-05-19T07:15:01-06:00 ===",
+      "=== Bazaar refresh cycle complete: 2026-05-19T07:15:47-06:00 ===",
+      "=== Bazaar refresh cycle start: 2026-05-19T07:30:01-06:00 ===",
       "<stdin>:10: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).",
       "<stdin>:11: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).",
       "<stdin>:12: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
@@ -3693,7 +3727,7 @@
         "last_preview_ok": true,
         "last_closed_trade_net_pnl_usd": null,
         "top_blocker": "execution_state_older_than_12h",
-        "updated_at": "2026-05-19T13:15:33.792591+00:00"
+        "updated_at": "2026-05-19T13:30:34.055850+00:00"
       },
       "bloc": {
         "funded": false,
@@ -3709,22 +3743,22 @@
         "last_estimated_friction_pct": null,
         "last_closed_trade_net_pnl_usd": null,
         "top_blocker": null,
-        "updated_at": "2026-05-19T13:15:33.792601+00:00"
+        "updated_at": "2026-05-19T13:30:34.055862+00:00"
       }
     }
   },
   "decisionContext": {
-    "updatedAt": "2026-05-19T13:15:33.792685+00:00",
-    "totalLoggedThisRun": 9,
-    "qualifiedTradeCount": 1,
+    "updatedAt": "2026-05-19T13:30:34.055960+00:00",
+    "totalLoggedThisRun": 10,
+    "qualifiedTradeCount": 2,
     "nearMissCount": 8,
     "noTradeEnvironmentLogged": false,
     "writeOk": true
   },
   "decisionOutcomeAttachments": {
-    "updatedAt": "2026-05-19T13:00:36.333395+00:00",
-    "newAttachments": 27,
-    "totalAttachments": 16386,
+    "updatedAt": "2026-05-19T13:15:34.102463+00:00",
+    "newAttachments": 18,
+    "totalAttachments": 16404,
     "horizons": [
       "short",
       "medium",
@@ -3739,7 +3773,7 @@
     "qualifiedTrades": {
       "high": {
         "unfavorable": 701,
-        "favorable": 654,
+        "favorable": 655,
         "unresolved": 6
       },
       "medium": {
@@ -3753,9 +3787,9 @@
       "unknown": {}
     },
     "nearMisses": {
-      "unresolved": 786,
+      "unresolved": 790,
       "worsened": 2147,
-      "mixed": 211
+      "mixed": 215
     },
     "qualificationReasonReview": {
       "Near-ATM delta (0.35-0.80) for directional exposure": {
@@ -3788,17 +3822,17 @@
       },
       "OTM delta (~0.14) for defined-risk premium": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5
       },
       "Spread structure limits max loss": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5
       },
       "Time decay working in your favor": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5
       },
       "Tight bid-ask spread (1.6%)": {
@@ -3836,7 +3870,7 @@
       },
       "Tight bid-ask spread (2.4%)": {
         "unfavorable": 9,
-        "favorable": 29,
+        "favorable": 30,
         "unresolved": 2
       },
       "Tight bid-ask spread (2.7%)": {
@@ -3993,9 +4027,9 @@
     },
     "rejectionReasonReview": {
       "reward/risk / distance outside scalping tolerance": {
-        "unresolved": 786,
+        "unresolved": 790,
         "worsened": 2147,
-        "mixed": 203
+        "mixed": 207
       },
       "insufficient liquidity / weak bid-ask": {
         "mixed": 8
@@ -4005,22 +4039,22 @@
       }
     },
     "sourceCounts": {
-      "decisionRecords": 5594,
-      "outcomeAttachments": 16386
+      "decisionRecords": 5603,
+      "outcomeAttachments": 16404
     }
   },
   "setupQuality": {
     "setupClasses": {
       "directional_momentum": {
         "favorable": 597,
-        "unresolved": 788,
+        "unresolved": 792,
         "worsened": 2147,
         "unfavorable": 602,
-        "mixed": 203
+        "mixed": 207
       },
       "premium_credit": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5,
         "mixed": 8
       }
@@ -4032,9 +4066,9 @@
           "unfavorable": 440
         },
         "high": {
-          "unresolved": 788,
+          "unresolved": 792,
           "worsened": 2147,
-          "mixed": 203,
+          "mixed": 207,
           "favorable": 143,
           "unfavorable": 153
         },
@@ -4045,7 +4079,7 @@
       "premium_credit": {
         "high": {
           "unfavorable": 548,
-          "favorable": 511,
+          "favorable": 512,
           "unresolved": 4,
           "mixed": 8
         },
@@ -4087,17 +4121,17 @@
       },
       "OTM delta (~0.14) for defined-risk premium": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5
       },
       "Spread structure limits max loss": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5
       },
       "Time decay working in your favor": {
         "unfavorable": 654,
-        "favorable": 590,
+        "favorable": 591,
         "unresolved": 5
       },
       "Tight bid-ask spread (1.6%)": {
@@ -4135,7 +4169,7 @@
       },
       "Tight bid-ask spread (2.4%)": {
         "unfavorable": 9,
-        "favorable": 29,
+        "favorable": 30,
         "unresolved": 2
       },
       "Tight bid-ask spread (2.7%)": {
@@ -4292,9 +4326,9 @@
     },
     "rejectionReasonQuality": {
       "reward/risk / distance outside scalping tolerance": {
-        "unresolved": 786,
+        "unresolved": 790,
         "worsened": 2147,
-        "mixed": 203
+        "mixed": 207
       },
       "insufficient liquidity / weak bid-ask": {
         "mixed": 8
@@ -4306,10 +4340,10 @@
     "ranking": [
       {
         "setupClass": "premium_credit",
-        "score": -64,
+        "score": -63,
         "counts": {
           "unfavorable": 654,
-          "favorable": 590,
+          "favorable": 591,
           "unresolved": 5,
           "mixed": 8
         }
@@ -4319,16 +4353,16 @@
         "score": -2152,
         "counts": {
           "favorable": 597,
-          "unresolved": 788,
+          "unresolved": 792,
           "worsened": 2147,
           "unfavorable": 602,
-          "mixed": 203
+          "mixed": 207
         }
       }
     ],
     "sampleSize": {
-      "decisions": 5594,
-      "attachments": 16386,
+      "decisions": 5603,
+      "attachments": 16404,
       "note": "Early pattern ranking only; not statistically mature."
     }
   },
@@ -4337,19 +4371,19 @@
       {
         "setupClass": "premium_credit",
         "preference": "de-emphasized",
-        "score": -64,
-        "sample": 1257,
+        "score": -63,
+        "sample": 1258,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
           "unfavorable": 654,
-          "favorable": 590,
+          "favorable": 591,
           "unresolved": 5,
           "mixed": 8
         },
         "confidenceBands": {
           "high": {
             "unfavorable": 548,
-            "favorable": 511,
+            "favorable": 512,
             "unresolved": 4,
             "mixed": 8
           },
@@ -4364,14 +4398,14 @@
         "setupClass": "directional_momentum",
         "preference": "de-emphasized",
         "score": -2152,
-        "sample": 4337,
+        "sample": 4345,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
           "favorable": 597,
-          "unresolved": 788,
+          "unresolved": 792,
           "worsened": 2147,
           "unfavorable": 602,
-          "mixed": 203
+          "mixed": 207
         },
         "confidenceBands": {
           "medium": {
@@ -4379,9 +4413,9 @@
             "unfavorable": 440
           },
           "high": {
-            "unresolved": 788,
+            "unresolved": 792,
             "worsened": 2147,
-            "mixed": 203,
+            "mixed": 207,
             "favorable": 143,
             "unfavorable": 153
           },
@@ -4397,19 +4431,19 @@
       {
         "setupClass": "premium_credit",
         "preference": "de-emphasized",
-        "score": -64,
-        "sample": 1257,
+        "score": -63,
+        "sample": 1258,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
           "unfavorable": 654,
-          "favorable": 590,
+          "favorable": 591,
           "unresolved": 5,
           "mixed": 8
         },
         "confidenceBands": {
           "high": {
             "unfavorable": 548,
-            "favorable": 511,
+            "favorable": 512,
             "unresolved": 4,
             "mixed": 8
           },
@@ -4424,14 +4458,14 @@
         "setupClass": "directional_momentum",
         "preference": "de-emphasized",
         "score": -2152,
-        "sample": 4337,
+        "sample": 4345,
         "evidenceNote": "Observed pattern currently leans weak",
         "counts": {
           "favorable": 597,
-          "unresolved": 788,
+          "unresolved": 792,
           "worsened": 2147,
           "unfavorable": 602,
-          "mixed": 203
+          "mixed": 207
         },
         "confidenceBands": {
           "medium": {
@@ -4439,9 +4473,9 @@
             "unfavorable": 440
           },
           "high": {
-            "unresolved": 788,
+            "unresolved": 792,
             "worsened": 2147,
-            "mixed": 203,
+            "mixed": 207,
             "favorable": 143,
             "unfavorable": 153
           },
@@ -4454,10 +4488,10 @@
     "qualificationReasonSignals": [
       {
         "reason": "Tight bid-ask spread (2.4%)",
-        "score": 20,
+        "score": 21,
         "counts": {
           "unfavorable": 9,
-          "favorable": 29,
+          "favorable": 30,
           "unresolved": 2
         }
       },
@@ -4507,9 +4541,9 @@
         "reason": "reward/risk / distance outside scalping tolerance",
         "score": -2147,
         "counts": {
-          "unresolved": 786,
+          "unresolved": 790,
           "worsened": 2147,
-          "mixed": 203
+          "mixed": 207
         }
       },
       {
