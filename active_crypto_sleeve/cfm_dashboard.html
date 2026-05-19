@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFM Runner</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #030712; color: #e0e6ed; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12px; padding: 20px; }
+h1 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.12em; color: #6b7b8d; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+h1 .live-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.live-dot.active { background: #1de9b6; box-shadow: 0 0 6px #1de9b6; }
+.live-dot.inactive { background: #ef4444; }
+
+.asset-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.asset-card { border: 1px solid #1a2740; border-radius: 6px; background: #08111e; padding: 14px; }
+.asset-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7b8d; margin-bottom: 4px; }
+.asset-price { font-size: 22px; font-weight: 600; color: #e0e6ed; }
+.asset-meta { font-size: 10px; color: #4a5a6d; margin-top: 6px; display: flex; gap: 12px; }
+.asset-product { color: #3a4a5d; }
+
+.signal-area { border: 1px solid #1a2740; border-radius: 6px; background: #08111e; padding: 14px; margin-bottom: 20px; min-height: 60px; }
+.signal-none { color: #4a5a6d; font-size: 11px; }
+.signal-active { padding: 8px; border-radius: 4px; }
+.signal-active.LONG { border-left: 3px solid #1de9b6; background: #0a1f1a; }
+.signal-active.SHORT { border-left: 3px solid #ef4444; background: #1f0a0a; }
+.signal-dir { font-size: 13px; font-weight: 600; }
+.signal-detail { font-size: 11px; color: #c0c8d0; margin-top: 4px; }
+.signal-conf { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; margin-left: 6px; }
+.signal-conf.HIGH { background: #1de9b6; color: #030712; }
+.signal-conf.MEDIUM { background: #f5a623; color: #030712; }
+.signal-conf.LOW { background: #4a5a6d; color: #c0c8d0; }
+
+.status-bar { display: flex; gap: 24px; font-size: 10px; color: #4a5a6d; margin-bottom: 16px; padding: 10px; border: 1px solid #1a2740; border-radius: 6px; background: #08111e; flex-wrap: wrap; }
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-label { text-transform: uppercase; letter-spacing: 0.06em; }
+.status-val { color: #c0c8d0; }
+.status-val.green { color: #1de9b6; }
+.status-val.amber { color: #f5a623; }
+
+.pending-card { border: 1px solid #f5a623; border-radius: 6px; background: #1a1408; padding: 12px; margin-bottom: 20px; display: none; }
+.pending-card.visible { display: block; }
+.pending-title { font-size: 10px; text-transform: uppercase; color: #f5a623; margin-bottom: 4px; }
+
+.loading { color: #4a5a6d; font-size: 11px; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+.timestamp { font-size: 10px; color: #2a3a4d; text-align: right; margin-top: 20px; }
+.error { color: #ef4444; font-size: 11px; padding: 8px; border-left: 3px solid #ef4444; background: #1f0a0a; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1><span class="live-dot" id="live-dot"></span> Coinbase CFM — Active Runner</h1>
+
+<div class="status-bar">
+  <div class="status-item"><span class="status-label">Status:</span><span class="status-val" id="st-runner">—</span></div>
+  <div class="status-item"><span class="status-label">Live Trading:</span><span class="status-val" id="st-live">—</span></div>
+  <div class="status-item"><span class="status-label">Risk:</span><span class="status-val" id="st-risk">—</span></div>
+  <div class="status-item"><span class="status-label">Leverage:</span><span class="status-val" id="st-leverage">—</span></div>
+  <div class="status-item"><span class="status-label">Signal:</span><span class="status-val" id="st-signal">None</span></div>
+  <div class="status-item"><span class="status-label">Cycle:</span><span class="status-val" id="st-cycle">—</span></div>
+</div>
+
+<div class="asset-grid" id="asset-grid"></div>
+
+<div class="signal-area" id="signal-area">
+  <div class="signal-none" id="signal-none">No active sweep setup detected</div>
+</div>
+
+<div class="pending-card" id="pending-card">
+  <div class="pending-title">Pending Trade</div>
+  <div id="pending-body"></div>
+</div>
+
+<div class="timestamp" id="timestamp"></div>
+
+<script>
+const ASSET_LABELS = {
+  "BIP-20DEC30-CDE": { short: "BTC", name: "Bitcoin Perp", params: "sweep 0.10% reclaim 0.05%" },
+  "ETP-20DEC30-CDE": { short: "ETH", name: "Ethereum Perp", params: "sweep 0.10% reclaim 0.05%" },
+  "SLP-20DEC30-CDE": { short: "SOL", name: "Solana Perp", params: "sweep 0.15% reclaim 0.07%" },
+  "GOL-27MAY26-CDE": { short: "GOLD", name: "Gold Future (May 26)", params: "sweep 0.05% reclaim 0.03%" },
+  "MC-18JUN26-CDE": { short: "MAG7C", name: "Mag 7 Index (Jun 26)", params: "sweep 0.08% reclaim 0.04%" },
+};
+
+function $(id) { return document.getElementById(id); }
+
+async function poll() {
+  try {
+    const r = await fetch('/agora/api/agora/active-crypto');
+    const d = await r.json();
+    render(d);
+  } catch(e) {
+    $('live-dot').className = 'live-dot inactive';
+    $('signal-area').innerHTML = '<div class="error">API error: ' + e.message + '</div>';
+  }
+}
+
+function render(d) {
+  $('live-dot').className = d.ok ? 'live-dot active' : 'live-dot inactive';
+  $('st-runner').textContent = d.ok ? 'Active' : 'Error';
+  $('st-runner').className = 'status-val ' + (d.ok ? 'green' : '');
+
+  const live = d.live_trading_enabled;
+  $('st-live').textContent = live ? 'ENABLED' : 'DISABLED';
+  $('st-live').className = 'status-val ' + (live ? 'green' : 'amber');
+
+  const g = d.guardrails || {};
+  $('st-risk').textContent = g.max_trade_risk_pct + '%';
+  $('st-leverage').textContent = g.max_leverage + 'x';
+  $('st-signal').textContent = d.active_signal ? d.active_signal.direction + ' ' + d.active_signal.market : 'None';
+
+  $('st-cycle').textContent = d.heartbeat_updated_at ? new Date(d.heartbeat_updated_at).toLocaleTimeString() : '—';
+
+  // Asset grid
+  let html = '';
+  const mids = d.mids || {};
+  for (const [pid, info] of Object.entries(ASSET_LABELS)) {
+    const price = mids[pid];
+    if (price === undefined) continue;
+    const abs = Math.abs(price);
+    const formatted = abs >= 100 ? price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) :
+                     abs >= 1 ? price.toFixed(4) : price.toFixed(6);
+    html += '<div class="asset-card">';
+    html += '<div class="asset-label">' + info.short + '</div>';
+    html += '<div class="asset-price">$' + formatted + '</div>';
+    html += '<div class="asset-meta"><span>' + info.name + '</span><span class="asset-product">' + info.params + '</span></div>';
+    html += '</div>';
+  }
+  $('asset-grid').innerHTML = html;
+
+  // Signal
+  const sig = d.active_signal;
+  if (sig) {
+    $('signal-none').style.display = 'none';
+    const sigArea = $('signal-area');
+    sigArea.innerHTML = '<div class="signal-active ' + sig.direction + '">' +
+      '<div><span class="signal-dir">' + sig.direction + ' ' + sig.market + '</span>' +
+      '<span class="signal-conf ' + sig.confidence + '">' + sig.confidence + '</span></div>' +
+      '<div class="signal-detail">' + (sig.signal_detail || '') + '</div>' +
+      '<div style="margin-top:6px;font-size:10px;color:#6b7b8d">Entry: ' + (sig.entry_zone || '—') + ' | Stop: $' + (sig.stop || '—') + ' | Vol: ' + (sig.volume_ratio || '—') + 'x</div>' +
+      '</div>';
+  } else {
+    $('signal-none').style.display = 'block';
+  }
+
+  // Pending trade
+  const pc = $('pending-card');
+  if (d.pending_trade) {
+    pc.className = 'pending-card visible';
+    $('pending-body').innerHTML = '<div style="font-size:11px">Trade ID: <span style="color:#f5a623">' + d.pending_trade + '</span></div>';
+  } else {
+    pc.className = 'pending-card';
+  }
+
+  // Timestamp
+  $('timestamp').textContent = 'Updated: ' + (d.updated_at ? new Date(d.updated_at).toLocaleString() : '—');
+}
+
+poll();
+setInterval(poll, 10000);
+</script>
+</body>
+</html>

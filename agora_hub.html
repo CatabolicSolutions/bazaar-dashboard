@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGORA — Bazaar of Fortunes</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#030712;color:#e0e6ed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:16px;min-height:100vh}
+.header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#08111e;border:1px solid #1a2740;border-radius:8px;margin-bottom:16px}
+.header h1{font-size:16px;font-weight:600;color:#e0e6ed;display:flex;align-items:center;gap:10px}
+.header h1 span{background:linear-gradient(135deg,#1de9b6,#00bcd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.health-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.health-dot.green{background:#1de9b6;box-shadow:0 0 6px rgba(29,233,182,.5)}
+.health-dot.amber{background:#f5a623;box-shadow:0 0 6px rgba(245,166,35,.5)}
+.health-dot.red{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.5)}
+.health-dot.grey{background:#4a5a6d}
+.header-meta{display:flex;align-items:center;gap:16px;font-size:11px;color:#6b7b8d}
+.header-meta .ts{font-family:'SF Mono','Fira Code','Consolas',monospace;color:#4a5a6d}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px}
+
+.card{border:1px solid #1a2740;border-radius:8px;background:#08111e;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #1a2740;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7b8d}
+.card-header .card-title{font-weight:600}
+.card-body{padding:14px}
+
+.price-card{text-align:center;padding:16px 12px}
+.price-card .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#6b7b8d;margin-bottom:4px;font-weight:500}
+.price-card .price{font-size:26px;font-weight:600;color:#e0e6ed;font-family:'SF Mono','Fira Code','Consolas',monospace}
+.price-card .meta{font-size:10px;color:#4a5a6d;margin-top:6px}
+
+.stat-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(20,32,48,.5)}
+.stat-row:last-child{border:none}
+.stat-label{color:#6b7b8d}
+.stat-value{color:#c0c8d0;font-family:'SF Mono','Fira Code','Consolas',monospace;font-size:11px}
+.stat-value.green{color:#1de9b6}
+.stat-value.amber{color:#f5a623}
+.stat-value.red{color:#ef4444}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{text-align:left;padding:6px 8px;color:#6b7b8d;font-weight:500;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1a2740;position:sticky;top:0;background:#08111e}
+tbody td{padding:5px 8px;border-bottom:1px solid rgba(20,32,48,.5);white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,.02)}
+.num{text-align:right;font-family:'SF Mono','Fira Code','Consolas',monospace}
+.pos{color:#1de9b6}
+.neg{color:#ef4444}
+
+.signal-banner{padding:10px 14px;border-radius:6px;margin-bottom:10px;font-size:12px;display:none}
+.signal-banner.long{display:block;border-left:3px solid #1de9b6;background:#0a1f1a}
+.signal-banner.short{display:block;border-left:3px solid #ef4444;background:#1f0a0a}
+.signal-dir{font-weight:700;font-size:13px}
+.signal-conf{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:8px;vertical-align:middle}
+.signal-conf.HIGH{background:#1de9b6;color:#030712}
+.signal-conf.MEDIUM{background:#f5a623;color:#030712}
+.signal-conf.LOW{background:#4a5a6d;color:#c0c8d0}
+.signal-detail{font-size:11px;color:#a0a8b0;margin-top:4px}
+
+.pending-banner{border:1px solid #f5a623;background:#1a1408;border-radius:6px;padding:10px 14px;margin-bottom:10px;display:none;font-size:12px}
+.pending-banner.visible{display:flex;align-items:center;gap:8px}
+.pending-banner .tag{background:#f5a623;color:#030712;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase}
+
+.empty-state{padding:24px;text-align:center;color:#4a5a6d;font-size:12px}
+.loading{color:#4a5a6d;font-size:11px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+.mono{font-family:'SF Mono','Fira Code','Consolas',monospace}
+.w-full{width:100%}
+.mt-8{margin-top:8px}
+.mb-8{margin-bottom:8px}
+.flex{display:flex}
+.items-center{align-items:center}
+.gap-8{gap:8px}
+.text-xs{font-size:11px}
+.text-2{color:#6b7b8d}
+.text-mono{font-family:'SF Mono','Fira Code','Consolas',monospace}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="health-dot" id="hdr-health"></span> <span>AGORA</span> <span style="font-weight:400;font-size:13px;color:#6b7b8d;background:0;font-variant-numeric:tabular-nums">Bazaar of Fortunes</span></h1>
+  <div class="header-meta">
+    <span id="hdr-cfm">CFM —</span>
+    <span id="hdr-rotator">ROTATOR —</span>
+    <span id="hdr-tradier">TRADIER —</span>
+    <span class="ts" id="hdr-ts">—</span>
+  </div>
+</div>
+
+<!-- CFM RUNNER -->
+<div class="card mb-8">
+  <div class="card-header">
+    <span class="card-title">⚡ Coinbase CFM — Active Sleeve</span>
+    <span id="cfm-status" style="font-size:10px;color:#4a5a6d">—</span>
+  </div>
+  <div class="card-body">
+    <div class="grid-5" id="cfm-prices"></div>
+    <div id="cfm-signal"></div>
+    <div id="cfm-pending"></div>
+    <div class="stat-row" style="padding:6px 0 0">
+      <span class="stat-label">Guardrails</span>
+      <span class="stat-value green" id="cfm-guardrails">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ROTATOR & TRADIER -->
+<div class="grid-2">
+  <!-- UNISWAP ROTATOR -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🔄 Uniswap Rotator — Compounder</span>
+      <span id="rot-status" style="font-size:10px;color:#4a5a6d">—</span>
+    </div>
+    <div class="card-body" id="rot-body">
+      <div class="loading">Loading rotator state…</div>
+    </div>
+  </div>
+
+  <!-- TRADIER LEADERS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 Tradier — Options Leaders</span>
+      <span id="trad-status" style="font-size:10px;color:#4a5a6d">—</span>
+    </div>
+    <div class="card-body" id="trad-body">
+      <div class="loading">Loading Tradier leaders…</div>
+    </div>
+  </div>
+</div>
+
+<!-- POSITIONS -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">💼 Positions</span>
+    <span id="pos-status" style="font-size:10px;color:#4a5a6d">—</span>
+  </div>
+  <div class="card-body" id="pos-body">
+    <div class="loading">Loading positions…</div>
+  </div>
+</div>
+
+<script>
+const API = '/agora/api/agora';
+
+const ASSET_META = {
+  "BIP-20DEC30-CDE":{sym:"BTC",name:"Bitcoin Perp",params:"sweep 0.10%"},
+  "ETP-20DEC30-CDE":{sym:"ETH",name:"Ethereum Perp",params:"sweep 0.10%"},
+  "SLP-20DEC30-CDE":{sym:"SOL",name:"Solana Perp",params:"sweep 0.15%"},
+  "GOL-27MAY26-CDE":{sym:"GOLD",name:"Gold Future",params:"sweep 0.05%"},
+  "MC-18JUN26-CDE":{sym:"MAG7",name:"Mag 7 Index",params:"sweep 0.08%"},
+};
+
+// ── Formatting ──
+function fmtPnl(v){if(v===undefined||v===null)return '—';const s=v.toFixed(2);return (v>=0?'+'+s:s)}
+function fmt$(v){if(v===undefined||v===null)return '—';return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtPct(v){if(v===undefined||v===null)return '—';return (v>=0?'+':'')+v.toFixed(2)+'%'}
+function timeAgo(iso){if(!iso)return '—';const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return Math.round(s)+'s ago';if(s<3600)return Math.round(s/60)+'m ago';return Math.round(s/3600)+'h ago'}
+
+// ── API ──
+async function fetchJson(url){const r=await fetch(url);return r.json()}
+
+function setHealth(id,ok){const el=document.getElementById(id);if(!el)return;el.className='health-dot '+(ok==null?'grey':ok?'green':'red')}
+
+// ── CFM Runner ──
+async function renderCFM(){
+  try{
+    const d=await fetchJson(API+'/active-crypto');
+    setHealth('hdr-cfm',d.ok);
+    document.getElementById('cfm-status').textContent=d.ok?'Active':'Error';
+
+    // Prices
+    const mids=d.mids||{};
+    let html='';
+    for(const[pid,meta]of Object.entries(ASSET_META)){
+      const p=mids[pid];if(p===undefined)continue;
+      const abs=Math.abs(p);
+      const f=abs>=100?fmt$(p):abs>=1?p.toFixed(4):p.toFixed(6);
+      html+='<div class="price-card"><div class="label">'+meta.sym+'</div><div class="price">$'+f+'</div><div class="meta">'+meta.params+'</div></div>';
+    }
+    document.getElementById('cfm-prices').innerHTML=html||'<div class="empty-state">No prices available</div>';
+
+    // Signal
+    const sig=d.active_signal;
+    const sigEl=document.getElementById('cfm-signal');
+    if(sig){
+      const dir=sig.direction||sig.signal_detail?.toLowerCase().includes('long')?'LONG':'SHORT';
+      sigEl.innerHTML='<div class="signal-banner '+dir.toLowerCase()+'"><div><span class="signal-dir">'+dir+' '+(sig.market||'')+'</span><span class="signal-conf '+(sig.confidence||'LOW')+'">'+(sig.confidence||'LOW')+'</span></div><div class="signal-detail">'+(sig.signal_detail||'')+'</div></div>';
+    }else{
+      sigEl.innerHTML='';
+    }
+
+    // Pending
+    const pendEl=document.getElementById('cfm-pending');
+    if(d.pending_trade){
+      pendEl.innerHTML='<div class="pending-banner visible"><span class="tag">PENDING</span> Trade <span class="mono">'+d.pending_trade+'</span></div>';
+    }else pendEl.innerHTML='';
+
+    // Guardrails
+    const g=d.guardrails||{};
+    const live=d.live_trading_enabled?'🔓 LIVE':'🔒 DRY';
+    document.getElementById('cfm-guardrails').textContent=live+' | '+g.max_trade_risk_pct+'% risk | '+g.max_leverage+'x lev | max 1 pos';
+    document.getElementById('hdr-ts').textContent=d.heartbeat_updated_at?timeAgo(d.heartbeat_updated_at):'—';
+  }catch(e){
+    document.getElementById('cfm-prices').innerHTML='<div class="empty-state">API error: '+e.message+'</div>';
+    setHealth('hdr-cfm',false);
+  }
+}
+
+// ── Rotator ──
+async function renderRotator(){
+  try{
+    const d=await fetchJson(API+'/rotator-hub');
+    setHealth('hdr-rotator',d.ok);
+    const h=d.hub||{};
+    const bal=h.balances||{};
+    const perf=h.recent_performance||{};
+    const side=h.current_side||'?';
+
+    let html='';
+    html+='<div class="stat-row"><span class="stat-label">Side</span><span class="stat-value '+(side==='CBBTC'?'green':side==='USDC'?'amber':'')+'">'+side+'</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">Portfolio</span><span class="stat-value green">$'+fmt$(h.portfolio_value_usd)+'</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">CBBTC</span><span class="stat-value">'+(bal.cbbtc?bal.cbbtc.toFixed(6):'0')+' BTC</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">WETH</span><span class="stat-value">'+(bal.weth?bal.weth.toFixed(6):'0')+' ETH</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">USDC</span><span class="stat-value">$'+(bal.usdc?bal.usdc.toFixed(2):'0.00')+'</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">Total Trades</span><span class="stat-value">'+(perf.trade_count||0)+'</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">Net PnL</span><span class="stat-value '+(perf.usd_delta_total>=0?'green':'red')+'">'+fmt$(perf.usd_delta_total)+'</span></div>';
+    html+='<div class="stat-row"><span class="stat-label">Status</span><span class="stat-value '+(h.status==='live'?'green':'amber')+'">'+(h.status||'—')+'</span></div>';
+    html+='<div class="stat-row" style="border:none"><span class="stat-label">Alert</span><span class="stat-value">'+(h.latest_alert||'NONE')+'</span></div>';
+
+    document.getElementById('rot-body').innerHTML=html;
+    document.getElementById('rot-status').textContent=side;
+  }catch(e){
+    document.getElementById('rot-body').innerHTML='<div class="empty-state">Error: '+e.message+'</div>';
+    setHealth('hdr-rotator',false);
+  }
+}
+
+// ── Tradier Leaders ──
+async function renderTradier(){
+  try{
+    const d=await fetchJson(API+'/tradier-leaders');
+    setHealth('hdr-tradier',d.ok);
+    const candidates=d.ranked_candidates||[];
+    if(!candidates.length){
+      document.getElementById('trad-body').innerHTML='<div class="empty-state">No leaders available</div>';
+      document.getElementById('trad-status').textContent='—';
+      return;
+    }
+    let html='<div style="max-height:380px;overflow-y:auto"><table><thead><tr><th>#</th><th>Sym</th><th>Strike</th><th>Type</th><th>Mid</th><th>Vol</th><th>OI</th><th>DTE</th><th>Score</th></tr></thead><tbody>';
+    candidates.slice(0,10).forEach((c,i)=>{
+      const volFmt=c.volume>=1000?(c.volume/1000).toFixed(1)+'k':c.volume;
+      const oiFmt=c.open_interest>=1000?(c.open_interest/1000).toFixed(1)+'k':c.open_interest;
+      html+='<tr><td>'+(i+1)+'</td><td style="font-weight:600">'+c.symbol+'</td><td class="num">$'+c.strike+'</td><td>'+c.option_type+'</td><td class="num">$'+c.mid.toFixed(3)+'</td><td class="num">'+volFmt+'</td><td class="num">'+oiFmt+'</td><td class="num">'+c.dte+'</td><td class="num" style="color:'+(c.score>=75?'#1de9b6':c.score>=65?'#f5a623':'#c0c8d0')+';font-weight:600">'+c.score+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    document.getElementById('trad-body').innerHTML=html;
+    document.getElementById('trad-status').textContent=candidates.length+' candidates';
+  }catch(e){
+    document.getElementById('trad-body').innerHTML='<div class="empty-state">Error: '+e.message+'</div>';
+    setHealth('hdr-tradier',false);
+  }
+}
+
+// ── Positions ──
+async function renderPositions(){
+  try{
+    const d=await fetchJson(API+'/position-monitor');
+    const positions=d.positions||[];
+    if(!positions.length){
+      document.getElementById('pos-body').innerHTML='<div class="empty-state">No open positions</div>';
+      document.getElementById('pos-status').textContent='0';
+      return;
+    }
+    let html='<table><thead><tr><th>Account</th><th>Symbol</th><th>Option</th><th>Qty</th><th>Entry</th><th>Mid</th><th>PnL</th><th>PnL %</th><th>State</th></tr></thead><tbody>';
+    positions.forEach(p=>{
+      const pnlClass=p.pnl_total>=0?'pos':'neg';
+      html+='<tr><td>'+(p.account||'—')+'</td><td style="font-weight:600">'+(p.symbol||'—')+'</td><td style="font-size:10px;color:#6b7b8d">'+(p.option_symbol||'—')+'</td><td class="num">'+(p.qty||0)+'</td><td class="num">$'+fmt$(p.entry_price)+'</td><td class="num">$'+fmt$(p.current_mid)+'</td><td class="num '+pnlClass+'">'+fmt$(p.pnl_total)+'</td><td class="num '+pnlClass+'">'+fmtPct(p.pnl_pct)+'</td><td><span style="font-size:10px;color:'+(p.state==='damage_control'?'#ef4444':'#1de9b6')+'">'+(p.state||'—')+'</span></td></tr>';
+    });
+    html+='</tbody></table>';
+    document.getElementById('pos-body').innerHTML=html;
+    document.getElementById('pos-status').textContent=positions.length+' position'+(positions.length>1?'s':'');
+  }catch(e){
+    document.getElementById('pos-body').innerHTML='<div class="empty-state">Error: '+e.message+'</div>';
+  }
+}
+
+// ── Poll ──
+async function poll(){
+  await Promise.allSettled([renderCFM(),renderRotator(),renderTradier(),renderPositions()]);
+}
+poll();
+setInterval(poll,15000);
+</script>
+</body>
+</html>
