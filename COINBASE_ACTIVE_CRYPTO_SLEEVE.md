@@ -60,7 +60,7 @@ Agora attachment, 2026-05-18:
 - Signal cards are review-only. They show market, direction, setup family, entry trigger, invalidation, targets, max notional, max dollars at risk, leverage cap, approval state, and order state.
 - Current signal mode: `review_only`; live switch is off; zero positions; zero open orders.
 - Current automatic card posture: `WAIT_FOR_LONG_RECLAIM` for BTC PERP and ETH PERP. This is not an order. It is the visible proposal layer before approval.
-- Current caps from live account snapshot: max planned risk about $2.64 per trade, BTC max notional about $439.50, ETH max notional about $351.60, subject to explicit approval and fresh account state.
+- Current caps from live account snapshot: max planned risk about $2.64 per trade (to be recalibrated to 50% ceiling). BTC max notional about $439.50, ETH max notional about $351.60, subject to explicit approval and fresh account state.
 
 ## Starting Bankroll
 
@@ -69,8 +69,8 @@ Recommended initial sleeve: $250-$500.
 This is enough to make live behavior meaningful without letting one bug become another K-Day.
 
 Initial limits:
-- Max daily loss: 30% of sleeve.
-- Max per-trade loss: 25% of sleeve.
+- Max daily loss: 100% of sleeve.
+- Max per-trade loss: 50% of sleeve.
 - Max open positions: 1.
 - Initial markets: BTC and ETH only.
 - Initial leverage cap: 2x.
@@ -243,8 +243,8 @@ Required checks before every order:
 - No order if stop cannot be placed.
 
 Recommended initial values:
-- Max trade risk: 25%.
-- Max daily risk: 30%.
+- Max trade risk: 50% of sleeve.
+- Max daily risk: 100% of sleeve.
 - Max trades/day: 6.
 - Cooldown after 2 losses: 30 minutes.
 - Max notional: bankroll * 2.
