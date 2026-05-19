@@ -1,0 +1,18 @@
+[Unit]
+Description=Active Crypto Sleeve - Continuous Market Monitor
+After=network-online.target bazaar-dashboard.service
+Wants=bazaar-dashboard.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/bazaar-dashboard
+WorkingDirectory=/var/www/bazaar
+ExecStart=/usr/bin/python3 -c "import sys; sys.path.insert(0,'/var/www/bazaar'); from active_crypto_sleeve.runner import run_loop; run_loop(interval=30.0)"
+Restart=always
+RestartSec=10
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
