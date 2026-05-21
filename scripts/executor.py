@@ -26,6 +26,16 @@ APPROVAL_STATE_PATH = ROOT / "state" / "active_crypto_sleeve_approval.json"
 PENDING_TRADE_PATH = ROOT / "state" / "active_crypto_sleeve_pending_trade.json"
 
 
+def _is_cfm_product(product_id: str) -> bool:
+    """Detect CFM futures vs spot products by product ID pattern.
+
+    CFM products have date+expiry in their ID (e.g. BIP-20DEC30-CDE).
+    Spot products are simple XXX-XXX (e.g. BTC-USD).
+    """
+    parts = product_id.split("-")
+    return len(parts) >= 3 and parts[0].isalpha() and len(parts[1]) >= 6
+
+
 class TradeApprovalGate:
     """Approval gate: no order executes without explicit Conor approval."""
 
@@ -110,7 +120,7 @@ class CoinbaseExecutor:
         self.approval = TradeApprovalGate()
 
     def _jwt_post(self, path: str, body: dict) -> dict:
-        """POST with JWT auth."""
+        """POST with JWT auth. Returns ok=True only on HTTP 200 + success=True in body."""
         uri = f"POST {self.client.config.host}{path}"
         now = int(time.time())
         payload = {
@@ -132,7 +142,14 @@ class CoinbaseExecutor:
             resp = response.json()
         except Exception:
             resp = {"raw": response.text}
-        return {"ok": response.ok, "status_code": response.status_code, "path": path, "payload": resp}
+        # Coinbase may return HTTP 200 with success=false in the body
+        business_ok = resp.get("success", True)
+        return {
+            "ok": response.ok and business_ok,
+            "status_code": response.status_code,
+            "path": path,
+            "payload": resp,
+        }
 
     def place_order(
         self,
@@ -143,17 +160,19 @@ class CoinbaseExecutor:
         limit_price: str | None = None,
         stop_price: str | None = None,
         time_in_force: str = "FOK",
+        current_mid: str | None = None,
     ) -> dict:
         """Place a Coinbase CFM order.
 
         Args:
             product_id: e.g. BIP-20DEC30-CDE
             side: BUY or SELL
-            size: quantity as string
+            size: USD amount for market orders (converted to contract count for CFM)
             order_type: MARKET, LIMIT, STOP
             limit_price: required for LIMIT/STOP
             stop_price: required for STOP
             time_in_force: FOK, IOC, GTC, GTT
+            current_mid: current mid price (required for CFM market orders)
         """
         live_enabled = os.getenv("ACTIVE_CRYPTO_LIVE_ENABLED", "false").lower() == "true"
         if not live_enabled:
@@ -170,36 +189,64 @@ class CoinbaseExecutor:
         # Position cap removed per Conor: let risk sizing manage aggregate exposure
         existing = (pos_result.get("payload", {}) or {}).get("positions", [])
 
-        order_body = {
-            "product_id": product_id,
-            "side": side.upper(),
-            "order_configuration": {
-                "market_market_ioc": {
-                    "quote_size": size,
+        is_cfm = _is_cfm_product(product_id)
+
+        # Build order body: CFM futures use base_size (contracts), spot uses quote_size (USD)
+        if order_type == "MARKET":
+            if is_cfm:
+                if not current_mid:
+                    return {"ok": False, "error": "current_mid required for CFM market order"}
+                contract_count = float(size) / float(current_mid)
+                base_size_str = f"{contract_count:.6f}"
+                order_body = {
+                    "product_id": product_id,
+                    "side": side.upper(),
+                    "order_configuration": {
+                        "market_market_ioc": {
+                            "base_size": base_size_str,
+                        }
+                    },
                 }
-            },
-        }
-        if order_type == "LIMIT" and limit_price:
-            order_body["order_configuration"] = {
-                "limit_limit_gtc": {
-                    "base_size": size,
-                    "limit_price": limit_price,
-                    "post_only": False,
+            else:
+                order_body = {
+                    "product_id": product_id,
+                    "side": side.upper(),
+                    "order_configuration": {
+                        "market_market_ioc": {
+                            "quote_size": size,
+                        }
+                    },
                 }
+        elif order_type == "LIMIT" and limit_price:
+            order_body = {
+                "product_id": product_id,
+                "side": side.upper(),
+                "order_configuration": {
+                    "limit_limit_gtc": {
+                        "base_size": size,
+                        "limit_price": limit_price,
+                        "post_only": False,
+                    }
+                },
             }
         elif order_type == "STOP" and limit_price:
-            order_body["order_configuration"] = {
-                "stop_limit_stop_limit_gtc": {
-                    "base_size": size,
-                    "limit_price": limit_price,
-                    "stop_price": stop_price or limit_price,
-                }
+            order_body = {
+                "product_id": product_id,
+                "side": side.upper(),
+                "order_configuration": {
+                    "stop_limit_stop_limit_gtc": {
+                        "base_size": size,
+                        "limit_price": limit_price,
+                        "stop_price": stop_price or limit_price,
+                    }
+                },
             }
+        else:
+            return {"ok": False, "error": f"Unsupported order type/config: {order_type}"}
 
         result = self._jwt_post(f"{self.client.config.api_prefix}/orders", order_body)
 
         if result.get("ok"):
-            # Mark this trade as submitted
             pending = get_pending_trade()
             if pending:
                 pending["submitted"] = True
@@ -207,6 +254,9 @@ class CoinbaseExecutor:
                 pending["order_response"] = result.get("payload", {})
                 PENDING_TRADE_PATH.write_text(json.dumps(pending, indent=2))
             self.approval.reset()
+        else:
+            # Order rejected — clear stale pending trade so next cycle can try again
+            clear_pending_trade()
 
         return result
 
@@ -214,18 +264,35 @@ class CoinbaseExecutor:
         body = {"order_ids": [order_id]}
         return self._jwt_post(f"{self.client.config.api_prefix}/orders/batch_cancel", body)
 
-    def close_position(self, product_id: str, side: str, size: str) -> dict:
+    def close_position(self, product_id: str, side: str, size: str, current_mid: str | None = None) -> dict:
         """Close a CFM position by placing an opposite-side order."""
         close_side = "SELL" if side.upper() == "BUY" else "BUY"
-        body = {
-            "product_id": product_id,
-            "side": close_side,
-            "order_configuration": {
-                "market_market_ioc": {
-                    "quote_size": size,
-                }
-            },
-        }
+        is_cfm = _is_cfm_product(product_id)
+
+        if is_cfm:
+            if not current_mid:
+                return {"ok": False, "error": "current_mid required for CFM close position"}
+            contract_count = float(size) / float(current_mid)
+            base_size_str = f"{contract_count:.6f}"
+            body = {
+                "product_id": product_id,
+                "side": close_side,
+                "order_configuration": {
+                    "market_market_ioc": {
+                        "base_size": base_size_str,
+                    }
+                },
+            }
+        else:
+            body = {
+                "product_id": product_id,
+                "side": close_side,
+                "order_configuration": {
+                    "market_market_ioc": {
+                        "quote_size": size,
+                    }
+                },
+            }
         return self._jwt_post(f"{self.client.config.api_prefix}/orders", body)
 
 
