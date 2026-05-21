@@ -1,42 +1,21 @@
 BAZAAR OF FORTUNES — TRADIER LEADERS BOARD
-VIX: 17.44
-
-Directional / Scalping Leaders
-1. IWM PUT | Underlying 279.87 | Strike 283.00 | Exp 2026-05-27 | 7DTE | Δ -0.6545 | Bid/Ask 4.63/4.74
-   Candidate ID: IWM-2026-05-27-PUT-283
-   Setup Family: directional_momentum
-   Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.
-   Expectations: Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.
-   Invalidation: Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.
-   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.
-   Confidence: 9/10 | Leader Score 71.9 | Structure 86.1
-   Rubric: conviction 74.9, asymmetry 52.4, execution 95.4, invalidation 70.0, timing 59.3, scalp-fit 77.6
-   Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep
-2. AAPL CALL | Underlying 302.25 | Strike 300.00 | Exp 2026-05-27 | 7DTE | Δ 0.6154 | Bid/Ask 4.45/4.85
-   Candidate ID: AAPL-2026-05-27-CALL-300
-   Setup Family: directional_momentum
-   Thesis: Liquid near-ATM directional expression with strong delta efficiency; requires real momentum confirmation before entry.
-   Expectations: Best used when price confirms continuation and intraday follow-through is present; avoid dead tape or late chasing.
-   Invalidation: Momentum fails, tape stalls, or spread deteriorates beyond acceptable execution quality.
-   Targets: T1 quick scale, T2 momentum extension, T3 runner only if trend and tape quality persist.
-   Confidence: 8/10 | Leader Score 71.7 | Structure 85.0
-   Rubric: conviction 77.2, asymmetry 52.6, execution 87.9, invalidation 70.0, timing 61.2, scalp-fit 79.3
-   Risk: premium-outlay directional trade; demand confirmation and avoid late chasing or size creep
+VIX: 17.66
 
 Premium / Credit Leaders
-1. SPY PUT | Underlying 741.25 | Strike 715.00 | Exp 2026-06-03 | 14DTE | Δ -0.1383 | Bid/Ask 1.75/1.78
-   Candidate ID: SPY-2026-06-03-PUT-715
+1. AMD PUT | Underlying 447.58 | Strike 380.00 | Exp 2026-06-05 | 15DTE (requested 14DTE, fallback) | Δ -0.1261 | Bid/Ask 4.80/4.90 [fallback-expiry]
+   Candidate ID: AMD-2026-06-05-PUT-380
    Setup Family: defined_risk_premium
    Thesis: OTM premium candidate with cleaner delta/liquidity structure, suitable only inside a defined-risk spread framework.
    Expectations: Best used when the underlying is stable-to-favorable and implied risk does not demand chasing or over-sizing.
    Invalidation: Volatility regime shifts, structure widens, or the spread no longer offers favorable defined-risk capture.
    Targets: T1 25-35% capture, T2 50% capture, T3 only while risk remains clearly contained.
-   Confidence: 8/10 | Leader Score 68.5 | Structure 85.8
-   Rubric: conviction 61.1, asymmetry 63.1, execution 79.3, invalidation 70.0, timing 55.2, scalp-fit 89.0
+   Confidence: 6/10 | Leader Score 71.6 | Structure 72.1
+   Rubric: conviction 58.4, asymmetry 66.6, execution 96.7, invalidation 70.0, timing 55.0, scalp-fit 88.8
    Risk: defined-risk spread only; premium collection is not a license to overstay or sell naked volatility
+   Note: No exact 14DTE expiry available; using nearest valid expiry 2026-06-05.
 
 Run Notes
-- Leaders emitted: 3
-- Fallback-expiry leaders: 0
-- All leaders matched requested expiry intent directly
+- Leaders emitted: 2
+- Fallback-expiry leaders: 2
+- Interpret fallback-expiry leaders as second-best structural representations, not literal requested-DTE matches
 
